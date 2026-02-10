@@ -1,0 +1,28 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  gap: 1rem;
+}
+
+.heading {
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.button {
+  padding: 0.5rem 1rem;
+  font-size: 1rem;
+  border: 1px solid var(--foreground);
+  border-radius: 0.375rem;
+  background: transparent;
+  color: var(--foreground);
+  cursor: pointer;
+}
+
+.button:hover {
+  background: var(--foreground);
+  color: var(--background);
+}

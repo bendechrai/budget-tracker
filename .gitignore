@@ -1,0 +1,35 @@
+# Dependencies
+node_modules/
+
+# Next.js
+.next/
+out/
+build/
+
+# Rendered devports output (templates are committed as *.devports)
+.env
+docker-compose.yml
+
+# Local env overrides
+.env.local
+.env.*.local
+
+# Prisma generated client
+web/app/generated/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Ralph
+logs/ralph
+.ralph-stop
+
+# Debug
+npm-debug.log*
