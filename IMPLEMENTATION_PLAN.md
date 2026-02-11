@@ -14,17 +14,17 @@
   - Acceptance: `logError()` function exported, logs errors with context. Used in catch blocks throughout the app.
   - Tests: Unit test for `logError` verifying it logs to console.error with expected format
 
+- [x] **Add password hashing utilities**
+  - Files: `web/lib/auth/password.ts`, `web/package.json` (add bcryptjs)
+  - Spec: `specs/01-auth.md`
+  - Acceptance: `hashPassword(plain)` and `verifyPassword(plain, hash)` functions exported and working
+  - Tests: Unit test: hash a password, verify it matches; verify wrong password fails
+
 ## In Progress
 
 ## Backlog
 
 ### Spec 01 — Auth & User Management
-
-- [ ] **Add password hashing utilities**
-  - Files: `web/lib/auth/password.ts`, `web/package.json` (add bcrypt or argon2)
-  - Spec: `specs/01-auth.md`
-  - Acceptance: `hashPassword(plain)` and `verifyPassword(plain, hash)` functions exported and working
-  - Tests: Unit test: hash a password, verify it matches; verify wrong password fails
 
 - [ ] **Add session management utilities**
   - Files: `web/lib/auth/session.ts`, `web/package.json` (add jose or similar for JWT/cookie sessions)
