@@ -2,15 +2,13 @@
 
 ## Completed
 
-_(none yet)_
-
-## In Progress
-
-- [ ] **Add `User` model with Prisma migration**
+- [x] **Add `User` model with Prisma migration**
   - Files: `web/prisma/schema.prisma`, new migration
   - Spec: `specs/01-auth.md`
   - Acceptance: `User` model exists in schema with fields: id, email (unique), passwordHash, currencySymbol (default "$"), onboardingComplete (default false), currentFundBalance (default 0), maxContributionPerCycle (nullable), contributionCycleDays (nullable), createdAt, updatedAt. Migration runs cleanly.
   - Tests: Prisma generate succeeds; migration applies without errors
+
+## In Progress
 
 ## Backlog
 
