@@ -8,17 +8,17 @@
   - Acceptance: `User` model exists in schema with fields: id, email (unique), passwordHash, currencySymbol (default "$"), onboardingComplete (default false), currentFundBalance (default 0), maxContributionPerCycle (nullable), contributionCycleDays (nullable), createdAt, updatedAt. Migration runs cleanly.
   - Tests: Prisma generate succeeds; migration applies without errors
 
+- [x] **Add `logError` utility in `web/lib/logging.ts`**
+  - Files: `web/lib/logging.ts`
+  - Spec: `AGENTS.md` convention
+  - Acceptance: `logError()` function exported, logs errors with context. Used in catch blocks throughout the app.
+  - Tests: Unit test for `logError` verifying it logs to console.error with expected format
+
 ## In Progress
 
 ## Backlog
 
 ### Spec 01 — Auth & User Management
-
-- [ ] **Add `logError` utility in `web/lib/logging.ts`**
-  - Files: `web/lib/logging.ts`
-  - Spec: `AGENTS.md` convention
-  - Acceptance: `logError()` function exported, logs errors with context. Used in catch blocks throughout the app.
-  - Tests: Unit test for `logError` verifying it logs to console.error with expected format
 
 - [ ] **Add password hashing utilities**
   - Files: `web/lib/auth/password.ts`, `web/package.json` (add bcrypt or argon2)
