@@ -1,4 +1,4 @@
-const requiredEnvVars = ["DATABASE_URL"] as const;
+const requiredEnvVars = ["DATABASE_URL", "SESSION_SECRET"] as const;
 
 export function validateEnv(): void {
   const missing = requiredEnvVars.filter((key) => !process.env[key]);

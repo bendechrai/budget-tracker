@@ -20,17 +20,17 @@
   - Acceptance: `hashPassword(plain)` and `verifyPassword(plain, hash)` functions exported and working
   - Tests: Unit test: hash a password, verify it matches; verify wrong password fails
 
+- [x] **Add session management utilities**
+  - Files: `web/lib/auth/session.ts`, `web/package.json` (add jose), `web/lib/env.ts`, `.env.devports`, `docker-compose.yml.devports`
+  - Spec: `specs/01-auth.md`
+  - Acceptance: Functions to create session, read session from cookies, and destroy session. Sessions persist across browser refreshes.
+  - Tests: Unit test: create a session token, parse it back, verify payload
+
 ## In Progress
 
 ## Backlog
 
 ### Spec 01 — Auth & User Management
-
-- [ ] **Add session management utilities**
-  - Files: `web/lib/auth/session.ts`, `web/package.json` (add jose or similar for JWT/cookie sessions)
-  - Spec: `specs/01-auth.md`
-  - Acceptance: Functions to create session, read session from cookies, and destroy session. Sessions persist across browser refreshes.
-  - Tests: Unit test: create a session token, parse it back, verify payload
 
 - [ ] **Add `POST /api/auth/signup` route**
   - Files: `web/app/api/auth/signup/route.ts`
