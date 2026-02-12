@@ -30,6 +30,8 @@ model User {
   incomeSources           IncomeSource[]
   fundGroups              FundGroup[]
   obligations             Obligation[]
+  transactions            Transaction[]
+  importLogs              ImportLog[]
 }
 
 enum IncomeFrequency {
@@ -114,4 +116,48 @@ model CustomScheduleEntry {
   obligation   Obligation @relation(fields: [obligationId], references: [id], onDelete: Cascade)
 
   @@index([obligationId])
+}
+
+enum TransactionType {
+  credit
+  debit
+}
+
+enum ImportFormat {
+  pdf
+  csv
+  ofx
+}
+
+model Transaction {
+  id             String          @id @default(cuid())
+  userId         String
+  date           DateTime
+  description    String
+  amount         Float
+  type           TransactionType
+  referenceId    String?
+  fingerprint    String
+  sourceFileName String
+  importedAt     DateTime        @default(now())
+  createdAt      DateTime        @default(now())
+  user           User            @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([fingerprint])
+}
+
+model ImportLog {
+  id                    String       @id @default(cuid())
+  userId                String
+  fileName              String
+  format                ImportFormat
+  transactionsFound     Int
+  transactionsImported  Int
+  duplicatesSkipped     Int
+  duplicatesFlagged     Int
+  importedAt            DateTime     @default(now())
+  user                  User         @relation(fields: [userId], references: [id])
+
+  @@index([userId])
 }

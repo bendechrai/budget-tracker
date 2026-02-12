@@ -218,17 +218,17 @@
   - Acceptance: Pause/resume toggle. Paused items greyed out. Completed obligations (past end date or paid one-off) are automatically archived. Archived items visible in archive section.
   - Tests: Component test: pause toggle, archive display
 
+- [x] **Add `Transaction` and `ImportLog` models with Prisma migration**
+  - Files: `web/prisma/schema.prisma`, new migration
+  - Spec: `specs/05-bank-statement-import.md`
+  - Acceptance: Transaction model with: id, userId, date, description, amount, type (credit/debit), referenceId (nullable), fingerprint, sourceFileName, importedAt, createdAt. ImportLog model with: id, userId, fileName, format (pdf/csv/ofx), transactionsFound, transactionsImported, duplicatesSkipped, duplicatesFlagged, importedAt. Migration runs cleanly.
+  - Tests: Migration applies; Prisma generate succeeds
+
 ## In Progress
 
 ## Backlog
 
 ### Spec 05 — Bank Statement Import
-
-- [ ] **Add `Transaction` and `ImportLog` models with Prisma migration**
-  - Files: `web/prisma/schema.prisma`, new migration
-  - Spec: `specs/05-bank-statement-import.md`
-  - Acceptance: Transaction model with: id, userId, date, description, amount, type (credit/debit), referenceId (nullable), fingerprint, sourceFileName, importedAt, createdAt. ImportLog model with: id, userId, fileName, format (pdf/csv/ofx), transactionsFound, transactionsImported, duplicatesSkipped, duplicatesFlagged, importedAt. Migration runs cleanly.
-  - Tests: Migration applies; Prisma generate succeeds
 
 - [ ] **Add CSV statement parser utility**
   - Files: `web/lib/import/csvParser.ts`
