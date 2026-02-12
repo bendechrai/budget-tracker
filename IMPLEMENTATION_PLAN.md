@@ -296,17 +296,17 @@
   - Acceptance: Analyzes transactions to detect recurring patterns. Groups by vendor similarity (fuzzy matching with normalization). Detects frequency (weekly/fortnightly/monthly/quarterly/annual). Classifies as income or expense. Calculates confidence based on match count and consistency. Excludes already-tracked patterns.
   - Tests: Unit tests: detect monthly subscription, detect income pattern, detect variable-amount pattern, fuzzy vendor matching, confidence scoring
 
+- [x] **Add `POST /api/patterns/detect` route (trigger after import)**
+  - Files: `web/app/api/patterns/detect/route.ts`
+  - Spec: `specs/06-pattern-detection.md`
+  - Acceptance: Runs pattern detection for the authenticated user. Creates Suggestion records with linked transactions. Skips patterns that match existing income sources or obligations. Returns count of new suggestions.
+  - Tests: Test detection creates suggestions, skips already-tracked patterns
+
 ## In Progress
 
 ## Backlog
 
 ### Spec 06 — Pattern Detection & Suggestions
-
-- [ ] **Add `POST /api/patterns/detect` route (trigger after import)**
-  - Files: `web/app/api/patterns/detect/route.ts`
-  - Spec: `specs/06-pattern-detection.md`
-  - Acceptance: Runs pattern detection for the authenticated user. Creates Suggestion records with linked transactions. Skips patterns that match existing income sources or obligations. Returns count of new suggestions.
-  - Tests: Test detection creates suggestions, skips already-tracked patterns
 
 - [ ] **Add `GET /api/suggestions` route**
   - Files: `web/app/api/suggestions/route.ts`
