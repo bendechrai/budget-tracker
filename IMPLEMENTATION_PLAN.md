@@ -38,17 +38,17 @@
   - Acceptance: Verifies credentials, returns session cookie. Invalid credentials return 401 with generic "invalid email or password" message.
   - Tests: Test login with valid creds (200 + cookie), wrong password (401), nonexistent email (401)
 
+- [x] **Add `POST /api/auth/logout` route**
+  - Files: `web/app/api/auth/logout/route.ts`
+  - Spec: `specs/01-auth.md`
+  - Acceptance: Clears session cookie, returns 200
+  - Tests: Test logout clears session
+
 ## In Progress
 
 ## Backlog
 
 ### Spec 01 — Auth & User Management
-
-- [ ] **Add `POST /api/auth/logout` route**
-  - Files: `web/app/api/auth/logout/route.ts`
-  - Spec: `specs/01-auth.md`
-  - Acceptance: Clears session cookie, returns 200
-  - Tests: Test logout clears session
 
 - [ ] **Add auth middleware for protected routes**
   - Files: `web/middleware.ts`
