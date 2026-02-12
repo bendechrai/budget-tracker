@@ -26,17 +26,17 @@
   - Acceptance: Functions to create session, read session from cookies, and destroy session. Sessions persist across browser refreshes.
   - Tests: Unit test: create a session token, parse it back, verify payload
 
+- [x] **Add `POST /api/auth/signup` route**
+  - Files: `web/app/api/auth/signup/route.ts`
+  - Spec: `specs/01-auth.md`
+  - Acceptance: Creates user with hashed password, returns session cookie. Rejects duplicate email with 409 and message "email already registered". Enforces minimum 8-char password.
+  - Tests: Test signup with valid data (201), duplicate email (409), short password (400)
+
 ## In Progress
 
 ## Backlog
 
 ### Spec 01 — Auth & User Management
-
-- [ ] **Add `POST /api/auth/signup` route**
-  - Files: `web/app/api/auth/signup/route.ts`
-  - Spec: `specs/01-auth.md`
-  - Acceptance: Creates user with hashed password, returns session cookie. Rejects duplicate email with 409 and message "email already registered". Enforces minimum 8-char password.
-  - Tests: Test signup with valid data (201), duplicate email (409), short password (400)
 
 - [ ] **Add `POST /api/auth/login` route**
   - Files: `web/app/api/auth/login/route.ts`
