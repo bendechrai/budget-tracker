@@ -152,17 +152,15 @@
   - Acceptance: Traditional form with fields for name, amount, frequency (dropdown with all types), frequency days (for custom), irregular flag, minimum expected, next expected date. Supports both create and edit modes.
   - Tests: Component test: renders all fields, submits valid data, shows validation errors
 
-## In Progress
-
-## Backlog
-
-### Spec 03 — Income Sources
-
-- [ ] **Add pause/resume toggle for income sources**
-  - Files: `web/app/income/page.tsx` (update)
+- [x] **Add pause/resume toggle for income sources**
+  - Files: `web/app/income/page.tsx` (update), `web/app/income/income.module.css` (update)
   - Spec: `specs/03-income-sources.md`
   - Acceptance: Each income source has a pause/resume toggle. Paused items appear greyed out. Toggle calls PUT API to update isPaused.
   - Tests: Component test: toggle changes visual state and calls API
+
+## In Progress
+
+## Backlog
 
 ### Spec 04 — Expenses & Obligations
 

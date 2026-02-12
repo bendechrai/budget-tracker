@@ -149,6 +149,21 @@
   gap: 8px;
 }
 
+.pauseButton {
+  padding: 6px 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  background: transparent;
+  color: var(--foreground);
+  transition: border-color 0.2s;
+}
+
+.pauseButton:hover {
+  border-color: var(--foreground);
+}
+
 .editButton {
   padding: 6px 12px;
   border: 1px solid #ddd;
@@ -209,6 +224,14 @@
   .pausedBadge {
     color: #718096;
     background: #2d3748;
+  }
+
+  .pauseButton {
+    border-color: #333;
+  }
+
+  .pauseButton:hover {
+    border-color: var(--foreground);
   }
 
   .editButton {

@@ -289,6 +289,117 @@ describe("IncomePage", () => {
     ).toBeDefined();
   });
 
+  it("toggles pause to resume when clicking pause button on active source", async () => {
+    const user = userEvent.setup();
+    vi.mocked(global.fetch)
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify(mockIncomeSources), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        })
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ ...mockIncomeSources[0], isPaused: true }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        })
+      );
+
+    render(<IncomePage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Salary")).toBeDefined();
+    });
+
+    await user.click(
+      screen.getByRole("button", { name: "Pause Salary" })
+    );
+
+    expect(global.fetch).toHaveBeenCalledWith("/api/income-sources/1", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ isPaused: true }),
+    });
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("button", { name: "Resume Salary" })
+      ).toBeDefined();
+    });
+  });
+
+  it("toggles resume to pause when clicking resume button on paused source", async () => {
+    const user = userEvent.setup();
+    vi.mocked(global.fetch)
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify(mockIncomeSources), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        })
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ ...mockIncomeSources[1], isPaused: false }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        })
+      );
+
+    render(<IncomePage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Freelance")).toBeDefined();
+    });
+
+    await user.click(
+      screen.getByRole("button", { name: "Resume Freelance" })
+    );
+
+    expect(global.fetch).toHaveBeenCalledWith("/api/income-sources/2", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ isPaused: false }),
+    });
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("button", { name: "Pause Freelance" })
+      ).toBeDefined();
+    });
+  });
+
+  it("shows error when toggle pause API call fails", async () => {
+    const user = userEvent.setup();
+    vi.mocked(global.fetch)
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify(mockIncomeSources), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        })
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ error: "internal server error" }), {
+          status: 500,
+          headers: { "Content-Type": "application/json" },
+        })
+      );
+
+    render(<IncomePage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Salary")).toBeDefined();
+    });
+
+    await user.click(
+      screen.getByRole("button", { name: "Pause Salary" })
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole("alert").textContent).toBe(
+        "Failed to update income source"
+      );
+    });
+  });
+
   it("shows custom frequency with days", async () => {
     const customSource = [
       {

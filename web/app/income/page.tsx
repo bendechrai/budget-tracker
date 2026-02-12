@@ -71,6 +71,26 @@ export default function IncomePage() {
     void fetchIncomeSources();
   }, [fetchIncomeSources]);
 
+  async function handleTogglePause(id: string, isPaused: boolean) {
+    try {
+      const res = await fetch(`/api/income-sources/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isPaused: !isPaused }),
+      });
+      if (!res.ok) {
+        setError("Failed to update income source");
+        return;
+      }
+      setIncomeSources((prev) =>
+        prev.map((s) => (s.id === id ? { ...s, isPaused: !isPaused } : s))
+      );
+    } catch (err) {
+      logError("failed to toggle pause for income source", err);
+      setError("Failed to update income source");
+    }
+  }
+
   async function handleDelete(id: string, name: string) {
     if (!confirm(`Are you sure you want to delete "${name}"?`)) {
       return;
@@ -163,6 +183,14 @@ export default function IncomePage() {
                   </span>
                 </div>
                 <div className={styles.listItemActions}>
+                  <button
+                    type="button"
+                    className={styles.pauseButton}
+                    onClick={() => void handleTogglePause(source.id, source.isPaused)}
+                    aria-label={source.isPaused ? `Resume ${source.name}` : `Pause ${source.name}`}
+                  >
+                    {source.isPaused ? "Resume" : "Pause"}
+                  </button>
                   <button
                     type="button"
                     className={styles.editButton}
