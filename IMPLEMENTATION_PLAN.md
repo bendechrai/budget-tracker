@@ -194,13 +194,17 @@
   - Acceptance: Create a fund group (name + userId). List all fund groups for the authenticated user. Returns 201 on create, 200 on list.
   - Tests: Test create (201), list returns only user's groups
 
+- [x] **Add `PUT /api/fund-groups/[id]` and `DELETE /api/fund-groups/[id]` routes**
+  - Files: `web/app/api/fund-groups/[id]/route.ts`
+  - Spec: `specs/04-expenses-obligations.md`
+  - Acceptance: Rename or delete a fund group. Deleting a group sets obligations in that group to null fundGroupId (default group). Only own records.
+  - Tests: Test rename (200), delete unassigns obligations, ownership check
+
 ## In Progress
 
 ## Backlog
 
 ### Spec 04 — Expenses & Obligations
-
-- [ ] **Add `PUT /api/fund-groups/[id]` and `DELETE /api/fund-groups/[id]` routes**
   - Files: `web/app/api/fund-groups/[id]/route.ts`
   - Spec: `specs/04-expenses-obligations.md`
   - Acceptance: Rename or delete a fund group. Deleting a group sets obligations in that group to null fundGroupId (default group). Only own records.
