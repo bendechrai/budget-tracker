@@ -146,17 +146,17 @@
   - Acceptance: Lists all income sources showing name, amount, frequency, next expected date. Empty state guides user to add first income source. Each item has edit/delete actions.
   - Tests: Component test: renders list, shows empty state when no data
 
+- [x] **Add income source form component**
+  - Files: `web/app/income/IncomeForm.tsx`, `web/app/income/income-form.module.css`
+  - Spec: `specs/03-income-sources.md`
+  - Acceptance: Traditional form with fields for name, amount, frequency (dropdown with all types), frequency days (for custom), irregular flag, minimum expected, next expected date. Supports both create and edit modes.
+  - Tests: Component test: renders all fields, submits valid data, shows validation errors
+
 ## In Progress
 
 ## Backlog
 
 ### Spec 03 — Income Sources
-
-- [ ] **Add income source form component**
-  - Files: `web/app/income/IncomeForm.tsx`, `web/app/income/income-form.module.css`
-  - Spec: `specs/03-income-sources.md`
-  - Acceptance: Traditional form with fields for name, amount, frequency (dropdown with all types), frequency days (for custom), irregular flag, minimum expected, next expected date. Supports both create and edit modes.
-  - Tests: Component test: renders all fields, submits valid data, shows validation errors
 
 - [ ] **Add pause/resume toggle for income sources**
   - Files: `web/app/income/page.tsx` (update)
