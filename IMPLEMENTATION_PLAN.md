@@ -224,17 +224,17 @@
   - Acceptance: Transaction model with: id, userId, date, description, amount, type (credit/debit), referenceId (nullable), fingerprint, sourceFileName, importedAt, createdAt. ImportLog model with: id, userId, fileName, format (pdf/csv/ofx), transactionsFound, transactionsImported, duplicatesSkipped, duplicatesFlagged, importedAt. Migration runs cleanly.
   - Tests: Migration applies; Prisma generate succeeds
 
+- [x] **Add CSV statement parser utility**
+  - Files: `web/lib/import/csvParser.ts`
+  - Spec: `specs/05-bank-statement-import.md`
+  - Acceptance: Parses CSV content into transaction objects. Auto-detects common column layouts (date, description, amount, credit/debit). Falls back to manual column mapping config. Handles common date formats.
+  - Tests: Unit test with sample CSV data: auto-detect columns, parse dates correctly, handle edge cases
+
 ## In Progress
 
 ## Backlog
 
 ### Spec 05 — Bank Statement Import
-
-- [ ] **Add CSV statement parser utility**
-  - Files: `web/lib/import/csvParser.ts`
-  - Spec: `specs/05-bank-statement-import.md`
-  - Acceptance: Parses CSV content into transaction objects. Auto-detects common column layouts (date, description, amount, credit/debit). Falls back to manual column mapping config. Handles common date formats.
-  - Tests: Unit test with sample CSV data: auto-detect columns, parse dates correctly, handle edge cases
 
 - [ ] **Add OFX statement parser utility**
   - Files: `web/lib/import/ofxParser.ts`, `web/package.json` (add OFX parsing lib if needed)
