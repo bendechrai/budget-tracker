@@ -2,6 +2,9 @@
   "name": "web",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "dev": "next dev --hostname 0.0.0.0",
     "build": "next build",
@@ -22,6 +25,7 @@
     "jose": "^5.9.6",
     "next": "16.1.6",
     "pg": "^8.18.0",
+    "prisma": "^7.4.0",
     "react": "19.2.3",
     "react-dom": "19.2.3"
   },
@@ -38,7 +42,6 @@
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
     "jsdom": "^27.4.0",
-    "prisma": "^7.3.0",
     "typescript": "^5",
     "vitest": "^4.0.18"
   }
