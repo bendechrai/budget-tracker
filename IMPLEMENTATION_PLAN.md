@@ -92,17 +92,17 @@
   - Acceptance: User can add obligations one at a time via a traditional form. Can skip. Navigates to fund setup.
   - Tests: Component test: form renders, skip button works
 
+- [x] **Add onboarding fund setup step page**
+  - Files: `web/app/onboarding/fund-setup/page.tsx`, `web/app/onboarding/fund-setup/fund-setup.module.css`
+  - Spec: `specs/02-onboarding.md`
+  - Acceptance: Collects current fund balance, max contribution per cycle, contribution cycle days, and currency symbol. "I'm not sure" option for contribution capacity. Marks onboarding complete on finish. Redirects to dashboard.
+  - Tests: Component test: all fields render, "I'm not sure" option works, submit marks onboarding complete
+
 ## In Progress
 
 ## Backlog
 
 ### Spec 02 — Onboarding
-
-- [ ] **Add onboarding fund setup step page**
-  - Files: `web/app/onboarding/fund-setup/page.tsx`
-  - Spec: `specs/02-onboarding.md`
-  - Acceptance: Collects current fund balance, max contribution per cycle, contribution cycle days, and currency symbol. "I'm not sure" option for contribution capacity. Marks onboarding complete on finish. Redirects to dashboard.
-  - Tests: Component test: all fields render, "I'm not sure" option works, submit marks onboarding complete
 
 - [ ] **Add `PUT /api/user/onboarding` route for fund setup**
   - Files: `web/app/api/user/onboarding/route.ts`
