@@ -140,17 +140,17 @@
   - Acceptance: Soft-deletes (sets isActive=false) an income source. Only allows deleting own records.
   - Tests: Test delete (200), delete someone else's record (403/404)
 
+- [x] **Add income sources list page**
+  - Files: `web/app/income/page.tsx`, `web/app/income/income.module.css`
+  - Spec: `specs/03-income-sources.md`
+  - Acceptance: Lists all income sources showing name, amount, frequency, next expected date. Empty state guides user to add first income source. Each item has edit/delete actions.
+  - Tests: Component test: renders list, shows empty state when no data
+
 ## In Progress
 
 ## Backlog
 
 ### Spec 03 — Income Sources
-
-- [ ] **Add income sources list page**
-  - Files: `web/app/income/page.tsx`, `web/app/income/income.module.css`
-  - Spec: `specs/03-income-sources.md`
-  - Acceptance: Lists all income sources showing name, amount, frequency, next expected date. Empty state guides user to add first income source. Each item has edit/delete actions.
-  - Tests: Component test: renders list, shows empty state when no data
 
 - [ ] **Add income source form component**
   - Files: `web/app/income/IncomeForm.tsx`, `web/app/income/income-form.module.css`

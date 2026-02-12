@@ -1,0 +1,255 @@
+.page {
+  display: flex;
+  min-height: 100vh;
+  font-family: var(--font-geist-sans);
+  background-color: var(--background);
+  justify-content: center;
+  padding: 40px 24px;
+}
+
+.container {
+  width: 100%;
+  max-width: 600px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 32px;
+}
+
+.title {
+  font-size: 28px;
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+.addButton {
+  padding: 10px 16px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  background: var(--foreground);
+  color: var(--background);
+  transition: opacity 0.2s;
+}
+
+.addButton:hover {
+  opacity: 0.9;
+}
+
+.error {
+  color: #e53e3e;
+  font-size: 14px;
+  padding: 10px 12px;
+  background: #fff5f5;
+  border: 1px solid #fed7d7;
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+.loading {
+  text-align: center;
+  color: #666;
+  font-size: 16px;
+  padding: 40px 0;
+}
+
+.emptyState {
+  text-align: center;
+  padding: 60px 20px;
+  border: 1px dashed #ddd;
+  border-radius: 12px;
+}
+
+.emptyTitle {
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--foreground);
+  margin-bottom: 8px;
+}
+
+.emptyDescription {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 24px;
+}
+
+.emptyAddButton {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  background: var(--foreground);
+  color: var(--background);
+  transition: opacity 0.2s;
+}
+
+.emptyAddButton:hover {
+  opacity: 0.9;
+}
+
+.list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.listItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+}
+
+.listItemPaused {
+  opacity: 0.5;
+}
+
+.listItemInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.listItemName {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--foreground);
+}
+
+.listItemDetail {
+  font-size: 13px;
+  color: #666;
+}
+
+.pausedBadge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 500;
+  color: #a0aec0;
+  background: #edf2f7;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-left: 8px;
+}
+
+.listItemActions {
+  display: flex;
+  gap: 8px;
+}
+
+.editButton {
+  padding: 6px 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  background: transparent;
+  color: var(--foreground);
+  transition: border-color 0.2s;
+}
+
+.editButton:hover {
+  border-color: var(--foreground);
+}
+
+.deleteButton {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  background: transparent;
+  color: #e53e3e;
+  transition: background-color 0.2s;
+}
+
+.deleteButton:hover {
+  background: #fff5f5;
+}
+
+@media (prefers-color-scheme: dark) {
+  .error {
+    color: #fc8181;
+    background: #1a0000;
+    border-color: #4a1515;
+  }
+
+  .loading {
+    color: #999;
+  }
+
+  .emptyState {
+    border-color: #333;
+  }
+
+  .emptyDescription {
+    color: #999;
+  }
+
+  .listItem {
+    border-color: #333;
+  }
+
+  .listItemDetail {
+    color: #999;
+  }
+
+  .pausedBadge {
+    color: #718096;
+    background: #2d3748;
+  }
+
+  .editButton {
+    border-color: #333;
+  }
+
+  .editButton:hover {
+    border-color: var(--foreground);
+  }
+
+  .deleteButton {
+    color: #fc8181;
+  }
+
+  .deleteButton:hover {
+    background: #1a0000;
+  }
+}
+
+@media (max-width: 480px) {
+  .page {
+    padding: 24px 16px;
+  }
+
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .title {
+    font-size: 24px;
+  }
+
+  .listItem {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .listItemActions {
+    align-self: flex-end;
+  }
+}
