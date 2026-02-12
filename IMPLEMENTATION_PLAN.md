@@ -98,17 +98,17 @@
   - Acceptance: Collects current fund balance, max contribution per cycle, contribution cycle days, and currency symbol. "I'm not sure" option for contribution capacity. Marks onboarding complete on finish. Redirects to dashboard.
   - Tests: Component test: all fields render, "I'm not sure" option works, submit marks onboarding complete
 
+- [x] **Add `PUT /api/user/onboarding` route for fund setup**
+  - Files: `web/app/api/user/onboarding/route.ts`
+  - Spec: `specs/02-onboarding.md`
+  - Acceptance: Updates user's fund balance, max contribution, cycle days, currency symbol, and sets onboardingComplete = true. Returns updated user.
+  - Tests: Test valid update (200), missing auth (401)
+
 ## In Progress
 
 ## Backlog
 
 ### Spec 02 — Onboarding
-
-- [ ] **Add `PUT /api/user/onboarding` route for fund setup**
-  - Files: `web/app/api/user/onboarding/route.ts`
-  - Spec: `specs/02-onboarding.md`
-  - Acceptance: Updates user's fund balance, max contribution, cycle days, currency symbol, and sets onboardingComplete = true. Returns updated user.
-  - Tests: Test valid update (200), missing auth (401)
 
 - [ ] **Add onboarding completion redirect logic**
   - Files: `web/middleware.ts` (update)
