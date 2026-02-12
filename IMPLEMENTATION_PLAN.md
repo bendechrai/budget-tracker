@@ -338,17 +338,17 @@
   - Acceptance: Given a user's obligations, fund balances, income, and capacity: calculates per-obligation contribution per cycle. Implements adaptive contributions (ramp-up/ramp-down). Respects max contribution capacity. Prioritizes by nearest due date when capacity exceeded. Generates shortfall warnings. Handles recurring cycle resets.
   - Tests: Unit tests: steady state calc, ramp-up scenario, ramp-down scenario, capacity exceeded prioritization, shortfall warning generation, recurring cycle reset
 
+- [x] **Add engine snapshot generation**
+  - Files: `web/lib/engine/snapshot.ts`
+  - Spec: `specs/07-sinking-fund-engine.md`
+  - Acceptance: Creates an EngineSnapshot record with totalRequired, totalFunded, nextActionAmount, nextActionDate, nextActionDescription. Next action is the most urgent under-funded obligation. Celebration state when all funded.
+  - Tests: Unit test: snapshot contains correct totals, next action is nearest due date, celebration state when fully funded
+
 ## In Progress
 
 ## Backlog
 
 ### Spec 07 — Sinking Fund Engine
-
-- [ ] **Add engine snapshot generation**
-  - Files: `web/lib/engine/snapshot.ts`
-  - Spec: `specs/07-sinking-fund-engine.md`
-  - Acceptance: Creates an EngineSnapshot record with totalRequired, totalFunded, nextActionAmount, nextActionDate, nextActionDescription. Next action is the most urgent under-funded obligation. Celebration state when all funded.
-  - Tests: Unit test: snapshot contains correct totals, next action is nearest due date, celebration state when fully funded
 
 - [ ] **Add `POST /api/engine/recalculate` route**
   - Files: `web/app/api/engine/recalculate/route.ts`
