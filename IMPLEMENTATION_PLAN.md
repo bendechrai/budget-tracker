@@ -236,17 +236,17 @@
   - Acceptance: Parses OFX/QFX content into transaction objects. Extracts date, description, amount, type, reference ID.
   - Tests: Unit test with sample OFX data
 
+- [x] **Add transaction deduplication utility**
+  - Files: `web/lib/import/dedup.ts`
+  - Spec: `specs/05-bank-statement-import.md`
+  - Acceptance: Three-layer dedup: (1) exact reference ID match → auto-skip, (2) composite fingerprint (hash of date+amount+description) → auto-skip, (3) fuzzy match (same date + similar amount + similar description) → flag for review. Returns categorized results: new, skipped, flagged.
+  - Tests: Unit test: exact dupe detected, fingerprint dupe detected, fuzzy match flagged, new transaction passes
+
 ## In Progress
 
 ## Backlog
 
 ### Spec 05 — Bank Statement Import
-
-- [ ] **Add transaction deduplication utility**
-  - Files: `web/lib/import/dedup.ts`
-  - Spec: `specs/05-bank-statement-import.md`
-  - Acceptance: Three-layer dedup: (1) exact reference ID match → auto-skip, (2) composite fingerprint (hash of date+amount+description) → auto-skip, (3) fuzzy match (same date + similar amount + similar description) → flag for review. Returns categorized results: new, skipped, flagged.
-  - Tests: Unit test: exact dupe detected, fingerprint dupe detected, fuzzy match flagged, new transaction passes
 
 - [ ] **Add `POST /api/import/upload` route**
   - Files: `web/app/api/import/upload/route.ts`
