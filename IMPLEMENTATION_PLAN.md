@@ -32,17 +32,17 @@
   - Acceptance: Creates user with hashed password, returns session cookie. Rejects duplicate email with 409 and message "email already registered". Enforces minimum 8-char password.
   - Tests: Test signup with valid data (201), duplicate email (409), short password (400)
 
+- [x] **Add `POST /api/auth/login` route**
+  - Files: `web/app/api/auth/login/route.ts`
+  - Spec: `specs/01-auth.md`
+  - Acceptance: Verifies credentials, returns session cookie. Invalid credentials return 401 with generic "invalid email or password" message.
+  - Tests: Test login with valid creds (200 + cookie), wrong password (401), nonexistent email (401)
+
 ## In Progress
 
 ## Backlog
 
 ### Spec 01 — Auth & User Management
-
-- [ ] **Add `POST /api/auth/login` route**
-  - Files: `web/app/api/auth/login/route.ts`
-  - Spec: `specs/01-auth.md`
-  - Acceptance: Verifies credentials, returns session cookie. Invalid credentials return 401 with generic "invalid email or password" message.
-  - Tests: Test login with valid creds (200 + cookie), wrong password (401), nonexistent email (401)
 
 - [ ] **Add `POST /api/auth/logout` route**
   - Files: `web/app/api/auth/logout/route.ts`
