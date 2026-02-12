@@ -80,17 +80,17 @@
   - Acceptance: Welcome screen appears after signup. Shows two equally prominent paths: "Upload Statements" and "Manual Entry". Explains the sinking fund concept. Authenticated route.
   - Tests: Component test: both path buttons render with equal prominence
 
+- [x] **Add onboarding manual income step page**
+  - Files: `web/app/onboarding/manual/income/page.tsx`, `web/app/onboarding/manual/income/income.module.css`
+  - Spec: `specs/02-onboarding.md`
+  - Acceptance: User can add income sources one at a time via a traditional form. Can skip. Navigates to obligations step.
+  - Tests: Component test: form renders, skip button works
+
 ## In Progress
 
 ## Backlog
 
 ### Spec 02 — Onboarding
-
-- [ ] **Add onboarding manual income step page**
-  - Files: `web/app/onboarding/manual/income/page.tsx`
-  - Spec: `specs/02-onboarding.md`
-  - Acceptance: User can add income sources one at a time via a traditional form. Can skip. Navigates to obligations step.
-  - Tests: Component test: form renders, skip button works
 
 - [ ] **Add onboarding manual obligations step page**
   - Files: `web/app/onboarding/manual/obligations/page.tsx`
