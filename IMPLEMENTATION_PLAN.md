@@ -74,17 +74,17 @@
   - Acceptance: Landing page shows Sign Up and Log In buttons/links. Clean, branded design.
   - Tests: Component test: renders both links
 
+- [x] **Add onboarding layout and welcome step page**
+  - Files: `web/app/onboarding/layout.tsx`, `web/app/onboarding/page.tsx`, `web/app/onboarding/onboarding.module.css`
+  - Spec: `specs/02-onboarding.md`
+  - Acceptance: Welcome screen appears after signup. Shows two equally prominent paths: "Upload Statements" and "Manual Entry". Explains the sinking fund concept. Authenticated route.
+  - Tests: Component test: both path buttons render with equal prominence
+
 ## In Progress
 
 ## Backlog
 
 ### Spec 02 — Onboarding
-
-- [ ] **Add onboarding layout and welcome step page**
-  - Files: `web/app/onboarding/layout.tsx`, `web/app/onboarding/page.tsx`, `web/app/onboarding/onboarding.module.css`
-  - Spec: `specs/02-onboarding.md`
-  - Acceptance: Welcome screen appears after signup. Shows two equally prominent paths: "Upload Statements" and "Manual Entry". Explains the sinking fund concept. Authenticated route.
-  - Tests: Component test: both path buttons render with equal prominence
 
 - [ ] **Add onboarding manual income step page**
   - Files: `web/app/onboarding/manual/income/page.tsx`
