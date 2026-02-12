@@ -23,7 +23,7 @@ vi.mock("@/lib/logging", () => ({
   logError: vi.fn(),
 }));
 
-import { PUT } from "../route";
+import { PUT, DELETE } from "../route";
 
 function makeRequest(id: string, body: Record<string, unknown>): [NextRequest, { params: Promise<{ id: string }> }] {
   const req = new NextRequest(`http://localhost/api/income-sources/${id}`, {
@@ -255,6 +255,89 @@ describe("PUT /api/income-sources/[id]", () => {
     expect(res.status).toBe(400);
     const data = await res.json();
     expect(data.error).toBe("frequencyDays must be a positive integer when frequency is custom");
+    expect(mockUpdate).not.toHaveBeenCalled();
+  });
+});
+
+function makeDeleteRequest(id: string): [NextRequest, { params: Promise<{ id: string }> }] {
+  const req = new NextRequest(`http://localhost/api/income-sources/${id}`, {
+    method: "DELETE",
+  });
+  return [req, { params: Promise.resolve({ id }) }];
+}
+
+describe("DELETE /api/income-sources/[id]", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("returns 200 and soft-deletes the income source", async () => {
+    mockGetCurrentUser.mockResolvedValue({ id: "user_1", email: "test@example.com" });
+    mockFindUnique.mockResolvedValue(existingRecord);
+    mockUpdate.mockResolvedValue({ ...existingRecord, isActive: false });
+
+    const [req, ctx] = makeDeleteRequest("inc_1");
+    const res = await DELETE(req, ctx);
+
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.success).toBe(true);
+
+    expect(mockUpdate).toHaveBeenCalledWith({
+      where: { id: "inc_1" },
+      data: { isActive: false },
+    });
+  });
+
+  it("returns 401 when not authenticated", async () => {
+    mockGetCurrentUser.mockResolvedValue(null);
+
+    const [req, ctx] = makeDeleteRequest("inc_1");
+    const res = await DELETE(req, ctx);
+
+    expect(res.status).toBe(401);
+    const data = await res.json();
+    expect(data.error).toBe("unauthorized");
+    expect(mockFindUnique).not.toHaveBeenCalled();
+    expect(mockUpdate).not.toHaveBeenCalled();
+  });
+
+  it("returns 404 when income source does not exist", async () => {
+    mockGetCurrentUser.mockResolvedValue({ id: "user_1", email: "test@example.com" });
+    mockFindUnique.mockResolvedValue(null);
+
+    const [req, ctx] = makeDeleteRequest("nonexistent");
+    const res = await DELETE(req, ctx);
+
+    expect(res.status).toBe(404);
+    const data = await res.json();
+    expect(data.error).toBe("not found");
+    expect(mockUpdate).not.toHaveBeenCalled();
+  });
+
+  it("returns 404 when trying to delete another user's income source", async () => {
+    mockGetCurrentUser.mockResolvedValue({ id: "user_2", email: "other@example.com" });
+    mockFindUnique.mockResolvedValue(existingRecord);
+
+    const [req, ctx] = makeDeleteRequest("inc_1");
+    const res = await DELETE(req, ctx);
+
+    expect(res.status).toBe(404);
+    const data = await res.json();
+    expect(data.error).toBe("not found");
+    expect(mockUpdate).not.toHaveBeenCalled();
+  });
+
+  it("returns 404 when income source is already soft-deleted", async () => {
+    mockGetCurrentUser.mockResolvedValue({ id: "user_1", email: "test@example.com" });
+    mockFindUnique.mockResolvedValue({ ...existingRecord, isActive: false });
+
+    const [req, ctx] = makeDeleteRequest("inc_1");
+    const res = await DELETE(req, ctx);
+
+    expect(res.status).toBe(404);
+    const data = await res.json();
+    expect(data.error).toBe("not found");
     expect(mockUpdate).not.toHaveBeenCalled();
   });
 });

@@ -134,21 +134,17 @@
   - Acceptance: Updates an income source. Only allows updating own records. Supports updating name, amount, frequency, pause status.
   - Tests: Test update (200), update someone else's record (403/404), unauthenticated (401)
 
+- [x] **Add `DELETE /api/income-sources/[id]` route**
+  - Files: `web/app/api/income-sources/[id]/route.ts`
+  - Spec: `specs/03-income-sources.md`
+  - Acceptance: Soft-deletes (sets isActive=false) an income source. Only allows deleting own records.
+  - Tests: Test delete (200), delete someone else's record (403/404)
+
 ## In Progress
 
 ## Backlog
 
 ### Spec 03 — Income Sources
-  - Files: `web/app/api/income-sources/[id]/route.ts`
-  - Spec: `specs/03-income-sources.md`
-  - Acceptance: Updates an income source. Only allows updating own records. Supports updating name, amount, frequency, pause status.
-  - Tests: Test update (200), update someone else's record (403/404), unauthenticated (401)
-
-- [ ] **Add `DELETE /api/income-sources/[id]` route**
-  - Files: `web/app/api/income-sources/[id]/route.ts`
-  - Spec: `specs/03-income-sources.md`
-  - Acceptance: Soft-deletes (sets isActive=false) an income source. Only allows deleting own records.
-  - Tests: Test delete (200), delete someone else's record (403/404)
 
 - [ ] **Add income sources list page**
   - Files: `web/app/income/page.tsx`, `web/app/income/income.module.css`

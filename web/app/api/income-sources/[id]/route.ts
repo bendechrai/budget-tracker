@@ -4,6 +4,45 @@ import { getCurrentUser } from "@/lib/auth/getCurrentUser";
 import { logError } from "@/lib/logging";
 import type { IncomeFrequency } from "@/app/generated/prisma/client";
 
+export async function DELETE(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+): Promise<NextResponse> {
+  try {
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    }
+
+    const { id } = await params;
+
+    const existing = await prisma.incomeSource.findUnique({
+      where: { id },
+    });
+
+    if (!existing || !existing.isActive) {
+      return NextResponse.json({ error: "not found" }, { status: 404 });
+    }
+
+    if (existing.userId !== user.id) {
+      return NextResponse.json({ error: "not found" }, { status: 404 });
+    }
+
+    await prisma.incomeSource.update({
+      where: { id },
+      data: { isActive: false },
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    logError("failed to delete income source", error);
+    return NextResponse.json(
+      { error: "internal server error" },
+      { status: 500 }
+    );
+  }
+}
+
 interface UpdateIncomeSourceBody {
   name?: string;
   expectedAmount?: number;
