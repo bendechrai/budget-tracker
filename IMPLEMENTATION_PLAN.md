@@ -188,17 +188,17 @@
   - Acceptance: Soft-deletes (sets isActive=false) an obligation. Only allows deleting own records.
   - Tests: Test delete (200), ownership check (403/404)
 
+- [x] **Add `POST /api/fund-groups` and `GET /api/fund-groups` routes**
+  - Files: `web/app/api/fund-groups/route.ts`
+  - Spec: `specs/04-expenses-obligations.md`
+  - Acceptance: Create a fund group (name + userId). List all fund groups for the authenticated user. Returns 201 on create, 200 on list.
+  - Tests: Test create (201), list returns only user's groups
+
 ## In Progress
 
 ## Backlog
 
 ### Spec 04 — Expenses & Obligations
-
-- [ ] **Add `POST /api/fund-groups` and `GET /api/fund-groups` routes**
-  - Files: `web/app/api/fund-groups/route.ts`
-  - Spec: `specs/04-expenses-obligations.md`
-  - Acceptance: Create a fund group (name + userId). List all fund groups for the authenticated user. Returns 201 on create, 200 on list.
-  - Tests: Test create (201), list returns only user's groups
 
 - [ ] **Add `PUT /api/fund-groups/[id]` and `DELETE /api/fund-groups/[id]` routes**
   - Files: `web/app/api/fund-groups/[id]/route.ts`
