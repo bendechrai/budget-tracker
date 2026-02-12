@@ -128,13 +128,17 @@
   - Acceptance: Returns all active income sources for the authenticated user, ordered by createdAt desc.
   - Tests: Test returns user's income sources only (not other users'), empty list for new user
 
+- [x] **Add `PUT /api/income-sources/[id]` route**
+  - Files: `web/app/api/income-sources/[id]/route.ts`
+  - Spec: `specs/03-income-sources.md`
+  - Acceptance: Updates an income source. Only allows updating own records. Supports updating name, amount, frequency, pause status.
+  - Tests: Test update (200), update someone else's record (403/404), unauthenticated (401)
+
 ## In Progress
 
 ## Backlog
 
 ### Spec 03 — Income Sources
-
-- [ ] **Add `PUT /api/income-sources/[id]` route**
   - Files: `web/app/api/income-sources/[id]/route.ts`
   - Spec: `specs/03-income-sources.md`
   - Acceptance: Updates an income source. Only allows updating own records. Supports updating name, amount, frequency, pause status.
