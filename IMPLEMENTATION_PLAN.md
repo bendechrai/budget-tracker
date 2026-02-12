@@ -290,17 +290,17 @@
   - Acceptance: Suggestion model with: id, userId, type (income/expense), vendorPattern, detectedAmount, detectedAmountMin, detectedAmountMax, detectedFrequency, confidence (high/medium/low), matchingTransactionCount, status (pending/accepted/dismissed), linkedIncomeSourceId, linkedObligationId, createdAt, updatedAt. SuggestionTransaction junction table. Migration runs cleanly.
   - Tests: Migration applies; Prisma generate succeeds
 
+- [x] **Add pattern detection engine**
+  - Files: `web/lib/patterns/detect.ts`, `web/lib/patterns/vendorMatch.ts`
+  - Spec: `specs/06-pattern-detection.md`
+  - Acceptance: Analyzes transactions to detect recurring patterns. Groups by vendor similarity (fuzzy matching with normalization). Detects frequency (weekly/fortnightly/monthly/quarterly/annual). Classifies as income or expense. Calculates confidence based on match count and consistency. Excludes already-tracked patterns.
+  - Tests: Unit tests: detect monthly subscription, detect income pattern, detect variable-amount pattern, fuzzy vendor matching, confidence scoring
+
 ## In Progress
 
 ## Backlog
 
 ### Spec 06 — Pattern Detection & Suggestions
-
-- [ ] **Add pattern detection engine**
-  - Files: `web/lib/patterns/detect.ts`, `web/lib/patterns/vendorMatch.ts`
-  - Spec: `specs/06-pattern-detection.md`
-  - Acceptance: Analyzes transactions to detect recurring patterns. Groups by vendor similarity (fuzzy matching with normalization). Detects frequency (weekly/fortnightly/monthly/quarterly/annual). Classifies as income or expense. Calculates confidence based on match count and consistency. Excludes already-tracked patterns.
-  - Tests: Unit tests: detect monthly subscription, detect income pattern, detect variable-amount pattern, fuzzy vendor matching, confidence scoring
 
 - [ ] **Add `POST /api/patterns/detect` route (trigger after import)**
   - Files: `web/app/api/patterns/detect/route.ts`
