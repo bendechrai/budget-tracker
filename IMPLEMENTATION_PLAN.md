@@ -112,15 +112,15 @@
 
 ## In Progress
 
-## Backlog
-
-### Spec 03 — Income Sources
-
 - [ ] **Add `IncomeSource` model with Prisma migration**
   - Files: `web/prisma/schema.prisma`, new migration
   - Spec: `specs/03-income-sources.md`
   - Acceptance: `IncomeSource` model with fields: id, userId, name, expectedAmount, frequency (enum), frequencyDays (nullable), isIrregular, minimumExpected (nullable), nextExpectedDate (nullable), isPaused (default false), isActive (default true), createdAt, updatedAt. Relation to User. Migration runs cleanly.
   - Tests: Migration applies; Prisma generate succeeds
+
+## Backlog
+
+### Spec 03 — Income Sources
 
 - [ ] **Add `POST /api/income-sources` route**
   - Files: `web/app/api/income-sources/route.ts`
@@ -555,3 +555,83 @@
   - Spec: `specs/05-bank-statement-import.md`
   - Acceptance: Accepts PDF uploads alongside CSV/OFX. Routes to PDF parser. Low-confidence transactions are flagged for user review. Import summary includes confidence info.
   - Tests: Test PDF upload flow with mocked parser
+
+### Spec 11 — Obligation Amount Escalation
+
+- [ ] **Add `Escalation` model with Prisma migration**
+  - Files: `web/prisma/schema.prisma`, new migration
+  - Spec: `specs/11-escalation.md`
+  - Acceptance: `Escalation` model with fields: id, obligationId, changeType (enum: absolute, percentage, fixed_increase), value (Decimal), effectiveDate (DateTime), intervalMonths (Int, nullable — null means one-off), isApplied (Boolean, default false), appliedAt (DateTime, nullable), createdAt, updatedAt. Relation to Obligation (cascade delete). Unique partial index on obligationId where intervalMonths is not null (at most one recurring rule per obligation). Migration runs cleanly.
+  - Tests: Migration applies; Prisma generate succeeds
+
+- [ ] **Add `POST /api/escalations` route**
+  - Files: `web/app/api/escalations/route.ts`
+  - Spec: `specs/11-escalation.md`
+  - Acceptance: Creates an escalation rule for an obligation owned by the authenticated user. Validates: absolute changeType requires intervalMonths=null; obligation must not be one-off type. If a recurring rule already exists for the obligation, replaces it. If one-off rule has effectiveDate in the past, applies immediately (updates obligation amount, sets isApplied=true). Warns if value >50% increase. Returns 201.
+  - Tests: Test create one-off absolute (201), recurring percentage (201), reject absolute+recurring (400), reject for one-off obligation (400), past-date one-off auto-applies, replacing existing recurring rule, unauthenticated (401)
+
+- [ ] **Add `GET /api/escalations` route**
+  - Files: `web/app/api/escalations/route.ts`
+  - Spec: `specs/11-escalation.md`
+  - Acceptance: Returns all escalation rules for a given obligationId (query param), scoped to the authenticated user. Includes both applied and unapplied rules, ordered by effectiveDate.
+  - Tests: Test returns rules for user's obligation only, includes applied rules for history
+
+- [ ] **Add `DELETE /api/escalations/[id]` route**
+  - Files: `web/app/api/escalations/[id]/route.ts`
+  - Spec: `specs/11-escalation.md`
+  - Acceptance: Deletes an escalation rule. Only allows deleting own records (via obligation ownership). Returns 200.
+  - Tests: Test delete (200), ownership check (403/404)
+
+- [ ] **Add escalation projection utility**
+  - Files: `web/lib/engine/escalation.ts`
+  - Spec: `specs/11-escalation.md`
+  - Acceptance: Given an obligation's current amount and its escalation rules, projects future amounts at each due date over a configurable window. Applies one-off rules at their effective dates (absolute sets amount, percentage/fixed_increase modify it). Applies recurring rules at each interval. One-off takes precedence over recurring on the same date. Returns array of {date, amount} pairs.
+  - Tests: Unit tests: one-off absolute projection, one-off percentage, one-off fixed increase, recurring percentage over multiple intervals, recurring fixed increase, combined one-off + recurring, one-off precedence on same date
+
+- [ ] **Integrate escalation into sinking fund engine calculations**
+  - Files: `web/lib/engine/calculate.ts` (update)
+  - Spec: `specs/11-escalation.md`
+  - Acceptance: Engine uses escalated future amounts (from escalation projection utility) when calculating per-obligation contributions instead of the current static amount. Ramps up contributions ahead of scheduled increases. Shortfall warnings account for escalated amounts. Crunch point detection uses escalated amounts.
+  - Tests: Unit tests: contributions ramp up before an increase, shortfall detected for post-increase amount, crunch point uses escalated amount
+
+- [ ] **Integrate escalation into timeline projection**
+  - Files: `web/lib/engine/timeline.ts` (update)
+  - Spec: `specs/11-escalation.md`
+  - Acceptance: Timeline projection uses escalated amounts for each obligation's future due dates. Expense markers reflect the escalated amount at that point in time. Step changes are visible in the projected balance curve.
+  - Tests: Unit tests: timeline shows higher expense markers after escalation date, balance curve reflects stepped amounts
+
+- [ ] **Add escalation form component**
+  - Files: `web/app/obligations/EscalationForm.tsx`, `web/app/obligations/escalation-form.module.css`
+  - Spec: `specs/11-escalation.md`
+  - Acceptance: Mini-form with: change type selector (absolute/percentage/fixed_increase), value input, effective date picker, optional "repeats every N months" toggle. Preview shows timeline of amount changes. Submits to POST /api/escalations. Confirmation prompt for >50% increases. Hidden for one-off obligations.
+  - Tests: Component test: renders all fields, preview updates on input, submits valid data, shows confirmation for large increases
+
+- [ ] **Add escalation display to obligations list/detail**
+  - Files: `web/app/obligations/page.tsx` (update)
+  - Spec: `specs/11-escalation.md`
+  - Acceptance: Each obligation shows upcoming escalation rules as a timeline of changes. Applied rules shown as history. Delete button on each rule. "Add price change" action available. Escalation section hidden for one-off obligations.
+  - Tests: Component test: renders escalation timeline, delete calls API, hidden for one-off type
+
+- [ ] **Add "Add price change" preset to sparkle button for obligations**
+  - Files: `web/app/components/SparkleButton.tsx` (update)
+  - Spec: `specs/11-escalation.md`
+  - Acceptance: Obligation sparkle button gains "Add price change" preset alongside existing presets. Tapping it opens the EscalationForm. Existing "Change amount" preset remains for immediate changes.
+  - Tests: Component test: "Add price change" preset appears for obligations, opens escalation form
+
+- [ ] **Add escalation NL parsing support**
+  - Files: `web/lib/ai/nlParser.ts` (update)
+  - Spec: `specs/11-escalation.md`
+  - Acceptance: NL parser recognizes escalation intents: "rent goes up to $2,200 in July" → one-off absolute, "rent goes up 3% every July" → recurring percentage, "Netflix going up $3 next month" → one-off fixed increase, "cancel the rent increase" → delete escalation rule. Returns structured escalation intent with change type, value, effective date, and interval.
+  - Tests: Unit tests: parse all NL examples from spec 11, including cancel/remove intents
+
+- [ ] **Add what-if support for hypothetical escalation rules**
+  - Files: `web/app/contexts/WhatIfContext.tsx` (update), `web/lib/engine/calculate.ts` (update)
+  - Spec: `specs/11-escalation.md`
+  - Acceptance: What-if context supports adding hypothetical escalation rules to obligations. "What if rent goes up 5% next year?" adds a temporary escalation rule. Engine calculation with what-if overrides includes hypothetical escalation in projections. Session-only, not persisted.
+  - Tests: Unit test: hypothetical escalation appears in what-if projection, does not persist
+
+- [ ] **Add auto-apply logic for one-off escalation rules**
+  - Files: `web/lib/engine/applyEscalations.ts`
+  - Spec: `specs/11-escalation.md`
+  - Acceptance: Utility that checks for unapplied one-off escalation rules whose effectiveDate has passed (and obligation is not paused). Updates the obligation's base amount according to the rule. Marks the rule as applied with appliedAt timestamp. Called during engine recalculation. For paused obligations, defers application until resume.
+  - Tests: Unit tests: applies past-date one-off, skips future-date, skips paused obligations, skips already-applied rules, applies deferred rules on resume
