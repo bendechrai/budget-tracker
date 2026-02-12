@@ -302,17 +302,17 @@
   - Acceptance: Runs pattern detection for the authenticated user. Creates Suggestion records with linked transactions. Skips patterns that match existing income sources or obligations. Returns count of new suggestions.
   - Tests: Test detection creates suggestions, skips already-tracked patterns
 
+- [x] **Add `GET /api/suggestions` route**
+  - Files: `web/app/api/suggestions/route.ts`
+  - Spec: `specs/06-pattern-detection.md`
+  - Acceptance: Returns pending suggestions for the authenticated user. Includes linked transaction details. Returns count for badge display.
+  - Tests: Test returns pending suggestions only, includes transaction links
+
 ## In Progress
 
 ## Backlog
 
 ### Spec 06 — Pattern Detection & Suggestions
-
-- [ ] **Add `GET /api/suggestions` route**
-  - Files: `web/app/api/suggestions/route.ts`
-  - Spec: `specs/06-pattern-detection.md`
-  - Acceptance: Returns pending suggestions for the authenticated user. Includes linked transaction details. Returns count for badge display.
-  - Tests: Test returns pending suggestions only, includes transaction links
 
 - [ ] **Add `PUT /api/suggestions/[id]` route (accept/dismiss)**
   - Files: `web/app/api/suggestions/[id]/route.ts`
