@@ -248,17 +248,17 @@
   - Acceptance: Accepts file upload (CSV or OFX). Parses transactions. Runs dedup against existing user transactions. Saves new transactions and creates ImportLog. Deletes uploaded file after processing. Returns import summary (new count, skipped count, flagged items).
   - Tests: Test CSV upload (201 + summary), OFX upload, duplicate detection, auth check
 
+- [x] **Add `POST /api/import/resolve` route for flagged duplicates**
+  - Files: `web/app/api/import/resolve/route.ts`
+  - Spec: `specs/05-bank-statement-import.md`
+  - Acceptance: Receives user decisions on flagged near-duplicate transactions (keep or skip each). Saves kept transactions. Updates ImportLog counts.
+  - Tests: Test resolve keep (saves transaction), resolve skip (does not save)
+
 ## In Progress
 
 ## Backlog
 
 ### Spec 05 — Bank Statement Import
-
-- [ ] **Add `POST /api/import/resolve` route for flagged duplicates**
-  - Files: `web/app/api/import/resolve/route.ts`
-  - Spec: `specs/05-bank-statement-import.md`
-  - Acceptance: Receives user decisions on flagged near-duplicate transactions (keep or skip each). Saves kept transactions. Updates ImportLog counts.
-  - Tests: Test resolve keep (saves transaction), resolve skip (does not save)
 
 - [ ] **Add `GET /api/transactions` route**
   - Files: `web/app/api/transactions/route.ts`
