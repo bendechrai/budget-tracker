@@ -158,13 +158,17 @@
   - Acceptance: Each income source has a pause/resume toggle. Paused items appear greyed out. Toggle calls PUT API to update isPaused.
   - Tests: Component test: toggle changes visual state and calls API
 
+- [x] **Add `Obligation`, `CustomScheduleEntry`, and `FundGroup` models with Prisma migration**
+  - Files: `web/prisma/schema.prisma`, new migration
+  - Spec: `specs/04-expenses-obligations.md`
+  - Acceptance: All three models exist with correct fields and relations. Obligation types: recurring, recurring_with_end, one_off, custom. FundGroup belongs to User. Obligation optionally belongs to FundGroup. CustomScheduleEntry belongs to Obligation. Migration runs cleanly.
+  - Tests: Migration applies; Prisma generate succeeds
+
 ## In Progress
 
 ## Backlog
 
 ### Spec 04 — Expenses & Obligations
-
-- [ ] **Add `Obligation`, `CustomScheduleEntry`, and `FundGroup` models with Prisma migration**
   - Files: `web/prisma/schema.prisma`, new migration
   - Spec: `specs/04-expenses-obligations.md`
   - Acceptance: All three models exist with correct fields and relations. Obligation types: recurring, recurring_with_end, one_off, custom. FundGroup belongs to User. Obligation optionally belongs to FundGroup. CustomScheduleEntry belongs to Obligation. Migration runs cleanly.
