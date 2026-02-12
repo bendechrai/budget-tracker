@@ -230,17 +230,17 @@
   - Acceptance: Parses CSV content into transaction objects. Auto-detects common column layouts (date, description, amount, credit/debit). Falls back to manual column mapping config. Handles common date formats.
   - Tests: Unit test with sample CSV data: auto-detect columns, parse dates correctly, handle edge cases
 
+- [x] **Add OFX statement parser utility**
+  - Files: `web/lib/import/ofxParser.ts`
+  - Spec: `specs/05-bank-statement-import.md`
+  - Acceptance: Parses OFX/QFX content into transaction objects. Extracts date, description, amount, type, reference ID.
+  - Tests: Unit test with sample OFX data
+
 ## In Progress
 
 ## Backlog
 
 ### Spec 05 — Bank Statement Import
-
-- [ ] **Add OFX statement parser utility**
-  - Files: `web/lib/import/ofxParser.ts`, `web/package.json` (add OFX parsing lib if needed)
-  - Spec: `specs/05-bank-statement-import.md`
-  - Acceptance: Parses OFX/QFX content into transaction objects. Extracts date, description, amount, type, reference ID.
-  - Tests: Unit test with sample OFX data
 
 - [ ] **Add transaction deduplication utility**
   - Files: `web/lib/import/dedup.ts`
