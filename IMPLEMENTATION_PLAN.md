@@ -200,21 +200,17 @@
   - Acceptance: Rename or delete a fund group. Deleting a group sets obligations in that group to null fundGroupId (default group). Only own records.
   - Tests: Test rename (200), delete unassigns obligations, ownership check
 
+- [x] **Add obligations list page**
+  - Files: `web/app/obligations/page.tsx`, `web/app/obligations/obligations.module.css`
+  - Spec: `specs/04-expenses-obligations.md`
+  - Acceptance: Lists obligations grouped by fund group. Each shows name, type, amount, frequency, next due date, paused status. Past-due obligations are visually highlighted. Empty state guides user. Archive section for completed obligations.
+  - Tests: Component test: renders grouped list, empty state, past-due highlighting
+
 ## In Progress
 
 ## Backlog
 
 ### Spec 04 — Expenses & Obligations
-  - Files: `web/app/api/fund-groups/[id]/route.ts`
-  - Spec: `specs/04-expenses-obligations.md`
-  - Acceptance: Rename or delete a fund group. Deleting a group sets obligations in that group to null fundGroupId (default group). Only own records.
-  - Tests: Test rename (200), delete unassigns obligations, ownership check
-
-- [ ] **Add obligations list page**
-  - Files: `web/app/obligations/page.tsx`, `web/app/obligations/obligations.module.css`
-  - Spec: `specs/04-expenses-obligations.md`
-  - Acceptance: Lists obligations grouped by fund group. Each shows name, type, amount, frequency, next due date, paused status. Past-due obligations are visually highlighted. Empty state guides user. Archive section for completed obligations.
-  - Tests: Component test: renders grouped list, empty state, past-due highlighting
 
 - [ ] **Add obligation form component**
   - Files: `web/app/obligations/ObligationForm.tsx`, `web/app/obligations/obligation-form.module.css`
