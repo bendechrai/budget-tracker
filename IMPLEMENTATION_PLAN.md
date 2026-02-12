@@ -332,17 +332,17 @@
   - Acceptance: FundBalance: id, obligationId, currentBalance, lastUpdatedAt. ContributionRecord: id, obligationId, amount, date, type (contribution/manual_adjustment), note (nullable), createdAt. EngineSnapshot: id, userId, calculatedAt, totalRequired, totalFunded, nextActionAmount, nextActionDate, nextActionDescription. Migration runs cleanly.
   - Tests: Migration applies; Prisma generate succeeds
 
+- [x] **Add sinking fund calculation engine (core logic)**
+  - Files: `web/lib/engine/calculate.ts`
+  - Spec: `specs/07-sinking-fund-engine.md`
+  - Acceptance: Given a user's obligations, fund balances, income, and capacity: calculates per-obligation contribution per cycle. Implements adaptive contributions (ramp-up/ramp-down). Respects max contribution capacity. Prioritizes by nearest due date when capacity exceeded. Generates shortfall warnings. Handles recurring cycle resets.
+  - Tests: Unit tests: steady state calc, ramp-up scenario, ramp-down scenario, capacity exceeded prioritization, shortfall warning generation, recurring cycle reset
+
 ## In Progress
 
 ## Backlog
 
 ### Spec 07 — Sinking Fund Engine
-
-- [ ] **Add sinking fund calculation engine (core logic)**
-  - Files: `web/lib/engine/calculate.ts`
-  - Spec: `specs/07-sinking-fund-engine.md`
-  - Acceptance: Given a user's obligations, fund balances, income, and capacity: calculates per-obligation contribution per cycle. Implements adaptive contributions (ramp-up/ramp-down). Respects max contribution capacity. Prioritizes by nearest due date when capacity exceeded. Generates shortfall warnings. Handles recurring cycle resets.
-  - Tests: Unit tests: steady state calc, ramp-up scenario, ramp-down scenario, capacity exceeded prioritization, shortfall warning generation, recurring cycle reset
 
 - [ ] **Add engine snapshot generation**
   - Files: `web/lib/engine/snapshot.ts`
