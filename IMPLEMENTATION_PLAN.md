@@ -308,17 +308,17 @@
   - Acceptance: Returns pending suggestions for the authenticated user. Includes linked transaction details. Returns count for badge display.
   - Tests: Test returns pending suggestions only, includes transaction links
 
+- [x] **Add `PUT /api/suggestions/[id]` route (accept/dismiss)**
+  - Files: `web/app/api/suggestions/[id]/route.ts`
+  - Spec: `specs/06-pattern-detection.md`
+  - Acceptance: Accept: creates corresponding IncomeSource or Obligation, links to suggestion, sets status=accepted. Dismiss: sets status=dismissed. Tweak+accept: creates with user-modified values.
+  - Tests: Test accept creates income/obligation, dismiss updates status, tweak+accept uses modified values
+
 ## In Progress
 
 ## Backlog
 
 ### Spec 06 — Pattern Detection & Suggestions
-
-- [ ] **Add `PUT /api/suggestions/[id]` route (accept/dismiss)**
-  - Files: `web/app/api/suggestions/[id]/route.ts`
-  - Spec: `specs/06-pattern-detection.md`
-  - Acceptance: Accept: creates corresponding IncomeSource or Obligation, links to suggestion, sets status=accepted. Dismiss: sets status=dismissed. Tweak+accept: creates with user-modified values.
-  - Tests: Test accept creates income/obligation, dismiss updates status, tweak+accept uses modified values
 
 - [ ] **Add suggestions feed page**
   - Files: `web/app/suggestions/page.tsx`, `web/app/suggestions/suggestions.module.css`
