@@ -54,8 +54,10 @@ Start the dev environment first, then run Ralph in plan or build mode.
 # Review the plan, edit IMPLEMENTATION_PLAN.md if needed
 
 # Build: picks next task, implements, validates (tsc + lint + test), commits
-./ralph.sh build        # default 5 iterations
-./ralph.sh build 10     # or specify a count
+./ralph.sh build        # runs until all tasks are done or ./ralph.sh stop
+
+# Status: human-readable progress report (no Docker needed, requires claude CLI)
+./ralph.sh status
 ```
 
 Each build iteration does one task. If validation fails and Ralph can't fix it, he reverts and stops. The next iteration gets a fresh context.
@@ -90,4 +92,4 @@ See `AGENTS.md` for the full project tree, tech stack, conventions, and Docker c
 | `IMPLEMENTATION_PLAN.md` | Task list Ralph maintains |
 | `AGENTS.md` | Ralph's reference for conventions and commands |
 | `dev.sh` | Start the dev environment |
-| `ralph.sh` | Run Ralph (plan or build mode) |
+| `ralph.sh` | Run Ralph (plan, build, stop, or status mode) |
