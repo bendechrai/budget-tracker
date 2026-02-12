@@ -284,17 +284,17 @@
   - Acceptance: Shows past imports with date, filename, format, and counts (found, imported, skipped, flagged).
   - Tests: Component test: renders import history list
 
+- [x] **Add `Suggestion` and `SuggestionTransaction` models with Prisma migration**
+  - Files: `web/prisma/schema.prisma`, new migration
+  - Spec: `specs/06-pattern-detection.md`
+  - Acceptance: Suggestion model with: id, userId, type (income/expense), vendorPattern, detectedAmount, detectedAmountMin, detectedAmountMax, detectedFrequency, confidence (high/medium/low), matchingTransactionCount, status (pending/accepted/dismissed), linkedIncomeSourceId, linkedObligationId, createdAt, updatedAt. SuggestionTransaction junction table. Migration runs cleanly.
+  - Tests: Migration applies; Prisma generate succeeds
+
 ## In Progress
 
 ## Backlog
 
 ### Spec 06 — Pattern Detection & Suggestions
-
-- [ ] **Add `Suggestion` and `SuggestionTransaction` models with Prisma migration**
-  - Files: `web/prisma/schema.prisma`, new migration
-  - Spec: `specs/06-pattern-detection.md`
-  - Acceptance: Suggestion model with: id, userId, type (income/expense), vendorPattern, detectedAmount, detectedAmountMin, detectedAmountMax, detectedFrequency, confidence (high/medium/low), matchingTransactionCount, status (pending/accepted/dismissed), linkedIncomeSourceId, linkedObligationId, createdAt, updatedAt. SuggestionTransaction junction table. Migration runs cleanly.
-  - Tests: Migration applies; Prisma generate succeeds
 
 - [ ] **Add pattern detection engine**
   - Files: `web/lib/patterns/detect.ts`, `web/lib/patterns/vendorMatch.ts`

@@ -32,6 +32,7 @@ model User {
   obligations             Obligation[]
   transactions            Transaction[]
   importLogs              ImportLog[]
+  suggestions             Suggestion[]
 }
 
 enum IncomeFrequency {
@@ -59,6 +60,7 @@ model IncomeSource {
   createdAt        DateTime        @default(now())
   updatedAt        DateTime        @updatedAt
   user             User            @relation(fields: [userId], references: [id])
+  linkedSuggestions Suggestion[]
 
   @@index([userId])
 }
@@ -102,6 +104,7 @@ model Obligation {
   user          User                @relation(fields: [userId], references: [id])
   fundGroup     FundGroup?          @relation(fields: [fundGroupId], references: [id])
   customEntries CustomScheduleEntry[]
+  linkedSuggestions Suggestion[]
 
   @@index([userId])
   @@index([fundGroupId])
@@ -142,6 +145,7 @@ model Transaction {
   importedAt     DateTime        @default(now())
   createdAt      DateTime        @default(now())
   user           User            @relation(fields: [userId], references: [id])
+  suggestionTransactions SuggestionTransaction[]
 
   @@index([userId])
   @@index([fingerprint])
@@ -160,4 +164,56 @@ model ImportLog {
   user                  User         @relation(fields: [userId], references: [id])
 
   @@index([userId])
+}
+
+enum SuggestionType {
+  income
+  expense
+}
+
+enum SuggestionConfidence {
+  high
+  medium
+  low
+}
+
+enum SuggestionStatus {
+  pending
+  accepted
+  dismissed
+}
+
+model Suggestion {
+  id                       String                @id @default(cuid())
+  userId                   String
+  type                     SuggestionType
+  vendorPattern            String
+  detectedAmount           Float
+  detectedAmountMin        Float?
+  detectedAmountMax        Float?
+  detectedFrequency        IncomeFrequency
+  confidence               SuggestionConfidence
+  matchingTransactionCount Int
+  status                   SuggestionStatus      @default(pending)
+  linkedIncomeSourceId     String?
+  linkedObligationId       String?
+  createdAt                DateTime              @default(now())
+  updatedAt                DateTime              @updatedAt
+  user                     User                  @relation(fields: [userId], references: [id])
+  linkedIncomeSource       IncomeSource?         @relation(fields: [linkedIncomeSourceId], references: [id])
+  linkedObligation         Obligation?           @relation(fields: [linkedObligationId], references: [id])
+  suggestionTransactions   SuggestionTransaction[]
+
+  @@index([userId])
+  @@index([status])
+}
+
+model SuggestionTransaction {
+  suggestionId  String
+  transactionId String
+  suggestion    Suggestion  @relation(fields: [suggestionId], references: [id], onDelete: Cascade)
+  transaction   Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+
+  @@id([suggestionId, transactionId])
+  @@index([transactionId])
 }
