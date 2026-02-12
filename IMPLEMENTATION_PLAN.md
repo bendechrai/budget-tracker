@@ -164,21 +164,17 @@
   - Acceptance: All three models exist with correct fields and relations. Obligation types: recurring, recurring_with_end, one_off, custom. FundGroup belongs to User. Obligation optionally belongs to FundGroup. CustomScheduleEntry belongs to Obligation. Migration runs cleanly.
   - Tests: Migration applies; Prisma generate succeeds
 
+- [x] **Add `POST /api/obligations` route**
+  - Files: `web/app/api/obligations/route.ts`
+  - Spec: `specs/04-expenses-obligations.md`
+  - Acceptance: Creates an obligation for the authenticated user. Supports all four types. For custom type, also creates associated CustomScheduleEntry records. Returns 201.
+  - Tests: Test create each of the four types (201), missing fields (400), unauthenticated (401)
+
 ## In Progress
 
 ## Backlog
 
 ### Spec 04 — Expenses & Obligations
-  - Files: `web/prisma/schema.prisma`, new migration
-  - Spec: `specs/04-expenses-obligations.md`
-  - Acceptance: All three models exist with correct fields and relations. Obligation types: recurring, recurring_with_end, one_off, custom. FundGroup belongs to User. Obligation optionally belongs to FundGroup. CustomScheduleEntry belongs to Obligation. Migration runs cleanly.
-  - Tests: Migration applies; Prisma generate succeeds
-
-- [ ] **Add `POST /api/obligations` route**
-  - Files: `web/app/api/obligations/route.ts`
-  - Spec: `specs/04-expenses-obligations.md`
-  - Acceptance: Creates an obligation for the authenticated user. Supports all four types. For custom type, also creates associated CustomScheduleEntry records. Returns 201.
-  - Tests: Test create each of the four types (201), missing fields (400), unauthenticated (401)
 
 - [ ] **Add `GET /api/obligations` route**
   - Files: `web/app/api/obligations/route.ts`
