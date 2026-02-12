@@ -206,17 +206,17 @@
   - Acceptance: Lists obligations grouped by fund group. Each shows name, type, amount, frequency, next due date, paused status. Past-due obligations are visually highlighted. Empty state guides user. Archive section for completed obligations.
   - Tests: Component test: renders grouped list, empty state, past-due highlighting
 
+- [x] **Add obligation form component**
+  - Files: `web/app/obligations/ObligationForm.tsx`, `web/app/obligations/obligation-form.module.css`, `web/app/obligations/new/page.tsx`, `web/app/obligations/edit/[id]/page.tsx`
+  - Spec: `specs/04-expenses-obligations.md`
+  - Acceptance: Form adapts based on selected obligation type. Recurring: amount + frequency. Recurring with end: + end date + count. One-off: amount + due date. Custom: add individual date/amount entries. Supports create and edit modes.
+  - Tests: Component test: renders correct fields per type, submits valid data
+
 ## In Progress
 
 ## Backlog
 
 ### Spec 04 — Expenses & Obligations
-
-- [ ] **Add obligation form component**
-  - Files: `web/app/obligations/ObligationForm.tsx`, `web/app/obligations/obligation-form.module.css`
-  - Spec: `specs/04-expenses-obligations.md`
-  - Acceptance: Form adapts based on selected obligation type. Recurring: amount + frequency. Recurring with end: + end date + count. One-off: amount + due date. Custom: add individual date/amount entries. Supports create and edit modes.
-  - Tests: Component test: renders correct fields per type, submits valid data
 
 - [ ] **Add pause/resume and archive logic for obligations**
   - Files: `web/app/obligations/page.tsx` (update)

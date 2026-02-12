@@ -1,0 +1,158 @@
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.error {
+  color: #e53e3e;
+  font-size: 14px;
+  padding: 10px 12px;
+  background: #fff5f5;
+  border: 1px solid #fed7d7;
+  border-radius: 8px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+
+.fieldRow {
+  display: flex;
+  gap: 16px;
+}
+
+.label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--foreground);
+}
+
+.input {
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 14px;
+  background: var(--background);
+  color: var(--foreground);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--foreground);
+}
+
+.submitButton {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  background: var(--foreground);
+  color: var(--background);
+  transition: opacity 0.2s;
+  margin-top: 8px;
+}
+
+.submitButton:hover {
+  opacity: 0.9;
+}
+
+.submitButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.customEntries {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.customEntryRow {
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+}
+
+.removeEntryButton {
+  padding: 10px 12px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+  background: transparent;
+  color: #e53e3e;
+  transition: background-color 0.2s;
+  white-space: nowrap;
+}
+
+.removeEntryButton:hover {
+  background: #fff5f5;
+}
+
+.addEntryButton {
+  padding: 8px 16px;
+  border: 1px dashed #ddd;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+  background: transparent;
+  color: var(--foreground);
+  transition: border-color 0.2s;
+  align-self: flex-start;
+}
+
+.addEntryButton:hover {
+  border-color: var(--foreground);
+}
+
+@media (prefers-color-scheme: dark) {
+  .error {
+    color: #fc8181;
+    background: #1a0000;
+    border-color: #4a1515;
+  }
+
+  .input {
+    border-color: #333;
+  }
+
+  .input:focus {
+    border-color: var(--foreground);
+  }
+
+  .removeEntryButton {
+    color: #fc8181;
+  }
+
+  .removeEntryButton:hover {
+    background: #1a0000;
+  }
+
+  .addEntryButton {
+    border-color: #333;
+  }
+
+  .addEntryButton:hover {
+    border-color: var(--foreground);
+  }
+}
+
+@media (max-width: 480px) {
+  .fieldRow {
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .customEntryRow {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
