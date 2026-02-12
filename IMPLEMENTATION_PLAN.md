@@ -266,17 +266,17 @@
   - Acceptance: Returns import logs for the authenticated user, ordered by importedAt desc.
   - Tests: Test returns user's import logs only
 
+- [x] **Add statement upload page UI**
+  - Files: `web/app/import/page.tsx`, `web/app/import/import.module.css`
+  - Spec: `specs/05-bank-statement-import.md`
+  - Acceptance: Drag-and-drop and file picker for CSV/OFX uploads. Shows progress during upload. Displays import summary after completion. Shows flagged duplicates for user review (keep/skip each). Links to import history.
+  - Tests: Component test: file input renders, summary displays after upload
+
 ## In Progress
 
 ## Backlog
 
 ### Spec 05 — Bank Statement Import
-
-- [ ] **Add statement upload page UI**
-  - Files: `web/app/import/page.tsx`, `web/app/import/import.module.css`
-  - Spec: `specs/05-bank-statement-import.md`
-  - Acceptance: Drag-and-drop and file picker for CSV/OFX uploads. Shows progress during upload. Displays import summary after completion. Shows flagged duplicates for user review (keep/skip each). Links to import history.
-  - Tests: Component test: file input renders, summary displays after upload
 
 - [ ] **Add transactions browse page**
   - Files: `web/app/transactions/page.tsx`, `web/app/transactions/transactions.module.css`

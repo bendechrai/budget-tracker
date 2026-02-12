@@ -1,0 +1,422 @@
+.page {
+  display: flex;
+  min-height: 100vh;
+  font-family: var(--font-geist-sans);
+  background-color: var(--background);
+  justify-content: center;
+  padding: 40px 24px;
+}
+
+.container {
+  width: 100%;
+  max-width: 600px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 32px;
+}
+
+.title {
+  font-size: 28px;
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+.historyLink {
+  padding: 10px 16px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  background: transparent;
+  color: var(--foreground);
+  text-decoration: none;
+  transition: border-color 0.2s;
+}
+
+.historyLink:hover {
+  border-color: var(--foreground);
+}
+
+.error {
+  color: #e53e3e;
+  font-size: 14px;
+  padding: 10px 12px;
+  background: #fff5f5;
+  border: 1px solid #fed7d7;
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+.dropZone {
+  border: 2px dashed #ddd;
+  border-radius: 12px;
+  padding: 48px 24px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.2s, background-color 0.2s;
+}
+
+.dropZone:hover {
+  border-color: var(--foreground);
+}
+
+.dropZoneActive {
+  border-color: var(--foreground);
+  background-color: rgba(0, 0, 0, 0.02);
+}
+
+.dropZoneTitle {
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--foreground);
+  margin-bottom: 8px;
+}
+
+.dropZoneDescription {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 16px;
+}
+
+.browseButton {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  background: var(--foreground);
+  color: var(--background);
+  transition: opacity 0.2s;
+}
+
+.browseButton:hover {
+  opacity: 0.9;
+}
+
+.hiddenInput {
+  display: none;
+}
+
+.uploading {
+  text-align: center;
+  padding: 40px 0;
+}
+
+.uploadingText {
+  font-size: 16px;
+  color: #666;
+  margin-bottom: 12px;
+}
+
+.progressBar {
+  width: 100%;
+  max-width: 300px;
+  height: 6px;
+  background: #eee;
+  border-radius: 3px;
+  margin: 0 auto;
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  background: var(--foreground);
+  border-radius: 3px;
+  transition: width 0.3s;
+}
+
+.summary {
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 24px;
+}
+
+.summaryTitle {
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--foreground);
+  margin-bottom: 16px;
+}
+
+.summaryStats {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.summaryStat {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+  color: var(--foreground);
+}
+
+.summaryStatLabel {
+  color: #666;
+}
+
+.summaryStatValue {
+  font-weight: 500;
+}
+
+.summaryActions {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.uploadAnotherButton {
+  padding: 10px 16px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  background: var(--foreground);
+  color: var(--background);
+  transition: opacity 0.2s;
+}
+
+.uploadAnotherButton:hover {
+  opacity: 0.9;
+}
+
+.flaggedSection {
+  margin-top: 24px;
+}
+
+.flaggedTitle {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--foreground);
+  margin-bottom: 12px;
+}
+
+.flaggedDescription {
+  font-size: 13px;
+  color: #666;
+  margin-bottom: 16px;
+}
+
+.flaggedList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.flaggedItem {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.flaggedItemHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 8px;
+}
+
+.flaggedItemInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.flaggedItemDescription {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--foreground);
+}
+
+.flaggedItemDetail {
+  font-size: 13px;
+  color: #666;
+}
+
+.flaggedItemActions {
+  display: flex;
+  gap: 8px;
+}
+
+.keepButton {
+  padding: 6px 12px;
+  border: 1px solid #38a169;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  background: transparent;
+  color: #38a169;
+  transition: background-color 0.2s;
+}
+
+.keepButton:hover {
+  background: #f0fff4;
+}
+
+.skipButton {
+  padding: 6px 12px;
+  border: 1px solid #e53e3e;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  background: transparent;
+  color: #e53e3e;
+  transition: background-color 0.2s;
+}
+
+.skipButton:hover {
+  background: #fff5f5;
+}
+
+.flaggedMatch {
+  font-size: 12px;
+  color: #a0aec0;
+  margin-top: 4px;
+  font-style: italic;
+}
+
+.resolveButton {
+  padding: 10px 16px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  background: var(--foreground);
+  color: var(--background);
+  transition: opacity 0.2s;
+  margin-top: 16px;
+}
+
+.resolveButton:hover {
+  opacity: 0.9;
+}
+
+.resolveButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@media (prefers-color-scheme: dark) {
+  .error {
+    color: #fc8181;
+    background: #1a0000;
+    border-color: #4a1515;
+  }
+
+  .historyLink {
+    border-color: #333;
+  }
+
+  .historyLink:hover {
+    border-color: var(--foreground);
+  }
+
+  .dropZone {
+    border-color: #333;
+  }
+
+  .dropZone:hover {
+    border-color: var(--foreground);
+  }
+
+  .dropZoneActive {
+    border-color: var(--foreground);
+    background-color: rgba(255, 255, 255, 0.02);
+  }
+
+  .dropZoneDescription {
+    color: #999;
+  }
+
+  .uploadingText {
+    color: #999;
+  }
+
+  .progressBar {
+    background: #333;
+  }
+
+  .summary {
+    border-color: #333;
+  }
+
+  .summaryStatLabel {
+    color: #999;
+  }
+
+  .flaggedDescription {
+    color: #999;
+  }
+
+  .flaggedItem {
+    border-color: #333;
+  }
+
+  .flaggedItemDetail {
+    color: #999;
+  }
+
+  .keepButton {
+    border-color: #38a169;
+    color: #68d391;
+  }
+
+  .keepButton:hover {
+    background: #1a2e1a;
+  }
+
+  .skipButton {
+    border-color: #e53e3e;
+    color: #fc8181;
+  }
+
+  .skipButton:hover {
+    background: #1a0000;
+  }
+
+  .flaggedMatch {
+    color: #718096;
+  }
+}
+
+@media (max-width: 480px) {
+  .page {
+    padding: 24px 16px;
+  }
+
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .title {
+    font-size: 24px;
+  }
+
+  .dropZone {
+    padding: 32px 16px;
+  }
+
+  .flaggedItemHeader {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .flaggedItemActions {
+    align-self: flex-end;
+  }
+}
