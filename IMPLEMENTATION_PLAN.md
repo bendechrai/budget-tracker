@@ -116,17 +116,17 @@
   - Acceptance: `IncomeSource` model with fields: id, userId, name, expectedAmount, frequency (enum), frequencyDays (nullable), isIrregular, minimumExpected (nullable), nextExpectedDate (nullable), isPaused (default false), isActive (default true), createdAt, updatedAt. Relation to User. Migration runs cleanly.
   - Tests: Migration applies; Prisma generate succeeds
 
+- [x] **Add `POST /api/income-sources` route**
+  - Files: `web/app/api/income-sources/route.ts`
+  - Spec: `specs/03-income-sources.md`
+  - Acceptance: Creates an income source for the authenticated user. Validates required fields. Returns 201 with the created record.
+  - Tests: Test create with valid data (201), missing fields (400), unauthenticated (401)
+
 ## In Progress
 
 ## Backlog
 
 ### Spec 03 — Income Sources
-
-- [ ] **Add `POST /api/income-sources` route**
-  - Files: `web/app/api/income-sources/route.ts`
-  - Spec: `specs/03-income-sources.md`
-  - Acceptance: Creates an income source for the authenticated user. Validates required fields. Returns 201 with the created record.
-  - Tests: Test create with valid data (201), missing fields (400), unauthenticated (401)
 
 - [ ] **Add `GET /api/income-sources` route**
   - Files: `web/app/api/income-sources/route.ts`
