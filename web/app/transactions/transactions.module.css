@@ -1,0 +1,294 @@
+.page {
+  display: flex;
+  min-height: 100vh;
+  font-family: var(--font-geist-sans);
+  background-color: var(--background);
+  justify-content: center;
+  padding: 40px 24px;
+}
+
+.container {
+  width: 100%;
+  max-width: 700px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 32px;
+}
+
+.title {
+  font-size: 28px;
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+.error {
+  color: #e53e3e;
+  font-size: 14px;
+  padding: 10px 12px;
+  background: #fff5f5;
+  border: 1px solid #fed7d7;
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+.loading {
+  text-align: center;
+  color: #666;
+  font-size: 16px;
+  padding: 40px 0;
+}
+
+.filters {
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+  margin-bottom: 24px;
+}
+
+.filterGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.filterLabel {
+  font-size: 12px;
+  font-weight: 500;
+  color: #666;
+}
+
+.filterInput {
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  color: var(--foreground);
+  background: var(--background);
+}
+
+.filterButton {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  background: var(--foreground);
+  color: var(--background);
+  transition: opacity 0.2s;
+}
+
+.filterButton:hover {
+  opacity: 0.9;
+}
+
+.clearButton {
+  padding: 8px 16px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  background: transparent;
+  color: var(--foreground);
+  transition: border-color 0.2s;
+}
+
+.clearButton:hover {
+  border-color: var(--foreground);
+}
+
+.emptyState {
+  text-align: center;
+  padding: 60px 20px;
+  border: 1px dashed #ddd;
+  border-radius: 12px;
+}
+
+.emptyTitle {
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--foreground);
+  margin-bottom: 8px;
+}
+
+.emptyDescription {
+  font-size: 14px;
+  color: #666;
+}
+
+.list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.listItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+}
+
+.listItemInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.listItemDescription {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--foreground);
+}
+
+.listItemDetail {
+  font-size: 13px;
+  color: #666;
+}
+
+.listItemAmount {
+  font-size: 15px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.credit {
+  color: #38a169;
+}
+
+.debit {
+  color: var(--foreground);
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.paginationButton {
+  padding: 8px 16px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  background: transparent;
+  color: var(--foreground);
+  transition: border-color 0.2s;
+}
+
+.paginationButton:hover {
+  border-color: var(--foreground);
+}
+
+.paginationButton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.paginationInfo {
+  font-size: 14px;
+  color: #666;
+}
+
+@media (prefers-color-scheme: dark) {
+  .error {
+    color: #fc8181;
+    background: #1a0000;
+    border-color: #4a1515;
+  }
+
+  .loading {
+    color: #999;
+  }
+
+  .filterLabel {
+    color: #999;
+  }
+
+  .filterInput {
+    border-color: #333;
+  }
+
+  .clearButton {
+    border-color: #333;
+  }
+
+  .clearButton:hover {
+    border-color: var(--foreground);
+  }
+
+  .emptyState {
+    border-color: #333;
+  }
+
+  .emptyDescription {
+    color: #999;
+  }
+
+  .listItem {
+    border-color: #333;
+  }
+
+  .listItemDetail {
+    color: #999;
+  }
+
+  .credit {
+    color: #68d391;
+  }
+
+  .paginationButton {
+    border-color: #333;
+  }
+
+  .paginationButton:hover {
+    border-color: var(--foreground);
+  }
+
+  .paginationInfo {
+    color: #999;
+  }
+}
+
+@media (max-width: 480px) {
+  .page {
+    padding: 24px 16px;
+  }
+
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .title {
+    font-size: 24px;
+  }
+
+  .filters {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .listItem {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .listItemAmount {
+    align-self: flex-end;
+  }
+}

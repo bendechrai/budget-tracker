@@ -272,17 +272,17 @@
   - Acceptance: Drag-and-drop and file picker for CSV/OFX uploads. Shows progress during upload. Displays import summary after completion. Shows flagged duplicates for user review (keep/skip each). Links to import history.
   - Tests: Component test: file input renders, summary displays after upload
 
+- [x] **Add transactions browse page**
+  - Files: `web/app/transactions/page.tsx`, `web/app/transactions/transactions.module.css`
+  - Spec: `specs/05-bank-statement-import.md`
+  - Acceptance: Lists imported transactions with date, description, amount, type. Supports date range filtering. Paginated.
+  - Tests: Component test: renders transaction list, filter works
+
 ## In Progress
 
 ## Backlog
 
 ### Spec 05 — Bank Statement Import
-
-- [ ] **Add transactions browse page**
-  - Files: `web/app/transactions/page.tsx`, `web/app/transactions/transactions.module.css`
-  - Spec: `specs/05-bank-statement-import.md`
-  - Acceptance: Lists imported transactions with date, description, amount, type. Supports date range filtering. Paginated.
-  - Tests: Component test: renders transaction list, filter works
 
 - [ ] **Add import history page**
   - Files: `web/app/import/history/page.tsx`
