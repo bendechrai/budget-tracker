@@ -27,7 +27,7 @@ vi.mock("@/lib/logging", () => ({
   logError: vi.fn(),
 }));
 
-import { PUT } from "../route";
+import { PUT, DELETE } from "../route";
 
 function makeRequest(body: Record<string, unknown>): NextRequest {
   return new NextRequest("http://localhost/api/obligations/obl_1", {
@@ -459,5 +459,98 @@ describe("PUT /api/obligations/[id]", () => {
         fundGroup: true,
       },
     });
+  });
+});
+
+function makeDeleteRequest(): NextRequest {
+  return new NextRequest("http://localhost/api/obligations/obl_1", {
+    method: "DELETE",
+  });
+}
+
+describe("DELETE /api/obligations/[id]", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("returns 200 and soft-deletes the obligation", async () => {
+    mockGetCurrentUser.mockResolvedValue({
+      id: "user_1",
+      email: "test@example.com",
+    });
+    mockObligationFindUnique.mockResolvedValue(existingObligation);
+    mockObligationUpdate.mockResolvedValue({
+      ...existingObligation,
+      isActive: false,
+    });
+
+    const res = await DELETE(makeDeleteRequest(), makeParams("obl_1"));
+
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.success).toBe(true);
+    expect(mockObligationUpdate).toHaveBeenCalledWith({
+      where: { id: "obl_1" },
+      data: { isActive: false },
+    });
+  });
+
+  it("returns 401 when not authenticated", async () => {
+    mockGetCurrentUser.mockResolvedValue(null);
+
+    const res = await DELETE(makeDeleteRequest(), makeParams("obl_1"));
+
+    expect(res.status).toBe(401);
+    const data = await res.json();
+    expect(data.error).toBe("unauthorized");
+    expect(mockObligationFindUnique).not.toHaveBeenCalled();
+  });
+
+  it("returns 404 when obligation does not exist", async () => {
+    mockGetCurrentUser.mockResolvedValue({
+      id: "user_1",
+      email: "test@example.com",
+    });
+    mockObligationFindUnique.mockResolvedValue(null);
+
+    const res = await DELETE(makeDeleteRequest(), makeParams("nonexistent"));
+
+    expect(res.status).toBe(404);
+    const data = await res.json();
+    expect(data.error).toBe("not found");
+    expect(mockObligationUpdate).not.toHaveBeenCalled();
+  });
+
+  it("returns 404 when obligation belongs to another user", async () => {
+    mockGetCurrentUser.mockResolvedValue({
+      id: "user_2",
+      email: "other@example.com",
+    });
+    mockObligationFindUnique.mockResolvedValue(existingObligation);
+
+    const res = await DELETE(makeDeleteRequest(), makeParams("obl_1"));
+
+    expect(res.status).toBe(404);
+    const data = await res.json();
+    expect(data.error).toBe("not found");
+    expect(mockObligationUpdate).not.toHaveBeenCalled();
+  });
+
+  it("returns 404 when obligation is already soft-deleted", async () => {
+    mockGetCurrentUser.mockResolvedValue({
+      id: "user_1",
+      email: "test@example.com",
+    });
+    mockObligationFindUnique.mockResolvedValue({
+      ...existingObligation,
+      isActive: false,
+    });
+
+    const res = await DELETE(makeDeleteRequest(), makeParams("obl_1"));
+
+    expect(res.status).toBe(404);
+    const data = await res.json();
+    expect(data.error).toBe("not found");
+    expect(mockObligationUpdate).not.toHaveBeenCalled();
   });
 });

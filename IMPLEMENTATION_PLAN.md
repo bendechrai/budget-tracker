@@ -182,17 +182,17 @@
   - Acceptance: Updates an obligation. Only allows updating own records. Supports pause, amount change, frequency change, due date change, fund group assignment.
   - Tests: Test update (200), ownership check (403/404)
 
+- [x] **Add `DELETE /api/obligations/[id]` route**
+  - Files: `web/app/api/obligations/[id]/route.ts`
+  - Spec: `specs/04-expenses-obligations.md`
+  - Acceptance: Soft-deletes (sets isActive=false) an obligation. Only allows deleting own records.
+  - Tests: Test delete (200), ownership check (403/404)
+
 ## In Progress
 
 ## Backlog
 
 ### Spec 04 — Expenses & Obligations
-
-- [ ] **Add `DELETE /api/obligations/[id]` route**
-  - Files: `web/app/api/obligations/[id]/route.ts`
-  - Spec: `specs/04-expenses-obligations.md`
-  - Acceptance: Soft-deletes (sets isActive=false) an obligation. Only allows deleting own records.
-  - Tests: Test delete (200), ownership check (403/404)
 
 - [ ] **Add `POST /api/fund-groups` and `GET /api/fund-groups` routes**
   - Files: `web/app/api/fund-groups/route.ts`
