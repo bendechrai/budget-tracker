@@ -51,6 +51,7 @@ interface UpdateObligationBody {
   nextDueDate?: string;
   endDate?: string | null;
   isPaused?: boolean;
+  isArchived?: boolean;
   fundGroupId?: string | null;
 }
 
@@ -192,6 +193,14 @@ export async function PUT(
       );
     }
 
+    // Validate isArchived
+    if (body.isArchived !== undefined && typeof body.isArchived !== "boolean") {
+      return NextResponse.json(
+        { error: "isArchived must be a boolean" },
+        { status: 400 }
+      );
+    }
+
     // Validate fundGroupId
     if (body.fundGroupId !== undefined && body.fundGroupId !== null) {
       const fundGroup = await prisma.fundGroup.findUnique({
@@ -231,6 +240,9 @@ export async function PUT(
     }
     if (body.isPaused !== undefined) {
       updateData.isPaused = body.isPaused;
+    }
+    if (body.isArchived !== undefined) {
+      updateData.isArchived = body.isArchived;
     }
     if (body.fundGroupId !== undefined) {
       updateData.fundGroupId = body.fundGroupId;

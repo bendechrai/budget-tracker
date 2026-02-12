@@ -656,6 +656,12 @@ describe("POST /api/obligations", () => {
   });
 });
 
+function makeGetRequest(queryString = ""): NextRequest {
+  return new NextRequest(`http://localhost/api/obligations${queryString}`, {
+    method: "GET",
+  });
+}
+
 describe("GET /api/obligations", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -690,7 +696,7 @@ describe("GET /api/obligations", () => {
     ];
     mockObligationFindMany.mockResolvedValue(records);
 
-    const res = await GET();
+    const res = await GET(makeGetRequest());
 
     expect(res.status).toBe(200);
     const data = await res.json();
@@ -703,6 +709,48 @@ describe("GET /api/obligations", () => {
         userId: "user_1",
         isActive: true,
         isArchived: false,
+      },
+      include: {
+        customEntries: true,
+        fundGroup: true,
+      },
+      orderBy: {
+        nextDueDate: "asc",
+      },
+    });
+  });
+
+  it("returns archived obligations when archived=true query param is set", async () => {
+    mockGetCurrentUser.mockResolvedValue({
+      id: "user_1",
+      email: "test@example.com",
+    });
+    const records = [
+      {
+        id: "obl_arch",
+        userId: "user_1",
+        name: "Old Subscription",
+        type: "recurring",
+        amount: 9.99,
+        nextDueDate: new Date("2025-06-01T00:00:00.000Z"),
+        customEntries: [],
+        fundGroup: null,
+      },
+    ];
+    mockObligationFindMany.mockResolvedValue(records);
+
+    const res = await GET(makeGetRequest("?archived=true"));
+
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data).toHaveLength(1);
+    expect(data[0].name).toBe("Old Subscription");
+
+    expect(mockObligationFindMany).toHaveBeenCalledWith({
+      where: {
+        userId: "user_1",
+        isActive: true,
+        isArchived: true,
       },
       include: {
         customEntries: true,
@@ -736,7 +784,7 @@ describe("GET /api/obligations", () => {
     ];
     mockObligationFindMany.mockResolvedValue(records);
 
-    const res = await GET();
+    const res = await GET(makeGetRequest());
 
     expect(res.status).toBe(200);
     const data = await res.json();
@@ -762,7 +810,7 @@ describe("GET /api/obligations", () => {
     ];
     mockObligationFindMany.mockResolvedValue(records);
 
-    const res = await GET();
+    const res = await GET(makeGetRequest());
 
     expect(res.status).toBe(200);
     const data = await res.json();
@@ -778,7 +826,7 @@ describe("GET /api/obligations", () => {
     });
     mockObligationFindMany.mockResolvedValue([]);
 
-    const res = await GET();
+    const res = await GET(makeGetRequest());
 
     expect(res.status).toBe(200);
     const data = await res.json();
@@ -803,7 +851,7 @@ describe("GET /api/obligations", () => {
   it("returns 401 when not authenticated", async () => {
     mockGetCurrentUser.mockResolvedValue(null);
 
-    const res = await GET();
+    const res = await GET(makeGetRequest());
 
     expect(res.status).toBe(401);
     const data = await res.json();

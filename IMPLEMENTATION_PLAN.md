@@ -212,17 +212,15 @@
   - Acceptance: Form adapts based on selected obligation type. Recurring: amount + frequency. Recurring with end: + end date + count. One-off: amount + due date. Custom: add individual date/amount entries. Supports create and edit modes.
   - Tests: Component test: renders correct fields per type, submits valid data
 
-## In Progress
-
-## Backlog
-
-### Spec 04 — Expenses & Obligations
-
-- [ ] **Add pause/resume and archive logic for obligations**
-  - Files: `web/app/obligations/page.tsx` (update)
+- [x] **Add pause/resume and archive logic for obligations**
+  - Files: `web/app/obligations/page.tsx` (update), `web/app/obligations/obligations.module.css` (update), `web/app/api/obligations/route.ts` (update), `web/app/api/obligations/[id]/route.ts` (update)
   - Spec: `specs/04-expenses-obligations.md`
   - Acceptance: Pause/resume toggle. Paused items greyed out. Completed obligations (past end date or paid one-off) are automatically archived. Archived items visible in archive section.
   - Tests: Component test: pause toggle, archive display
+
+## In Progress
+
+## Backlog
 
 ### Spec 05 — Bank Statement Import
 

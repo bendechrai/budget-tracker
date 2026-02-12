@@ -189,6 +189,21 @@
   gap: 8px;
 }
 
+.pauseButton {
+  padding: 6px 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  background: transparent;
+  color: var(--foreground);
+  transition: border-color 0.2s;
+}
+
+.pauseButton:hover {
+  border-color: var(--foreground);
+}
+
 .editButton {
   padding: 6px 12px;
   border: 1px solid #ddd;
@@ -235,6 +250,21 @@
 .archiveEmpty {
   font-size: 14px;
   color: #999;
+}
+
+.listItemArchived {
+  opacity: 0.6;
+}
+
+.archivedBadge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 500;
+  color: #718096;
+  background: #e2e8f0;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-left: 8px;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -288,6 +318,14 @@
     background: #2d3748;
   }
 
+  .pauseButton {
+    border-color: #333;
+  }
+
+  .pauseButton:hover {
+    border-color: var(--foreground);
+  }
+
   .editButton {
     border-color: #333;
   }
@@ -302,6 +340,11 @@
 
   .deleteButton:hover {
     background: #1a0000;
+  }
+
+  .archivedBadge {
+    color: #718096;
+    background: #2d3748;
   }
 
   .archiveSection {

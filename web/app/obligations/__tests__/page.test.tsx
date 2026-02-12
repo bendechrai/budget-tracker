@@ -82,6 +82,26 @@ const pastDueObligation = {
   customEntries: [],
 };
 
+function mockFetchResponses(active: unknown[], archived: unknown[] = []) {
+  vi.mocked(global.fetch).mockImplementation((input: string | URL | Request) => {
+    const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
+    if (url.includes("archived=true")) {
+      return Promise.resolve(
+        new Response(JSON.stringify(archived), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        })
+      );
+    }
+    return Promise.resolve(
+      new Response(JSON.stringify(active), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      })
+    );
+  });
+}
+
 describe("ObligationsPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -94,19 +114,14 @@ describe("ObligationsPage", () => {
   });
 
   it("renders a loading state initially", () => {
-    vi.mocked(global.fetch).mockReturnValueOnce(new Promise(() => {}));
+    vi.mocked(global.fetch).mockReturnValue(new Promise(() => {}));
     render(<ObligationsPage />);
 
     expect(screen.getByText("Loading...")).toBeDefined();
   });
 
   it("renders the list of obligations", async () => {
-    vi.mocked(global.fetch).mockResolvedValueOnce(
-      new Response(JSON.stringify(mockObligations), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      })
-    );
+    mockFetchResponses(mockObligations);
 
     render(<ObligationsPage />);
 
@@ -122,12 +137,7 @@ describe("ObligationsPage", () => {
   });
 
   it("shows the empty state when there are no obligations", async () => {
-    vi.mocked(global.fetch).mockResolvedValueOnce(
-      new Response(JSON.stringify([]), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      })
-    );
+    mockFetchResponses([], []);
 
     render(<ObligationsPage />);
 
@@ -146,12 +156,7 @@ describe("ObligationsPage", () => {
   });
 
   it("groups obligations by fund group", async () => {
-    vi.mocked(global.fetch).mockResolvedValueOnce(
-      new Response(JSON.stringify(mockObligations), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      })
-    );
+    mockFetchResponses(mockObligations);
 
     render(<ObligationsPage />);
 
@@ -166,12 +171,7 @@ describe("ObligationsPage", () => {
 
   it("does not show group titles when all in one group", async () => {
     const singleGroupObligations = [mockObligations[0], mockObligations[2]];
-    vi.mocked(global.fetch).mockResolvedValueOnce(
-      new Response(JSON.stringify(singleGroupObligations), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      })
-    );
+    mockFetchResponses(singleGroupObligations);
 
     render(<ObligationsPage />);
 
@@ -183,12 +183,7 @@ describe("ObligationsPage", () => {
   });
 
   it("shows type badges for each obligation", async () => {
-    vi.mocked(global.fetch).mockResolvedValueOnce(
-      new Response(JSON.stringify(mockObligations), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      })
-    );
+    mockFetchResponses(mockObligations);
 
     render(<ObligationsPage />);
 
@@ -202,12 +197,7 @@ describe("ObligationsPage", () => {
   });
 
   it("shows paused badge for paused obligations", async () => {
-    vi.mocked(global.fetch).mockResolvedValueOnce(
-      new Response(JSON.stringify(mockObligations), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      })
-    );
+    mockFetchResponses(mockObligations);
 
     render(<ObligationsPage />);
 
@@ -217,12 +207,7 @@ describe("ObligationsPage", () => {
   });
 
   it("highlights past-due obligations", async () => {
-    vi.mocked(global.fetch).mockResolvedValueOnce(
-      new Response(JSON.stringify([pastDueObligation]), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      })
-    );
+    mockFetchResponses([pastDueObligation]);
 
     render(<ObligationsPage />);
 
@@ -235,12 +220,7 @@ describe("ObligationsPage", () => {
 
   it("does not show past-due badge for paused obligations", async () => {
     const pausedPastDue = { ...pastDueObligation, id: "5", isPaused: true };
-    vi.mocked(global.fetch).mockResolvedValueOnce(
-      new Response(JSON.stringify([pausedPastDue]), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      })
-    );
+    mockFetchResponses([pausedPastDue]);
 
     render(<ObligationsPage />);
 
@@ -253,12 +233,7 @@ describe("ObligationsPage", () => {
   });
 
   it("shows end date for recurring_with_end obligations", async () => {
-    vi.mocked(global.fetch).mockResolvedValueOnce(
-      new Response(JSON.stringify([mockObligations[1]]), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      })
-    );
+    mockFetchResponses([mockObligations[1]]);
 
     render(<ObligationsPage />);
 
@@ -271,12 +246,7 @@ describe("ObligationsPage", () => {
 
   it("navigates to the new obligation page when the add button is clicked", async () => {
     const user = userEvent.setup();
-    vi.mocked(global.fetch).mockResolvedValueOnce(
-      new Response(JSON.stringify(mockObligations), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      })
-    );
+    mockFetchResponses(mockObligations);
 
     render(<ObligationsPage />);
 
@@ -293,12 +263,7 @@ describe("ObligationsPage", () => {
 
   it("navigates to the new obligation page from the empty state", async () => {
     const user = userEvent.setup();
-    vi.mocked(global.fetch).mockResolvedValueOnce(
-      new Response(JSON.stringify([]), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      })
-    );
+    mockFetchResponses([], []);
 
     render(<ObligationsPage />);
 
@@ -315,12 +280,7 @@ describe("ObligationsPage", () => {
 
   it("navigates to the edit page when edit is clicked", async () => {
     const user = userEvent.setup();
-    vi.mocked(global.fetch).mockResolvedValueOnce(
-      new Response(JSON.stringify(mockObligations), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      })
-    );
+    mockFetchResponses(mockObligations);
 
     render(<ObligationsPage />);
 
@@ -337,25 +297,21 @@ describe("ObligationsPage", () => {
   it("deletes an obligation after confirmation", async () => {
     const user = userEvent.setup();
     vi.mocked(window.confirm).mockReturnValue(true);
-    vi.mocked(global.fetch)
-      .mockResolvedValueOnce(
-        new Response(JSON.stringify(mockObligations), {
-          status: 200,
-          headers: { "Content-Type": "application/json" },
-        })
-      )
-      .mockResolvedValueOnce(
-        new Response(JSON.stringify({ success: true }), {
-          status: 200,
-          headers: { "Content-Type": "application/json" },
-        })
-      );
+    mockFetchResponses(mockObligations);
 
     render(<ObligationsPage />);
 
     await waitFor(() => {
       expect(screen.getByText("Netflix")).toBeDefined();
     });
+
+    // Set up delete response
+    vi.mocked(global.fetch).mockResolvedValueOnce(
+      new Response(JSON.stringify({ success: true }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      })
+    );
 
     await user.click(
       screen.getByRole("button", { name: "Delete Netflix" })
@@ -375,12 +331,7 @@ describe("ObligationsPage", () => {
   it("does not delete when confirmation is cancelled", async () => {
     const user = userEvent.setup();
     vi.mocked(window.confirm).mockReturnValue(false);
-    vi.mocked(global.fetch).mockResolvedValueOnce(
-      new Response(JSON.stringify(mockObligations), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      })
-    );
+    mockFetchResponses(mockObligations);
 
     render(<ObligationsPage />);
 
@@ -396,7 +347,7 @@ describe("ObligationsPage", () => {
   });
 
   it("shows an error when fetch fails", async () => {
-    vi.mocked(global.fetch).mockResolvedValueOnce(
+    vi.mocked(global.fetch).mockResolvedValue(
       new Response(JSON.stringify({ error: "internal server error" }), {
         status: 500,
         headers: { "Content-Type": "application/json" },
@@ -413,12 +364,7 @@ describe("ObligationsPage", () => {
   });
 
   it("shows the page title", async () => {
-    vi.mocked(global.fetch).mockResolvedValueOnce(
-      new Response(JSON.stringify([]), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      })
-    );
+    mockFetchResponses([], []);
 
     render(<ObligationsPage />);
 
@@ -428,12 +374,7 @@ describe("ObligationsPage", () => {
   });
 
   it("shows the archive section when obligations exist", async () => {
-    vi.mocked(global.fetch).mockResolvedValueOnce(
-      new Response(JSON.stringify(mockObligations), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      })
-    );
+    mockFetchResponses(mockObligations);
 
     render(<ObligationsPage />);
 
@@ -450,12 +391,7 @@ describe("ObligationsPage", () => {
   });
 
   it("shows frequency for recurring obligations", async () => {
-    vi.mocked(global.fetch).mockResolvedValueOnce(
-      new Response(JSON.stringify([mockObligations[0]]), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      })
-    );
+    mockFetchResponses([mockObligations[0]]);
 
     render(<ObligationsPage />);
 
@@ -472,17 +408,302 @@ describe("ObligationsPage", () => {
       frequencyDays: 14,
     };
 
-    vi.mocked(global.fetch).mockResolvedValueOnce(
-      new Response(JSON.stringify([customFreqObligation]), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      })
-    );
+    mockFetchResponses([customFreqObligation]);
 
     render(<ObligationsPage />);
 
     await waitFor(() => {
       expect(screen.getByText(/Every 14 days/)).toBeDefined();
     });
+  });
+
+  // New tests for pause/resume toggle
+
+  it("toggles pause state when pause button is clicked", async () => {
+    const user = userEvent.setup();
+    mockFetchResponses(mockObligations);
+
+    render(<ObligationsPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Netflix")).toBeDefined();
+    });
+
+    // Netflix is not paused, so the button should say "Pause"
+    const pauseButton = screen.getByRole("button", { name: "Pause Netflix" });
+    expect(pauseButton.textContent).toBe("Pause");
+
+    // Mock the PUT response
+    vi.mocked(global.fetch).mockResolvedValueOnce(
+      new Response(JSON.stringify({ success: true }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      })
+    );
+
+    await user.click(pauseButton);
+
+    await waitFor(() => {
+      expect(vi.mocked(global.fetch)).toHaveBeenCalledWith(
+        "/api/obligations/1",
+        expect.objectContaining({
+          method: "PUT",
+          body: JSON.stringify({ isPaused: true }),
+        })
+      );
+    });
+  });
+
+  it("toggles resume state when resume button is clicked", async () => {
+    const user = userEvent.setup();
+    mockFetchResponses(mockObligations);
+
+    render(<ObligationsPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Car Rego")).toBeDefined();
+    });
+
+    // Car Rego is paused, so the button should say "Resume"
+    const resumeButton = screen.getByRole("button", { name: "Resume Car Rego" });
+    expect(resumeButton.textContent).toBe("Resume");
+
+    // Mock the PUT response
+    vi.mocked(global.fetch).mockResolvedValueOnce(
+      new Response(JSON.stringify({ success: true }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      })
+    );
+
+    await user.click(resumeButton);
+
+    await waitFor(() => {
+      expect(vi.mocked(global.fetch)).toHaveBeenCalledWith(
+        "/api/obligations/3",
+        expect.objectContaining({
+          method: "PUT",
+          body: JSON.stringify({ isPaused: false }),
+        })
+      );
+    });
+  });
+
+  // New tests for archive display
+
+  it("displays archived obligations in the archive section", async () => {
+    const archivedOb = {
+      id: "10",
+      name: "Old Subscription",
+      type: "recurring",
+      amount: 9.99,
+      frequency: "monthly",
+      frequencyDays: null,
+      startDate: "2025-01-01T00:00:00.000Z",
+      endDate: null,
+      nextDueDate: "2025-06-01T00:00:00.000Z",
+      isPaused: false,
+      isArchived: true,
+      fundGroupId: null,
+      fundGroup: null,
+      customEntries: [],
+    };
+
+    mockFetchResponses(mockObligations, [archivedOb]);
+
+    render(<ObligationsPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Netflix")).toBeDefined();
+    });
+
+    expect(screen.getByText("Old Subscription")).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Archived" })).toBeDefined();
+  });
+
+  it("auto-archives a completed one-off obligation", async () => {
+    const completedOneOff = {
+      id: "20",
+      name: "Past One-Off",
+      type: "one_off",
+      amount: 100,
+      frequency: null,
+      frequencyDays: null,
+      startDate: "2024-01-01T00:00:00.000Z",
+      endDate: null,
+      nextDueDate: "2024-06-01T00:00:00.000Z",
+      isPaused: false,
+      isArchived: false,
+      fundGroupId: null,
+      fundGroup: null,
+      customEntries: [],
+    };
+
+    // The auto-archive sends a PUT for the completed obligation
+    let putCalled = false;
+    vi.mocked(global.fetch).mockImplementation((input: string | URL | Request) => {
+      const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
+      if (url.includes("archived=true")) {
+        return Promise.resolve(
+          new Response(JSON.stringify([]), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          })
+        );
+      }
+      if (url.includes("/api/obligations/20") && !putCalled) {
+        putCalled = true;
+        return Promise.resolve(
+          new Response(JSON.stringify({ success: true }), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          })
+        );
+      }
+      return Promise.resolve(
+        new Response(JSON.stringify([completedOneOff]), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        })
+      );
+    });
+
+    render(<ObligationsPage />);
+
+    await waitFor(() => {
+      // Completed one-off should be moved to archive section
+      expect(screen.getByText("Past One-Off")).toBeDefined();
+    });
+
+    // Verify the PUT was called to archive it
+    expect(vi.mocked(global.fetch)).toHaveBeenCalledWith(
+      "/api/obligations/20",
+      expect.objectContaining({
+        method: "PUT",
+        body: JSON.stringify({ isArchived: true }),
+      })
+    );
+  });
+
+  it("auto-archives a completed recurring_with_end obligation", async () => {
+    const completedRecurring = {
+      id: "21",
+      name: "Finished Plan",
+      type: "recurring_with_end",
+      amount: 200,
+      frequency: "monthly",
+      frequencyDays: null,
+      startDate: "2024-01-01T00:00:00.000Z",
+      endDate: "2024-12-01T00:00:00.000Z",
+      nextDueDate: "2024-12-01T00:00:00.000Z",
+      isPaused: false,
+      isArchived: false,
+      fundGroupId: null,
+      fundGroup: null,
+      customEntries: [],
+    };
+
+    vi.mocked(global.fetch).mockImplementation((input: string | URL | Request) => {
+      const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
+      if (url.includes("archived=true")) {
+        return Promise.resolve(
+          new Response(JSON.stringify([]), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          })
+        );
+      }
+      if (url.includes("/api/obligations/21")) {
+        return Promise.resolve(
+          new Response(JSON.stringify({ success: true }), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          })
+        );
+      }
+      return Promise.resolve(
+        new Response(JSON.stringify([completedRecurring]), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        })
+      );
+    });
+
+    render(<ObligationsPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Finished Plan")).toBeDefined();
+    });
+
+    // Should be in archive, not in active list
+    expect(screen.getByRole("heading", { name: "Archived" })).toBeDefined();
+    expect(vi.mocked(global.fetch)).toHaveBeenCalledWith(
+      "/api/obligations/21",
+      expect.objectContaining({
+        method: "PUT",
+        body: JSON.stringify({ isArchived: true }),
+      })
+    );
+  });
+
+  it("does not auto-archive paused completed obligations", async () => {
+    const pausedCompleted = {
+      id: "22",
+      name: "Paused One-Off",
+      type: "one_off",
+      amount: 100,
+      frequency: null,
+      frequencyDays: null,
+      startDate: "2024-01-01T00:00:00.000Z",
+      endDate: null,
+      nextDueDate: "2024-06-01T00:00:00.000Z",
+      isPaused: true,
+      isArchived: false,
+      fundGroupId: null,
+      fundGroup: null,
+      customEntries: [],
+    };
+
+    mockFetchResponses([pausedCompleted]);
+
+    render(<ObligationsPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Paused One-Off")).toBeDefined();
+    });
+
+    // Should remain in active list since it's paused
+    expect(screen.getByText("Paused")).toBeDefined();
+  });
+
+  it("shows archive section with only archived obligations (no active)", async () => {
+    const archivedOb = {
+      id: "30",
+      name: "Archived Only",
+      type: "recurring",
+      amount: 15.0,
+      frequency: "monthly",
+      frequencyDays: null,
+      startDate: "2025-01-01T00:00:00.000Z",
+      endDate: null,
+      nextDueDate: "2025-06-01T00:00:00.000Z",
+      isPaused: false,
+      isArchived: true,
+      fundGroupId: null,
+      fundGroup: null,
+      customEntries: [],
+    };
+
+    mockFetchResponses([], [archivedOb]);
+
+    render(<ObligationsPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Archived Only")).toBeDefined();
+    });
+
+    expect(screen.getByRole("heading", { name: "Archived" })).toBeDefined();
+    // Should not show empty state since there are archived obligations
+    expect(screen.queryByText("No obligations yet")).toBeNull();
   });
 });

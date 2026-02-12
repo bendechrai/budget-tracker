@@ -78,6 +78,29 @@ function isPastDue(nextDueDate: string): boolean {
   return due < now;
 }
 
+function isCompleted(ob: Obligation): boolean {
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+
+  if (ob.type === "recurring_with_end" && ob.endDate) {
+    const end = new Date(ob.endDate);
+    return end < now;
+  }
+
+  if (ob.type === "one_off") {
+    return isPastDue(ob.nextDueDate);
+  }
+
+  if (ob.type === "custom") {
+    const allPaid = ob.customEntries.length > 0 && ob.customEntries.every((e) => e.isPaid);
+    if (allPaid) return true;
+    const allPast = ob.customEntries.length > 0 && ob.customEntries.every((e) => new Date(e.dueDate) < now);
+    if (allPast) return true;
+  }
+
+  return false;
+}
+
 interface GroupedObligations {
   groupName: string;
   obligations: Obligation[];
@@ -118,29 +141,87 @@ function groupByFundGroup(obligations: Obligation[]): GroupedObligations[] {
 export default function ObligationsPage() {
   const router = useRouter();
   const [obligations, setObligations] = useState<Obligation[]>([]);
+  const [archivedObligations, setArchivedObligations] = useState<Obligation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  const archiveObligation = useCallback(async (ob: Obligation) => {
+    try {
+      await fetch(`/api/obligations/${ob.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isArchived: true }),
+      });
+    } catch (err) {
+      logError("failed to archive obligation", err);
+    }
+  }, []);
+
   const fetchObligations = useCallback(async () => {
     try {
-      const res = await fetch("/api/obligations");
-      if (!res.ok) {
+      const [activeRes, archivedRes] = await Promise.all([
+        fetch("/api/obligations"),
+        fetch("/api/obligations?archived=true"),
+      ]);
+
+      if (!activeRes.ok || !archivedRes.ok) {
         setError("Failed to load obligations");
         return;
       }
-      const data = (await res.json()) as Obligation[];
-      setObligations(data);
+
+      const activeData = (await activeRes.json()) as Obligation[];
+      const archivedData = (await archivedRes.json()) as Obligation[];
+
+      // Auto-archive completed obligations
+      const completed: Obligation[] = [];
+      const active: Obligation[] = [];
+      for (const ob of activeData) {
+        if (!ob.isPaused && isCompleted(ob)) {
+          completed.push(ob);
+        } else {
+          active.push(ob);
+        }
+      }
+
+      if (completed.length > 0) {
+        await Promise.all(completed.map((ob) => archiveObligation(ob)));
+        setArchivedObligations([...completed, ...archivedData]);
+      } else {
+        setArchivedObligations(archivedData);
+      }
+
+      setObligations(active);
     } catch (err) {
       logError("failed to fetch obligations", err);
       setError("Failed to load obligations");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [archiveObligation]);
 
   useEffect(() => {
     void fetchObligations();
   }, [fetchObligations]);
+
+  async function handleTogglePause(id: string, isPaused: boolean) {
+    try {
+      const res = await fetch(`/api/obligations/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isPaused: !isPaused }),
+      });
+      if (!res.ok) {
+        setError("Failed to update obligation");
+        return;
+      }
+      setObligations((prev) =>
+        prev.map((o) => (o.id === id ? { ...o, isPaused: !isPaused } : o))
+      );
+    } catch (err) {
+      logError("failed to toggle pause for obligation", err);
+      setError("Failed to update obligation");
+    }
+  }
 
   async function handleDelete(id: string, name: string) {
     if (!confirm(`Are you sure you want to delete "${name}"?`)) {
@@ -171,6 +252,7 @@ export default function ObligationsPage() {
   }
 
   const grouped = groupByFundGroup(obligations);
+  const hasAnyObligations = obligations.length > 0 || archivedObligations.length > 0;
 
   return (
     <div className={styles.page}>
@@ -196,7 +278,7 @@ export default function ObligationsPage() {
 
         {loading && <p className={styles.loading}>Loading...</p>}
 
-        {!loading && obligations.length === 0 && !error && (
+        {!loading && !hasAnyObligations && !error && (
           <div className={styles.emptyState}>
             <h2 className={styles.emptyTitle}>No obligations yet</h2>
             <p className={styles.emptyDescription}>
@@ -259,6 +341,14 @@ export default function ObligationsPage() {
                       <div className={styles.listItemActions}>
                         <button
                           type="button"
+                          className={styles.pauseButton}
+                          onClick={() => void handleTogglePause(ob.id, ob.isPaused)}
+                          aria-label={ob.isPaused ? `Resume ${ob.name}` : `Pause ${ob.name}`}
+                        >
+                          {ob.isPaused ? "Resume" : "Pause"}
+                        </button>
+                        <button
+                          type="button"
                           className={styles.editButton}
                           onClick={() => handleEdit(ob.id)}
                         >
@@ -280,12 +370,42 @@ export default function ObligationsPage() {
             </div>
           ))}
 
-        {!loading && obligations.length > 0 && (
+        {!loading && hasAnyObligations && (
           <div className={styles.archiveSection}>
             <h2 className={styles.archiveTitle}>Archived</h2>
-            <p className={styles.archiveEmpty}>
-              No archived obligations. Completed obligations will appear here.
-            </p>
+            {archivedObligations.length === 0 ? (
+              <p className={styles.archiveEmpty}>
+                No archived obligations. Completed obligations will appear here.
+              </p>
+            ) : (
+              <ul className={styles.list}>
+                {archivedObligations.map((ob) => {
+                  const freq = formatFrequency(ob.frequency, ob.frequencyDays);
+                  return (
+                    <li key={ob.id} className={`${styles.listItem} ${styles.listItemArchived}`}>
+                      <div className={styles.listItemInfo}>
+                        <span className={styles.listItemName}>
+                          {ob.name}
+                          <span className={styles.typeBadge}>
+                            {TYPE_LABELS[ob.type] ?? ob.type}
+                          </span>
+                          <span className={styles.archivedBadge}>Archived</span>
+                        </span>
+                        <span className={styles.listItemDetail}>
+                          ${ob.amount.toFixed(2)}
+                          {freq && <> / {freq}</>}
+                          {" · Due: "}
+                          {formatDate(ob.nextDueDate)}
+                          {ob.endDate && (
+                            <> · Ends: {formatDate(ob.endDate)}</>
+                          )}
+                        </span>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
           </div>
         )}
       </div>

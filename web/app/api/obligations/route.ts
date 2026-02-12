@@ -42,18 +42,21 @@ const VALID_FREQUENCIES: IncomeFrequency[] = [
   "irregular",
 ];
 
-export async function GET(): Promise<NextResponse> {
+export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
     const user = await getCurrentUser();
     if (!user) {
       return NextResponse.json({ error: "unauthorized" }, { status: 401 });
     }
 
+    const { searchParams } = new URL(request.url);
+    const archived = searchParams.get("archived") === "true";
+
     const obligations = await prisma.obligation.findMany({
       where: {
         userId: user.id,
         isActive: true,
-        isArchived: false,
+        isArchived: archived,
       },
       include: {
         customEntries: true,
