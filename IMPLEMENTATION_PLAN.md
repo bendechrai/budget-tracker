@@ -344,17 +344,17 @@
   - Acceptance: Creates an EngineSnapshot record with totalRequired, totalFunded, nextActionAmount, nextActionDate, nextActionDescription. Next action is the most urgent under-funded obligation. Celebration state when all funded.
   - Tests: Unit test: snapshot contains correct totals, next action is nearest due date, celebration state when fully funded
 
+- [x] **Add `POST /api/engine/recalculate` route**
+  - Files: `web/app/api/engine/recalculate/route.ts`
+  - Spec: `specs/07-sinking-fund-engine.md`
+  - Acceptance: Triggers engine recalculation for the authenticated user. Creates new EngineSnapshot. Returns the snapshot.
+  - Tests: Test recalculation produces correct snapshot
+
 ## In Progress
 
 ## Backlog
 
 ### Spec 07 — Sinking Fund Engine
-
-- [ ] **Add `POST /api/engine/recalculate` route**
-  - Files: `web/app/api/engine/recalculate/route.ts`
-  - Spec: `specs/07-sinking-fund-engine.md`
-  - Acceptance: Triggers engine recalculation for the authenticated user. Creates new EngineSnapshot. Returns the snapshot.
-  - Tests: Test recalculation produces correct snapshot
 
 - [ ] **Add `POST /api/contributions` route (mark contribution done)**
   - Files: `web/app/api/contributions/route.ts`
