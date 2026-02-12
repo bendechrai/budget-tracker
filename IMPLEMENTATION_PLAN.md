@@ -86,17 +86,17 @@
   - Acceptance: User can add income sources one at a time via a traditional form. Can skip. Navigates to obligations step.
   - Tests: Component test: form renders, skip button works
 
+- [x] **Add onboarding manual obligations step page**
+  - Files: `web/app/onboarding/manual/obligations/page.tsx`, `web/app/onboarding/manual/obligations/obligations.module.css`
+  - Spec: `specs/02-onboarding.md`
+  - Acceptance: User can add obligations one at a time via a traditional form. Can skip. Navigates to fund setup.
+  - Tests: Component test: form renders, skip button works
+
 ## In Progress
 
 ## Backlog
 
 ### Spec 02 — Onboarding
-
-- [ ] **Add onboarding manual obligations step page**
-  - Files: `web/app/onboarding/manual/obligations/page.tsx`
-  - Spec: `specs/02-onboarding.md`
-  - Acceptance: User can add obligations one at a time via a traditional form. Can skip. Navigates to fund setup.
-  - Tests: Component test: form renders, skip button works
 
 - [ ] **Add onboarding fund setup step page**
   - Files: `web/app/onboarding/fund-setup/page.tsx`
