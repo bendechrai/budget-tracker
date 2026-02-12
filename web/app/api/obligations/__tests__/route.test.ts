@@ -9,6 +9,7 @@ vi.mock("@/lib/auth/getCurrentUser", () => ({
 
 const mockObligationCreate = vi.fn();
 const mockObligationFindUnique = vi.fn();
+const mockObligationFindMany = vi.fn();
 const mockCustomScheduleEntryCreateMany = vi.fn();
 const mockFundGroupFindUnique = vi.fn();
 const mockTransaction = vi.fn();
@@ -18,6 +19,7 @@ vi.mock("@/lib/prisma", () => ({
     obligation: {
       create: (...args: unknown[]) => mockObligationCreate(...args),
       findUnique: (...args: unknown[]) => mockObligationFindUnique(...args),
+      findMany: (...args: unknown[]) => mockObligationFindMany(...args),
     },
     customScheduleEntry: {
       createMany: (...args: unknown[]) =>
@@ -34,7 +36,7 @@ vi.mock("@/lib/logging", () => ({
   logError: vi.fn(),
 }));
 
-import { POST } from "../route";
+import { GET, POST } from "../route";
 
 function makeRequest(body: Record<string, unknown>): NextRequest {
   return new NextRequest("http://localhost/api/obligations", {
@@ -651,5 +653,161 @@ describe("POST /api/obligations", () => {
     expect(data.error).toBe(
       "frequencyDays must be a positive integer when frequency is custom"
     );
+  });
+});
+
+describe("GET /api/obligations", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("returns 200 with user's active non-archived obligations ordered by nextDueDate", async () => {
+    mockGetCurrentUser.mockResolvedValue({
+      id: "user_1",
+      email: "test@example.com",
+    });
+    const records = [
+      {
+        id: "obl_1",
+        userId: "user_1",
+        name: "Netflix",
+        type: "recurring",
+        amount: 22.99,
+        nextDueDate: new Date("2026-03-01T00:00:00.000Z"),
+        customEntries: [],
+        fundGroup: null,
+      },
+      {
+        id: "obl_2",
+        userId: "user_1",
+        name: "Car Registration",
+        type: "one_off",
+        amount: 850,
+        nextDueDate: new Date("2026-07-15T00:00:00.000Z"),
+        customEntries: [],
+        fundGroup: null,
+      },
+    ];
+    mockObligationFindMany.mockResolvedValue(records);
+
+    const res = await GET();
+
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data).toHaveLength(2);
+    expect(data[0].name).toBe("Netflix");
+    expect(data[1].name).toBe("Car Registration");
+
+    expect(mockObligationFindMany).toHaveBeenCalledWith({
+      where: {
+        userId: "user_1",
+        isActive: true,
+        isArchived: false,
+      },
+      include: {
+        customEntries: true,
+        fundGroup: true,
+      },
+      orderBy: {
+        nextDueDate: "asc",
+      },
+    });
+  });
+
+  it("includes custom schedule entries in response", async () => {
+    mockGetCurrentUser.mockResolvedValue({
+      id: "user_1",
+      email: "test@example.com",
+    });
+    const records = [
+      {
+        id: "obl_3",
+        userId: "user_1",
+        name: "Council Tax",
+        type: "custom",
+        amount: 1800,
+        nextDueDate: new Date("2026-09-15T00:00:00.000Z"),
+        customEntries: [
+          { id: "cse_1", obligationId: "obl_3", dueDate: new Date("2026-09-15T00:00:00.000Z"), amount: 180, isPaid: false },
+          { id: "cse_2", obligationId: "obl_3", dueDate: new Date("2026-10-15T00:00:00.000Z"), amount: 180, isPaid: false },
+        ],
+        fundGroup: null,
+      },
+    ];
+    mockObligationFindMany.mockResolvedValue(records);
+
+    const res = await GET();
+
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data[0].customEntries).toHaveLength(2);
+  });
+
+  it("includes fund group in response", async () => {
+    mockGetCurrentUser.mockResolvedValue({
+      id: "user_1",
+      email: "test@example.com",
+    });
+    const records = [
+      {
+        id: "obl_4",
+        userId: "user_1",
+        name: "Netflix",
+        type: "recurring",
+        amount: 22.99,
+        nextDueDate: new Date("2026-03-01T00:00:00.000Z"),
+        customEntries: [],
+        fundGroup: { id: "fg_1", userId: "user_1", name: "Entertainment" },
+      },
+    ];
+    mockObligationFindMany.mockResolvedValue(records);
+
+    const res = await GET();
+
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data[0].fundGroup).toEqual(
+      expect.objectContaining({ id: "fg_1", name: "Entertainment" })
+    );
+  });
+
+  it("returns empty array when user has no obligations", async () => {
+    mockGetCurrentUser.mockResolvedValue({
+      id: "user_2",
+      email: "new@example.com",
+    });
+    mockObligationFindMany.mockResolvedValue([]);
+
+    const res = await GET();
+
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data).toEqual([]);
+
+    expect(mockObligationFindMany).toHaveBeenCalledWith({
+      where: {
+        userId: "user_2",
+        isActive: true,
+        isArchived: false,
+      },
+      include: {
+        customEntries: true,
+        fundGroup: true,
+      },
+      orderBy: {
+        nextDueDate: "asc",
+      },
+    });
+  });
+
+  it("returns 401 when not authenticated", async () => {
+    mockGetCurrentUser.mockResolvedValue(null);
+
+    const res = await GET();
+
+    expect(res.status).toBe(401);
+    const data = await res.json();
+    expect(data.error).toBe("unauthorized");
+    expect(mockObligationFindMany).not.toHaveBeenCalled();
   });
 });

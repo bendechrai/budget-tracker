@@ -42,6 +42,38 @@ const VALID_FREQUENCIES: IncomeFrequency[] = [
   "irregular",
 ];
 
+export async function GET(): Promise<NextResponse> {
+  try {
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    }
+
+    const obligations = await prisma.obligation.findMany({
+      where: {
+        userId: user.id,
+        isActive: true,
+        isArchived: false,
+      },
+      include: {
+        customEntries: true,
+        fundGroup: true,
+      },
+      orderBy: {
+        nextDueDate: "asc",
+      },
+    });
+
+    return NextResponse.json(obligations);
+  } catch (error) {
+    logError("failed to fetch obligations", error);
+    return NextResponse.json(
+      { error: "internal server error" },
+      { status: 500 }
+    );
+  }
+}
+
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     const user = await getCurrentUser();

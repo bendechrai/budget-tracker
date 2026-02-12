@@ -170,17 +170,17 @@
   - Acceptance: Creates an obligation for the authenticated user. Supports all four types. For custom type, also creates associated CustomScheduleEntry records. Returns 201.
   - Tests: Test create each of the four types (201), missing fields (400), unauthenticated (401)
 
+- [x] **Add `GET /api/obligations` route**
+  - Files: `web/app/api/obligations/route.ts`
+  - Spec: `specs/04-expenses-obligations.md`
+  - Acceptance: Returns all active, non-archived obligations for the authenticated user, including related CustomScheduleEntries and FundGroup. Ordered by nextDueDate.
+  - Tests: Test returns user's obligations only, includes custom schedule entries
+
 ## In Progress
 
 ## Backlog
 
 ### Spec 04 — Expenses & Obligations
-
-- [ ] **Add `GET /api/obligations` route**
-  - Files: `web/app/api/obligations/route.ts`
-  - Spec: `specs/04-expenses-obligations.md`
-  - Acceptance: Returns all active, non-archived obligations for the authenticated user, including related CustomScheduleEntries and FundGroup. Ordered by nextDueDate.
-  - Tests: Test returns user's obligations only, includes custom schedule entries
 
 - [ ] **Add `PUT /api/obligations/[id]` route**
   - Files: `web/app/api/obligations/[id]/route.ts`
