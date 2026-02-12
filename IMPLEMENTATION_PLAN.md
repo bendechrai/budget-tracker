@@ -56,17 +56,17 @@
   - Acceptance: Reads session cookie, returns user record or null. Used in server components and API routes to scope data queries.
   - Tests: Unit test with mocked cookie
 
+- [x] **Add signup page UI**
+  - Files: `web/app/signup/page.tsx`, `web/app/signup/signup.module.css`
+  - Spec: `specs/01-auth.md`
+  - Acceptance: Form with email + password fields. Submits to signup API. Shows validation errors. Redirects to onboarding on success.
+  - Tests: Component test: renders form, shows error on duplicate email
+
 ## In Progress
 
 ## Backlog
 
 ### Spec 01 — Auth & User Management
-
-- [ ] **Add signup page UI**
-  - Files: `web/app/signup/page.tsx`, `web/app/signup/signup.module.css`
-  - Spec: `specs/01-auth.md`
-  - Acceptance: Form with email + password fields. Submits to signup API. Shows validation errors. Redirects to onboarding on success.
-  - Tests: Component test: renders form, shows error on duplicate email
 
 - [ ] **Add login page UI**
   - Files: `web/app/login/page.tsx`, `web/app/login/login.module.css`
