@@ -68,17 +68,15 @@
   - Acceptance: Form with email + password fields. Submits to login API. Shows generic error on failure. Redirects to dashboard (or intended destination) on success.
   - Tests: Component test: renders form, shows error on bad credentials
 
-## In Progress
-
-## Backlog
-
-### Spec 01 — Auth & User Management
-
-- [ ] **Update landing page with auth links**
+- [x] **Update landing page with auth links**
   - Files: `web/app/page.tsx`, `web/app/page.module.css`
   - Spec: `specs/01-auth.md`
   - Acceptance: Landing page shows Sign Up and Log In buttons/links. Clean, branded design.
   - Tests: Component test: renders both links
+
+## In Progress
+
+## Backlog
 
 ### Spec 02 — Onboarding
 
