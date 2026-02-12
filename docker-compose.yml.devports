@@ -48,7 +48,6 @@ services:
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       CLAUDE_CODE_OAUTH_TOKEN: ${CLAUDE_CODE_OAUTH_TOKEN:-}
       RALPH_MODE: ${RALPH_MODE:-build}
-      RALPH_MAX_ITERATIONS: ${RALPH_MAX_ITERATIONS:-5}
     volumes:
       - .:/project
       - /var/run/docker.sock:/var/run/docker.sock

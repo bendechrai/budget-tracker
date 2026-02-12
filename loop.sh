@@ -19,12 +19,6 @@ trap 'rm -f "$LOCKFILE"' EXIT
 touch "$LOCKFILE"
 
 MODE="${RALPH_MODE:-build}"
-MAX_ITERATIONS="${RALPH_MAX_ITERATIONS:-5}"
-
-# Plan mode is a single-shot operation
-if [ "$MODE" = "plan" ]; then
-  MAX_ITERATIONS=1
-fi
 
 # Resolve authentication — prefer subscription token over API key
 if [ -n "${CLAUDE_CODE_OAUTH_TOKEN:-}" ]; then
@@ -53,8 +47,12 @@ fi
 
 PROMPT="$(cat "$PROMPT_FILE")"
 
-echo "Starting Ralph in $MODE mode for $MAX_ITERATIONS iteration(s)..."
-echo "To stop after the current iteration: ./ralph.sh stop"
+if [ "$MODE" = "plan" ]; then
+  echo "Starting Ralph in plan mode (single shot)..."
+else
+  echo "Starting Ralph in build mode (runs until all tasks are done)..."
+  echo "To stop after the current iteration: ./ralph.sh stop"
+fi
 
 cd /project
 
@@ -62,37 +60,52 @@ STOPFILE="/project/.ralph-stop"
 LOGDIR="/project/logs/ralph"
 mkdir -p "$LOGDIR"
 
-for ((i = 1; i <= MAX_ITERATIONS; i++)); do
-  if [ -f "$STOPFILE" ]; then
-    echo "Stop file detected. Exiting."
-    break
-  fi
-
-  LOGFILE="$LOGDIR/$(date +%Y%m%d-%H%M%S)-${MODE}-${i}.log"
+# Plan mode is single-shot; build mode loops until stop file
+if [ "$MODE" = "plan" ]; then
+  LOGFILE="$LOGDIR/$(date +%Y%m%d-%H%M%S)-plan.log"
 
   echo ""
-  echo "=== Iteration $i / $MAX_ITERATIONS ==="
   echo "Log: $LOGFILE"
   echo ""
 
-  EXIT_CODE=0
   claude -p "$PROMPT" \
     --dangerously-skip-permissions \
     --output-format=stream-json \
     --model opus \
-    --verbose < /dev/null > "$LOGFILE" 2>&1 || EXIT_CODE=$?
+    --verbose < /dev/null > "$LOGFILE" 2>&1
+else
+  i=0
+  while true; do
+    if [ -f "$STOPFILE" ]; then
+      echo "Stop file detected. Exiting."
+      break
+    fi
 
-  if [ "$EXIT_CODE" -ne 0 ]; then
-    echo "Warning: Claude exited with code $EXIT_CODE (see log for details)"
-  fi
+    i=$((i + 1))
+    LOGFILE="$LOGDIR/$(date +%Y%m%d-%H%M%S)-build-${i}.log"
 
-  # Push whatever we have
-  git push 2>/dev/null || true
+    echo ""
+    echo "=== Iteration $i ==="
+    echo "Log: $LOGFILE"
+    echo ""
 
-  echo "=== Iteration $i complete ==="
+    EXIT_CODE=0
+    claude -p "$PROMPT" \
+      --dangerously-skip-permissions \
+      --output-format=stream-json \
+      --model opus \
+      --verbose < /dev/null > "$LOGFILE" 2>&1 || EXIT_CODE=$?
 
-  # Countdown before next iteration (unless this is the last one)
-  if [ "$i" -lt "$MAX_ITERATIONS" ]; then
+    if [ "$EXIT_CODE" -ne 0 ]; then
+      echo "Warning: Claude exited with code $EXIT_CODE (see log for details)"
+    fi
+
+    # Push whatever we have
+    git push 2>/dev/null || true
+
+    echo "=== Iteration $i complete ==="
+
+    # Brief pause before next iteration
     echo ""
     echo "Next iteration in 5s — run ./ralph.sh stop to stop after this cycle"
     for s in 5 4 3 2 1; do
@@ -104,8 +117,8 @@ for ((i = 1; i <= MAX_ITERATIONS; i++)); do
       sleep 1
     done
     printf "\r       \r"
-  fi
-done
+  done
+fi
 
 echo ""
 echo "Ralph finished in $MODE mode."
