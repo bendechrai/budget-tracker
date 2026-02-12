@@ -278,17 +278,15 @@
   - Acceptance: Lists imported transactions with date, description, amount, type. Supports date range filtering. Paginated.
   - Tests: Component test: renders transaction list, filter works
 
-## In Progress
-
-## Backlog
-
-### Spec 05 — Bank Statement Import
-
-- [ ] **Add import history page**
-  - Files: `web/app/import/history/page.tsx`
+- [x] **Add import history page**
+  - Files: `web/app/import/history/page.tsx`, `web/app/import/history/history.module.css`
   - Spec: `specs/05-bank-statement-import.md`
   - Acceptance: Shows past imports with date, filename, format, and counts (found, imported, skipped, flagged).
   - Tests: Component test: renders import history list
+
+## In Progress
+
+## Backlog
 
 ### Spec 06 — Pattern Detection & Suggestions
 
