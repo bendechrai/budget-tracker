@@ -8,11 +8,13 @@ vi.mock("@/lib/auth/getCurrentUser", () => ({
 }));
 
 const mockCreate = vi.fn();
+const mockFindMany = vi.fn();
 
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     incomeSource: {
       create: (...args: unknown[]) => mockCreate(...args),
+      findMany: (...args: unknown[]) => mockFindMany(...args),
     },
   },
 }));
@@ -21,7 +23,7 @@ vi.mock("@/lib/logging", () => ({
   logError: vi.fn(),
 }));
 
-import { POST } from "../route";
+import { GET, POST } from "../route";
 
 function makeRequest(body: Record<string, unknown>): NextRequest {
   return new NextRequest("http://localhost/api/income-sources", {
@@ -252,5 +254,68 @@ describe("POST /api/income-sources", () => {
         name: "Salary",
       }),
     });
+  });
+});
+
+describe("GET /api/income-sources", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("returns 200 with user's active income sources ordered by createdAt desc", async () => {
+    mockGetCurrentUser.mockResolvedValue({ id: "user_1", email: "test@example.com" });
+    const records = [
+      { id: "inc_2", userId: "user_1", name: "Freelance", createdAt: "2026-02-01T00:00:00.000Z" },
+      { id: "inc_1", userId: "user_1", name: "Salary", createdAt: "2026-01-01T00:00:00.000Z" },
+    ];
+    mockFindMany.mockResolvedValue(records);
+
+    const res = await GET();
+
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data).toEqual(records);
+
+    expect(mockFindMany).toHaveBeenCalledWith({
+      where: {
+        userId: "user_1",
+        isActive: true,
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+  });
+
+  it("returns empty array when user has no income sources", async () => {
+    mockGetCurrentUser.mockResolvedValue({ id: "user_2", email: "new@example.com" });
+    mockFindMany.mockResolvedValue([]);
+
+    const res = await GET();
+
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data).toEqual([]);
+
+    expect(mockFindMany).toHaveBeenCalledWith({
+      where: {
+        userId: "user_2",
+        isActive: true,
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+  });
+
+  it("returns 401 when not authenticated", async () => {
+    mockGetCurrentUser.mockResolvedValue(null);
+
+    const res = await GET();
+
+    expect(res.status).toBe(401);
+    const data = await res.json();
+    expect(data.error).toBe("unauthorized");
+    expect(mockFindMany).not.toHaveBeenCalled();
   });
 });

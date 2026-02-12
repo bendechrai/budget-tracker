@@ -122,17 +122,17 @@
   - Acceptance: Creates an income source for the authenticated user. Validates required fields. Returns 201 with the created record.
   - Tests: Test create with valid data (201), missing fields (400), unauthenticated (401)
 
+- [x] **Add `GET /api/income-sources` route**
+  - Files: `web/app/api/income-sources/route.ts`
+  - Spec: `specs/03-income-sources.md`
+  - Acceptance: Returns all active income sources for the authenticated user, ordered by createdAt desc.
+  - Tests: Test returns user's income sources only (not other users'), empty list for new user
+
 ## In Progress
 
 ## Backlog
 
 ### Spec 03 — Income Sources
-
-- [ ] **Add `GET /api/income-sources` route**
-  - Files: `web/app/api/income-sources/route.ts`
-  - Spec: `specs/03-income-sources.md`
-  - Acceptance: Returns all active income sources for the authenticated user, ordered by createdAt desc.
-  - Tests: Test returns user's income sources only (not other users'), empty list for new user
 
 - [ ] **Add `PUT /api/income-sources/[id]` route**
   - Files: `web/app/api/income-sources/[id]/route.ts`

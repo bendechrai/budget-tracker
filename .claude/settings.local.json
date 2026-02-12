@@ -6,7 +6,8 @@
       "WebSearch",
       "Bash(python3 -c:*)",
       "WebFetch(domain:docs.railway.com)",
-      "WebFetch(domain:www.prisma.io)"
+      "WebFetch(domain:www.prisma.io)",
+      "WebFetch(domain:railpack.com)"
     ]
   }
 }
