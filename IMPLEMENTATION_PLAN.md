@@ -254,17 +254,17 @@
   - Acceptance: Receives user decisions on flagged near-duplicate transactions (keep or skip each). Saves kept transactions. Updates ImportLog counts.
   - Tests: Test resolve keep (saves transaction), resolve skip (does not save)
 
+- [x] **Add `GET /api/transactions` route**
+  - Files: `web/app/api/transactions/route.ts`
+  - Spec: `specs/05-bank-statement-import.md`
+  - Acceptance: Returns paginated transactions for the authenticated user. Supports filtering by date range. Ordered by date desc.
+  - Tests: Test returns user's transactions, pagination works, date filter works
+
 ## In Progress
 
 ## Backlog
 
 ### Spec 05 — Bank Statement Import
-
-- [ ] **Add `GET /api/transactions` route**
-  - Files: `web/app/api/transactions/route.ts`
-  - Spec: `specs/05-bank-statement-import.md`
-  - Acceptance: Returns paginated transactions for the authenticated user. Supports filtering by date range. Ordered by date desc.
-  - Tests: Test returns user's transactions, pagination works, date filter works
 
 - [ ] **Add `GET /api/import/history` route**
   - Files: `web/app/api/import/history/route.ts`
