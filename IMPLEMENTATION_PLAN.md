@@ -62,17 +62,17 @@
   - Acceptance: Form with email + password fields. Submits to signup API. Shows validation errors. Redirects to onboarding on success.
   - Tests: Component test: renders form, shows error on duplicate email
 
+- [x] **Add login page UI**
+  - Files: `web/app/login/page.tsx`, `web/app/login/login.module.css`
+  - Spec: `specs/01-auth.md`
+  - Acceptance: Form with email + password fields. Submits to login API. Shows generic error on failure. Redirects to dashboard (or intended destination) on success.
+  - Tests: Component test: renders form, shows error on bad credentials
+
 ## In Progress
 
 ## Backlog
 
 ### Spec 01 — Auth & User Management
-
-- [ ] **Add login page UI**
-  - Files: `web/app/login/page.tsx`, `web/app/login/login.module.css`
-  - Spec: `specs/01-auth.md`
-  - Acceptance: Form with email + password fields. Submits to login API. Shows generic error on failure. Redirects to dashboard (or intended destination) on success.
-  - Tests: Component test: renders form, shows error on bad credentials
 
 - [ ] **Update landing page with auth links**
   - Files: `web/app/page.tsx`, `web/app/page.module.css`
