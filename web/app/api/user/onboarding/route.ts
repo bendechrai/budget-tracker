@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth/getCurrentUser";
+import { createSession } from "@/lib/auth/session";
 import { logError } from "@/lib/logging";
 
 interface OnboardingBody {
@@ -70,6 +71,9 @@ export async function PUT(request: NextRequest): Promise<NextResponse> {
         onboardingComplete: true,
       },
     });
+
+    // Refresh the session with updated onboardingComplete status
+    await createSession(updated.id, updated.onboardingComplete);
 
     return NextResponse.json({
       id: updated.id,

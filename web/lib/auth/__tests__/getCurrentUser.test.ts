@@ -47,7 +47,7 @@ describe("getCurrentUser", () => {
       updatedAt: new Date(),
     };
 
-    mockGetSession.mockResolvedValue({ userId: "user-123" });
+    mockGetSession.mockResolvedValue({ userId: "user-123", onboardingComplete: false });
     mockFindUnique.mockResolvedValue(fakeUser);
 
     const result = await getCurrentUser();
@@ -68,7 +68,7 @@ describe("getCurrentUser", () => {
   });
 
   it("returns null when user is not found in database", async () => {
-    mockGetSession.mockResolvedValue({ userId: "nonexistent-id" });
+    mockGetSession.mockResolvedValue({ userId: "nonexistent-id", onboardingComplete: false });
     mockFindUnique.mockResolvedValue(null);
 
     const result = await getCurrentUser();

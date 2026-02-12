@@ -39,7 +39,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    await createSession(user.id);
+    await createSession(user.id, user.onboardingComplete);
 
     return NextResponse.json({ id: user.id, email: user.email }, { status: 200 });
   } catch (error) {

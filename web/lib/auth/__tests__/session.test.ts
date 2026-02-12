@@ -13,14 +13,22 @@ beforeEach(() => {
 
 describe("session token management", () => {
   it("creates a token and verifies it back to the original payload", async () => {
-    const payload = { userId: "user-123" };
+    const payload = { userId: "user-123", onboardingComplete: false };
 
     const token = await createSessionToken(payload);
     expect(typeof token).toBe("string");
     expect(token.length).toBeGreaterThan(0);
 
     const parsed = await verifySessionToken(token);
-    expect(parsed).toEqual({ userId: "user-123" });
+    expect(parsed).toEqual({ userId: "user-123", onboardingComplete: false });
+  });
+
+  it("preserves onboardingComplete=true in token", async () => {
+    const payload = { userId: "user-456", onboardingComplete: true };
+
+    const token = await createSessionToken(payload);
+    const parsed = await verifySessionToken(token);
+    expect(parsed).toEqual({ userId: "user-456", onboardingComplete: true });
   });
 
   it("returns null for an invalid token", async () => {
@@ -29,7 +37,7 @@ describe("session token management", () => {
   });
 
   it("returns null for a tampered token", async () => {
-    const token = await createSessionToken({ userId: "user-123" });
+    const token = await createSessionToken({ userId: "user-123", onboardingComplete: false });
     const tampered = token.slice(0, -5) + "XXXXX";
 
     const parsed = await verifySessionToken(tampered);
@@ -37,7 +45,7 @@ describe("session token management", () => {
   });
 
   it("returns null when token was signed with a different secret", async () => {
-    const token = await createSessionToken({ userId: "user-123" });
+    const token = await createSessionToken({ userId: "user-123", onboardingComplete: false });
 
     // Change the secret
     process.env.SESSION_SECRET = "different-secret-at-least-32-chars!!";
@@ -50,7 +58,7 @@ describe("session token management", () => {
     delete process.env.SESSION_SECRET;
 
     await expect(
-      createSessionToken({ userId: "user-123" })
+      createSessionToken({ userId: "user-123", onboardingComplete: false })
     ).rejects.toThrow("SESSION_SECRET environment variable is not set");
   });
 });

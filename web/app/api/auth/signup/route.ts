@@ -55,7 +55,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       data: { email, passwordHash },
     });
 
-    await createSession(user.id);
+    await createSession(user.id, user.onboardingComplete);
 
     return NextResponse.json({ id: user.id, email: user.email }, { status: 201 });
   } catch (error) {

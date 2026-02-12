@@ -28,19 +28,40 @@ function isStaticPath(pathname: string): boolean {
   );
 }
 
-async function isValidSession(token: string): Promise<boolean> {
+function isOnboardingPath(pathname: string): boolean {
+  return pathname === "/onboarding" || pathname.startsWith("/onboarding/");
+}
+
+function isApiPath(pathname: string): boolean {
+  return pathname.startsWith("/api/");
+}
+
+interface SessionData {
+  userId: string;
+  onboardingComplete: boolean;
+}
+
+async function getSessionData(
+  token: string
+): Promise<SessionData | null> {
   const secret = process.env.SESSION_SECRET;
   if (!secret) {
-    return false;
+    return null;
   }
   try {
     const { payload } = await jwtVerify(
       token,
       new TextEncoder().encode(secret)
     );
-    return typeof payload.userId === "string";
+    if (typeof payload.userId !== "string") {
+      return null;
+    }
+    return {
+      userId: payload.userId,
+      onboardingComplete: payload.onboardingComplete === true,
+    };
   } catch {
-    return false;
+    return null;
   }
 }
 
@@ -53,10 +74,31 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
 
   const token = request.cookies.get(SESSION_COOKIE_NAME)?.value;
 
-  if (!token || !(await isValidSession(token))) {
+  if (!token) {
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("redirect", pathname);
     return NextResponse.redirect(loginUrl);
+  }
+
+  const session = await getSessionData(token);
+
+  if (!session) {
+    const loginUrl = new URL("/login", request.url);
+    loginUrl.searchParams.set("redirect", pathname);
+    return NextResponse.redirect(loginUrl);
+  }
+
+  // Onboarding redirect logic:
+  // - Non-onboarded users are redirected to /onboarding (except when already there or on API routes)
+  // - Onboarded users on /onboarding are redirected to /dashboard
+  if (!session.onboardingComplete && !isOnboardingPath(pathname) && !isApiPath(pathname)) {
+    const onboardingUrl = new URL("/onboarding", request.url);
+    return NextResponse.redirect(onboardingUrl);
+  }
+
+  if (session.onboardingComplete && isOnboardingPath(pathname)) {
+    const dashboardUrl = new URL("/dashboard", request.url);
+    return NextResponse.redirect(dashboardUrl);
   }
 
   return NextResponse.next();

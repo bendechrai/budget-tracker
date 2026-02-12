@@ -45,6 +45,7 @@ describe("POST /api/auth/signup", () => {
     mockCreate.mockResolvedValue({
       id: "user_1",
       email: "test@example.com",
+      onboardingComplete: false,
     });
 
     const res = await POST(makeRequest({
@@ -122,6 +123,7 @@ describe("POST /api/auth/signup", () => {
     mockCreate.mockResolvedValue({
       id: "user_2",
       email: "user@example.com",
+      onboardingComplete: false,
     });
 
     await POST(makeRequest({

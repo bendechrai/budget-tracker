@@ -104,17 +104,15 @@
   - Acceptance: Updates user's fund balance, max contribution, cycle days, currency symbol, and sets onboardingComplete = true. Returns updated user.
   - Tests: Test valid update (200), missing auth (401)
 
-## In Progress
-
-## Backlog
-
-### Spec 02 — Onboarding
-
-- [ ] **Add onboarding completion redirect logic**
+- [x] **Add onboarding completion redirect logic**
   - Files: `web/middleware.ts` (update)
   - Spec: `specs/02-onboarding.md`
   - Acceptance: Users with onboardingComplete=false are redirected to onboarding (except when already on onboarding routes). Users with onboardingComplete=true skip onboarding and go to dashboard.
   - Tests: Test redirect logic for both onboarding states
+
+## In Progress
+
+## Backlog
 
 ### Spec 03 — Income Sources
 

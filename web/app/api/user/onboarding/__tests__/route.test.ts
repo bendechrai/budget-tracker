@@ -17,11 +17,16 @@ vi.mock("@/lib/prisma", () => ({
   },
 }));
 
+vi.mock("@/lib/auth/session", () => ({
+  createSession: vi.fn().mockResolvedValue(undefined),
+}));
+
 vi.mock("@/lib/logging", () => ({
   logError: vi.fn(),
 }));
 
 import { PUT } from "../route";
+import { createSession } from "@/lib/auth/session";
 
 function makeRequest(body: Record<string, unknown>): NextRequest {
   return new NextRequest("http://localhost/api/user/onboarding", {
@@ -79,6 +84,8 @@ describe("PUT /api/user/onboarding", () => {
         onboardingComplete: true,
       },
     });
+
+    expect(createSession).toHaveBeenCalledWith("user_1", true);
   });
 
   it("returns 200 with null contribution fields when not provided (I'm not sure)", async () => {

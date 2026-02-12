@@ -46,6 +46,7 @@ describe("POST /api/auth/login", () => {
       id: "user_1",
       email: "test@example.com",
       passwordHash: "hashed_password",
+      onboardingComplete: true,
     });
     mockVerifyPassword.mockResolvedValue(true);
 
@@ -62,7 +63,7 @@ describe("POST /api/auth/login", () => {
       where: { email: "test@example.com" },
     });
     expect(mockVerifyPassword).toHaveBeenCalledWith("securepass123", "hashed_password");
-    expect(createSession).toHaveBeenCalledWith("user_1");
+    expect(createSession).toHaveBeenCalledWith("user_1", true);
   });
 
   it("returns 401 for wrong password", async () => {

@@ -10,8 +10,11 @@ vi.mock("jose", async () => {
 
 const TEST_SECRET = "test-secret-at-least-32-chars-long!!";
 
-async function createTestToken(userId: string): Promise<string> {
-  return new SignJWT({ userId })
+async function createTestToken(
+  userId: string,
+  onboardingComplete: boolean = false
+): Promise<string> {
+  return new SignJWT({ userId, onboardingComplete })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime("30d")
@@ -100,7 +103,7 @@ describe("auth middleware", () => {
 
   it("allows authenticated requests to protected routes", async () => {
     const { middleware } = await import("../middleware");
-    const token = await createTestToken("user-123");
+    const token = await createTestToken("user-123", true);
     const request = makeRequest("/dashboard", token);
     const response = await middleware(request);
 
@@ -138,5 +141,114 @@ describe("auth middleware", () => {
     expect(response.status).toBe(307);
     const location = new URL(response.headers.get("location")!);
     expect(location.pathname).toBe("/login");
+  });
+});
+
+describe("onboarding redirect logic", () => {
+  beforeEach(() => {
+    vi.resetModules();
+    process.env.SESSION_SECRET = TEST_SECRET;
+  });
+
+  it("redirects non-onboarded user from /dashboard to /onboarding", async () => {
+    const { middleware } = await import("../middleware");
+    const token = await createTestToken("user-123", false);
+    const request = makeRequest("/dashboard", token);
+    const response = await middleware(request);
+
+    expect(response.status).toBe(307);
+    const location = new URL(response.headers.get("location")!);
+    expect(location.pathname).toBe("/onboarding");
+  });
+
+  it("redirects non-onboarded user from any protected page to /onboarding", async () => {
+    const { middleware } = await import("../middleware");
+    const token = await createTestToken("user-123", false);
+    const request = makeRequest("/income", token);
+    const response = await middleware(request);
+
+    expect(response.status).toBe(307);
+    const location = new URL(response.headers.get("location")!);
+    expect(location.pathname).toBe("/onboarding");
+  });
+
+  it("allows non-onboarded user to access /onboarding", async () => {
+    const { middleware } = await import("../middleware");
+    const token = await createTestToken("user-123", false);
+    const request = makeRequest("/onboarding", token);
+    const response = await middleware(request);
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("location")).toBeNull();
+  });
+
+  it("allows non-onboarded user to access /onboarding sub-routes", async () => {
+    const { middleware } = await import("../middleware");
+    const token = await createTestToken("user-123", false);
+
+    for (const path of [
+      "/onboarding/manual/income",
+      "/onboarding/manual/obligations",
+      "/onboarding/fund-setup",
+      "/onboarding/upload",
+    ]) {
+      const request = makeRequest(path, token);
+      const response = await middleware(request);
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get("location")).toBeNull();
+    }
+  });
+
+  it("allows non-onboarded user to access API routes", async () => {
+    const { middleware } = await import("../middleware");
+    const token = await createTestToken("user-123", false);
+    const request = makeRequest("/api/user/onboarding", token);
+    const response = await middleware(request);
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("location")).toBeNull();
+  });
+
+  it("redirects onboarded user from /onboarding to /dashboard", async () => {
+    const { middleware } = await import("../middleware");
+    const token = await createTestToken("user-123", true);
+    const request = makeRequest("/onboarding", token);
+    const response = await middleware(request);
+
+    expect(response.status).toBe(307);
+    const location = new URL(response.headers.get("location")!);
+    expect(location.pathname).toBe("/dashboard");
+  });
+
+  it("redirects onboarded user from /onboarding sub-routes to /dashboard", async () => {
+    const { middleware } = await import("../middleware");
+    const token = await createTestToken("user-123", true);
+    const request = makeRequest("/onboarding/manual/income", token);
+    const response = await middleware(request);
+
+    expect(response.status).toBe(307);
+    const location = new URL(response.headers.get("location")!);
+    expect(location.pathname).toBe("/dashboard");
+  });
+
+  it("allows onboarded user to access /dashboard", async () => {
+    const { middleware } = await import("../middleware");
+    const token = await createTestToken("user-123", true);
+    const request = makeRequest("/dashboard", token);
+    const response = await middleware(request);
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("location")).toBeNull();
+  });
+
+  it("allows onboarded user to access API routes", async () => {
+    const { middleware } = await import("../middleware");
+    const token = await createTestToken("user-123", true);
+    const request = makeRequest("/api/income-sources", token);
+    const response = await middleware(request);
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("location")).toBeNull();
   });
 });

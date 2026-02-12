@@ -14,6 +14,7 @@ function getSecret(): Uint8Array {
 
 export interface SessionPayload {
   userId: string;
+  onboardingComplete: boolean;
 }
 
 export async function createSessionToken(
@@ -34,14 +35,20 @@ export async function verifySessionToken(
     if (typeof payload.userId !== "string") {
       return null;
     }
-    return { userId: payload.userId };
+    return {
+      userId: payload.userId,
+      onboardingComplete: payload.onboardingComplete === true,
+    };
   } catch {
     return null;
   }
 }
 
-export async function createSession(userId: string): Promise<void> {
-  const token = await createSessionToken({ userId });
+export async function createSession(
+  userId: string,
+  onboardingComplete: boolean = false
+): Promise<void> {
+  const token = await createSessionToken({ userId, onboardingComplete });
   const cookieStore = await cookies();
   cookieStore.set(SESSION_COOKIE_NAME, token, {
     httpOnly: true,
