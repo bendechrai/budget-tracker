@@ -44,17 +44,17 @@
   - Acceptance: Clears session cookie, returns 200
   - Tests: Test logout clears session
 
+- [x] **Add auth middleware for protected routes**
+  - Files: `web/middleware.ts`
+  - Spec: `specs/01-auth.md`
+  - Acceptance: Unauthenticated requests to protected routes redirect to `/login`. Auth routes (`/login`, `/signup`) are public. Preserves intended destination for post-login redirect.
+  - Tests: Test that protected routes redirect when no session; public routes pass through
+
 ## In Progress
 
 ## Backlog
 
 ### Spec 01 — Auth & User Management
-
-- [ ] **Add auth middleware for protected routes**
-  - Files: `web/middleware.ts`
-  - Spec: `specs/01-auth.md`
-  - Acceptance: Unauthenticated requests to protected routes redirect to `/login`. Auth routes (`/login`, `/signup`) are public. Preserves intended destination for post-login redirect.
-  - Tests: Test that protected routes redirect when no session; public routes pass through
 
 - [ ] **Add `getCurrentUser` server helper**
   - Files: `web/lib/auth/getCurrentUser.ts`
