@@ -320,17 +320,15 @@
   - Acceptance: Lists pending suggestions showing vendor, amount/range, frequency, confidence, transaction count. Each has Accept, Tweak, and Dismiss buttons. Tweak opens pre-filled form. Empty state message when no suggestions.
   - Tests: Component test: renders suggestion list, accept/dismiss/tweak actions work
 
-## In Progress
-
-## Backlog
-
-### Spec 06 — Pattern Detection & Suggestions
-
-- [ ] **Add suggestions badge to navigation**
-  - Files: `web/app/components/Nav.tsx` (update)
+- [x] **Add suggestions badge to navigation**
+  - Files: `web/app/components/Nav.tsx`, `web/app/components/nav.module.css`
   - Spec: `specs/06-pattern-detection.md`
   - Acceptance: Nav shows suggestions count badge when pending suggestions > 0. Badge updates after accept/dismiss actions.
   - Tests: Component test: badge shows count, hides when count is 0
+
+## In Progress
+
+## Backlog
 
 ### Spec 07 — Sinking Fund Engine
 
