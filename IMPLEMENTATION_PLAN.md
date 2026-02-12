@@ -110,13 +110,13 @@
   - Acceptance: Users with onboardingComplete=false are redirected to onboarding (except when already on onboarding routes). Users with onboardingComplete=true skip onboarding and go to dashboard.
   - Tests: Test redirect logic for both onboarding states
 
-## In Progress
-
-- [ ] **Add `IncomeSource` model with Prisma migration**
+- [x] **Add `IncomeSource` model with Prisma migration**
   - Files: `web/prisma/schema.prisma`, new migration
   - Spec: `specs/03-income-sources.md`
   - Acceptance: `IncomeSource` model with fields: id, userId, name, expectedAmount, frequency (enum), frequencyDays (nullable), isIrregular, minimumExpected (nullable), nextExpectedDate (nullable), isPaused (default false), isActive (default true), createdAt, updatedAt. Relation to User. Migration runs cleanly.
   - Tests: Migration applies; Prisma generate succeeds
+
+## In Progress
 
 ## Backlog
 

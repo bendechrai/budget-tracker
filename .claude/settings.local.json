@@ -4,7 +4,9 @@
       "WebFetch(domain:github.com)",
       "WebFetch(domain:raw.githubusercontent.com)",
       "WebSearch",
-      "Bash(python3 -c:*)"
+      "Bash(python3 -c:*)",
+      "WebFetch(domain:docs.railway.com)",
+      "WebFetch(domain:www.prisma.io)"
     ]
   }
 }
