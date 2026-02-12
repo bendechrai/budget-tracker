@@ -50,17 +50,17 @@
   - Acceptance: Unauthenticated requests to protected routes redirect to `/login`. Auth routes (`/login`, `/signup`) are public. Preserves intended destination for post-login redirect.
   - Tests: Test that protected routes redirect when no session; public routes pass through
 
+- [x] **Add `getCurrentUser` server helper**
+  - Files: `web/lib/auth/getCurrentUser.ts`
+  - Spec: `specs/01-auth.md`
+  - Acceptance: Reads session cookie, returns user record or null. Used in server components and API routes to scope data queries.
+  - Tests: Unit test with mocked cookie
+
 ## In Progress
 
 ## Backlog
 
 ### Spec 01 — Auth & User Management
-
-- [ ] **Add `getCurrentUser` server helper**
-  - Files: `web/lib/auth/getCurrentUser.ts`
-  - Spec: `specs/01-auth.md`
-  - Acceptance: Reads session cookie, returns user record or null. Used in server components and API routes to scope data queries.
-  - Tests: Unit test with mocked cookie
 
 - [ ] **Add signup page UI**
   - Files: `web/app/signup/page.tsx`, `web/app/signup/signup.module.css`
