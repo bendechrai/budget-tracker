@@ -260,17 +260,17 @@
   - Acceptance: Returns paginated transactions for the authenticated user. Supports filtering by date range. Ordered by date desc.
   - Tests: Test returns user's transactions, pagination works, date filter works
 
+- [x] **Add `GET /api/import/history` route**
+  - Files: `web/app/api/import/history/route.ts`
+  - Spec: `specs/05-bank-statement-import.md`
+  - Acceptance: Returns import logs for the authenticated user, ordered by importedAt desc.
+  - Tests: Test returns user's import logs only
+
 ## In Progress
 
 ## Backlog
 
 ### Spec 05 — Bank Statement Import
-
-- [ ] **Add `GET /api/import/history` route**
-  - Files: `web/app/api/import/history/route.ts`
-  - Spec: `specs/05-bank-statement-import.md`
-  - Acceptance: Returns import logs for the authenticated user, ordered by importedAt desc.
-  - Tests: Test returns user's import logs only
 
 - [ ] **Add statement upload page UI**
   - Files: `web/app/import/page.tsx`, `web/app/import/import.module.css`
