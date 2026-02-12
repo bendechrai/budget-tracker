@@ -242,17 +242,17 @@
   - Acceptance: Three-layer dedup: (1) exact reference ID match → auto-skip, (2) composite fingerprint (hash of date+amount+description) → auto-skip, (3) fuzzy match (same date + similar amount + similar description) → flag for review. Returns categorized results: new, skipped, flagged.
   - Tests: Unit test: exact dupe detected, fingerprint dupe detected, fuzzy match flagged, new transaction passes
 
+- [x] **Add `POST /api/import/upload` route**
+  - Files: `web/app/api/import/upload/route.ts`
+  - Spec: `specs/05-bank-statement-import.md`
+  - Acceptance: Accepts file upload (CSV or OFX). Parses transactions. Runs dedup against existing user transactions. Saves new transactions and creates ImportLog. Deletes uploaded file after processing. Returns import summary (new count, skipped count, flagged items).
+  - Tests: Test CSV upload (201 + summary), OFX upload, duplicate detection, auth check
+
 ## In Progress
 
 ## Backlog
 
 ### Spec 05 — Bank Statement Import
-
-- [ ] **Add `POST /api/import/upload` route**
-  - Files: `web/app/api/import/upload/route.ts`
-  - Spec: `specs/05-bank-statement-import.md`
-  - Acceptance: Accepts file upload (CSV or OFX). Parses transactions. Runs dedup against existing user transactions. Saves new transactions and creates ImportLog. Deletes uploaded file after processing. Returns import summary (new count, skipped count, flagged items).
-  - Tests: Test CSV upload (201 + summary), OFX upload, duplicate detection, auth check
 
 - [ ] **Add `POST /api/import/resolve` route for flagged duplicates**
   - Files: `web/app/api/import/resolve/route.ts`
