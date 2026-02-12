@@ -176,17 +176,17 @@
   - Acceptance: Returns all active, non-archived obligations for the authenticated user, including related CustomScheduleEntries and FundGroup. Ordered by nextDueDate.
   - Tests: Test returns user's obligations only, includes custom schedule entries
 
+- [x] **Add `PUT /api/obligations/[id]` route**
+  - Files: `web/app/api/obligations/[id]/route.ts`
+  - Spec: `specs/04-expenses-obligations.md`
+  - Acceptance: Updates an obligation. Only allows updating own records. Supports pause, amount change, frequency change, due date change, fund group assignment.
+  - Tests: Test update (200), ownership check (403/404)
+
 ## In Progress
 
 ## Backlog
 
 ### Spec 04 — Expenses & Obligations
-
-- [ ] **Add `PUT /api/obligations/[id]` route**
-  - Files: `web/app/api/obligations/[id]/route.ts`
-  - Spec: `specs/04-expenses-obligations.md`
-  - Acceptance: Updates an obligation. Only allows updating own records. Supports pause, amount change, frequency change, due date change, fund group assignment.
-  - Tests: Test update (200), ownership check (403/404)
 
 - [ ] **Add `DELETE /api/obligations/[id]` route**
   - Files: `web/app/api/obligations/[id]/route.ts`
