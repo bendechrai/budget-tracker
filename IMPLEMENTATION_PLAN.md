@@ -314,17 +314,17 @@
   - Acceptance: Accept: creates corresponding IncomeSource or Obligation, links to suggestion, sets status=accepted. Dismiss: sets status=dismissed. Tweak+accept: creates with user-modified values.
   - Tests: Test accept creates income/obligation, dismiss updates status, tweak+accept uses modified values
 
+- [x] **Add suggestions feed page**
+  - Files: `web/app/suggestions/page.tsx`, `web/app/suggestions/suggestions.module.css`
+  - Spec: `specs/06-pattern-detection.md`
+  - Acceptance: Lists pending suggestions showing vendor, amount/range, frequency, confidence, transaction count. Each has Accept, Tweak, and Dismiss buttons. Tweak opens pre-filled form. Empty state message when no suggestions.
+  - Tests: Component test: renders suggestion list, accept/dismiss/tweak actions work
+
 ## In Progress
 
 ## Backlog
 
 ### Spec 06 — Pattern Detection & Suggestions
-
-- [ ] **Add suggestions feed page**
-  - Files: `web/app/suggestions/page.tsx`, `web/app/suggestions/suggestions.module.css`
-  - Spec: `specs/06-pattern-detection.md`
-  - Acceptance: Lists pending suggestions showing vendor, amount/range, frequency, confidence, transaction count. Each has Accept, Tweak, and Dismiss buttons. Tweak opens pre-filled form. Empty state message when no suggestions.
-  - Tests: Component test: renders suggestion list, accept/dismiss/tweak actions work
 
 - [ ] **Add suggestions badge to navigation**
   - Files: `web/app/components/Nav.tsx` (update)
