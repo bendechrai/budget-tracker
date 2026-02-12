@@ -326,17 +326,17 @@
   - Acceptance: Nav shows suggestions count badge when pending suggestions > 0. Badge updates after accept/dismiss actions.
   - Tests: Component test: badge shows count, hides when count is 0
 
+- [x] **Add `FundBalance`, `ContributionRecord`, and `EngineSnapshot` models with Prisma migration**
+  - Files: `web/prisma/schema.prisma`, new migration
+  - Spec: `specs/07-sinking-fund-engine.md`
+  - Acceptance: FundBalance: id, obligationId, currentBalance, lastUpdatedAt. ContributionRecord: id, obligationId, amount, date, type (contribution/manual_adjustment), note (nullable), createdAt. EngineSnapshot: id, userId, calculatedAt, totalRequired, totalFunded, nextActionAmount, nextActionDate, nextActionDescription. Migration runs cleanly.
+  - Tests: Migration applies; Prisma generate succeeds
+
 ## In Progress
 
 ## Backlog
 
 ### Spec 07 — Sinking Fund Engine
-
-- [ ] **Add `FundBalance`, `ContributionRecord`, and `EngineSnapshot` models with Prisma migration**
-  - Files: `web/prisma/schema.prisma`, new migration
-  - Spec: `specs/07-sinking-fund-engine.md`
-  - Acceptance: FundBalance: id, obligationId, currentBalance, lastUpdatedAt. ContributionRecord: id, obligationId, amount, date, type (contribution/manual_adjustment), note (nullable), createdAt. EngineSnapshot: id, userId, calculatedAt, totalRequired, totalFunded, nextActionAmount, nextActionDate, nextActionDescription. Migration runs cleanly.
-  - Tests: Migration applies; Prisma generate succeeds
 
 - [ ] **Add sinking fund calculation engine (core logic)**
   - Files: `web/lib/engine/calculate.ts`
