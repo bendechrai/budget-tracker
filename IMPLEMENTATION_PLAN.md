@@ -693,7 +693,7 @@
   - Acceptance: When parse API returns a create, edit, or delete intent, AIBar opens the existing AIPreview component with the parsed intent data. Query and what-if intents continue to be handled inline. AIPreview executes the action on confirm and triggers engine recalculation. Cancel dismisses the preview. Loading indicator shown while parse API call is in flight.
   - Tests: Component test: create intent opens AIPreview; confirm executes action; cancel dismisses; query intent handled inline
 
-- [ ] **Add graceful degradation for missing API key in AIBar**
+- [x] **Add graceful degradation for missing API key in AIBar**
   - Files: `web/app/components/AIBar.tsx` (update)
   - Spec: `specs/09a-nl-to-claude-api.md`
   - Acceptance: When parse API returns the missing-API-key error type, AIBar displays "AI features require an API key — you can still use the app normally" instead of a generic error. Message is persistent (not dismissed on next input). Rest of app continues to function. SparkleButton preset actions (which generate structured intents directly) still work without API key.

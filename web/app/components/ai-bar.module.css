@@ -138,6 +138,12 @@
   line-height: 1.5;
 }
 
+.apiKeyWarning {
+  font-size: 0.8125rem;
+  color: #f57c00;
+  line-height: 1.5;
+}
+
 /* Input area */
 .inputArea {
   display: flex;

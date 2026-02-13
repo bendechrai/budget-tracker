@@ -374,6 +374,75 @@ describe("AIBar", () => {
     expect(style.position).toBe("fixed");
   });
 
+  describe("missing API key graceful degradation", () => {
+    it("shows friendly message when API returns missing_api_key error", async () => {
+      const user = userEvent.setup();
+      vi.mocked(global.fetch).mockResolvedValueOnce(
+        mockFetchResponse({ error: "missing_api_key", message: "AI features require an API key" }, 503)
+      );
+
+      renderWithProvider(<AIBar />);
+
+      await user.click(screen.getByTestId("ai-bar-pill"));
+      await user.type(screen.getByTestId("ai-bar-input"), "Add Netflix $22.99 monthly");
+      await user.click(screen.getByTestId("ai-bar-submit"));
+
+      await waitFor(() => {
+        const warning = screen.getByTestId("ai-bar-api-key-warning");
+        expect(warning.textContent).toBe(
+          "AI features require an API key — you can still use the app normally"
+        );
+      });
+
+      // Should NOT show a generic error response
+      expect(screen.queryByTestId("ai-bar-response")).toBeNull();
+    });
+
+    it("API key warning persists across subsequent interactions", async () => {
+      const user = userEvent.setup();
+      vi.mocked(global.fetch).mockResolvedValueOnce(
+        mockFetchResponse({ error: "missing_api_key" }, 503)
+      );
+
+      renderWithProvider(<AIBar />);
+
+      await user.click(screen.getByTestId("ai-bar-pill"));
+      await user.type(screen.getByTestId("ai-bar-input"), "test");
+      await user.click(screen.getByTestId("ai-bar-submit"));
+
+      await waitFor(() => {
+        expect(screen.getByTestId("ai-bar-api-key-warning")).toBeDefined();
+      });
+
+      // Input should be disabled after API key warning
+      const input = screen.getByTestId("ai-bar-input") as HTMLInputElement;
+      expect(input.disabled).toBe(true);
+
+      // Warning should still be visible
+      expect(screen.getByTestId("ai-bar-api-key-warning")).toBeDefined();
+    });
+
+    it("disables submit button when API key is missing", async () => {
+      const user = userEvent.setup();
+      vi.mocked(global.fetch).mockResolvedValueOnce(
+        mockFetchResponse({ error: "missing_api_key" }, 503)
+      );
+
+      renderWithProvider(<AIBar />);
+
+      await user.click(screen.getByTestId("ai-bar-pill"));
+      await user.type(screen.getByTestId("ai-bar-input"), "test");
+      await user.click(screen.getByTestId("ai-bar-submit"));
+
+      await waitFor(() => {
+        expect(screen.getByTestId("ai-bar-api-key-warning")).toBeDefined();
+      });
+
+      const submitButton = screen.getByTestId("ai-bar-submit");
+      expect(submitButton.hasAttribute("disabled")).toBe(true);
+    });
+  });
+
   describe("what-if integration", () => {
     it("shows scenario response for what-if toggle_off intent", async () => {
       const user = userEvent.setup();

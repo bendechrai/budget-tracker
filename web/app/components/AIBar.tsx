@@ -145,6 +145,7 @@ export default function AIBar() {
   const [response, setResponse] = useState<{ text: string; isError: boolean } | null>(null);
   const [position, setPosition] = useState<Position | null>(null);
   const [previewIntent, setPreviewIntent] = useState<CreateIntent | EditIntent | DeleteIntent | null>(null);
+  const [apiKeyMissing, setApiKeyMissing] = useState(false);
 
   const whatIf = useWhatIf();
 
@@ -183,6 +184,10 @@ export default function AIBar() {
 
       if (!res.ok) {
         const errorData = (await res.json()) as { error?: string };
+        if (errorData.error === "missing_api_key") {
+          setApiKeyMissing(true);
+          return;
+        }
         setResponse({ text: errorData.error ?? "Something went wrong", isError: true });
         return;
       }
@@ -332,10 +337,18 @@ export default function AIBar() {
           </div>
 
           <div className={styles.responseArea} aria-live="polite">
-            {loading && (
+            {apiKeyMissing && (
+              <p
+                className={styles.apiKeyWarning}
+                data-testid="ai-bar-api-key-warning"
+              >
+                AI features require an API key — you can still use the app normally
+              </p>
+            )}
+            {!apiKeyMissing && loading && (
               <p className={styles.loading}>Processing...</p>
             )}
-            {!loading && response && (
+            {!apiKeyMissing && !loading && response && (
               <p
                 className={response.isError ? styles.responseError : styles.responseIntent}
                 data-testid="ai-bar-response"
@@ -343,7 +356,7 @@ export default function AIBar() {
                 {response.text}
               </p>
             )}
-            {!loading && !response && (
+            {!apiKeyMissing && !loading && !response && (
               <p className={styles.responseMessage}>
                 Type a command like &quot;Add Netflix $22.99 monthly&quot; or ask a question.
               </p>
@@ -359,14 +372,14 @@ export default function AIBar() {
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="What would you like to do?"
-              disabled={loading}
+              disabled={loading || apiKeyMissing}
               aria-label="AI assistant input"
               data-testid="ai-bar-input"
             />
             <button
               className={styles.submitButton}
               onClick={() => void handleSubmit()}
-              disabled={loading || !input.trim()}
+              disabled={loading || !input.trim() || apiKeyMissing}
               aria-label="Submit"
               data-testid="ai-bar-submit"
             >
