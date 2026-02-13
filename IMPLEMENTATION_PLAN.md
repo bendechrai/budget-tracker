@@ -589,13 +589,13 @@
   - Acceptance: Obligation sparkle button gains "Add price change" preset alongside existing presets. Tapping it opens the EscalationForm. Existing "Change amount" preset remains for immediate changes.
   - Tests: Component test: "Add price change" preset appears for obligations, opens escalation form
 
-## In Progress
-
-- [ ] **Add escalation NL parsing support**
-  - Files: `web/lib/ai/nlParser.ts` (update)
+- [x] **Add escalation NL parsing support**
+  - Files: `web/lib/ai/nlParser.ts` (update), `web/lib/ai/types.ts` (update)
   - Spec: `specs/11-escalation.md`
   - Acceptance: NL parser recognizes escalation intents: "rent goes up to $2,200 in July" → one-off absolute, "rent goes up 3% every July" → recurring percentage, "Netflix going up $3 next month" → one-off fixed increase, "cancel the rent increase" → delete escalation rule. Returns structured escalation intent with change type, value, effective date, and interval.
   - Tests: Unit tests: parse all NL examples from spec 11, including cancel/remove intents
+
+## In Progress
 
 - [ ] **Add what-if support for hypothetical escalation rules**
   - Files: `web/app/contexts/WhatIfContext.tsx` (update), `web/lib/engine/calculate.ts` (update)

@@ -13,6 +13,8 @@ import type {
   QueryIntent,
   WhatIfIntent,
   WhatIfChange,
+  EscalationIntent,
+  EscalationChangeType,
   TargetType,
   ParseConfidence,
 } from "./types";
@@ -121,6 +123,12 @@ export function parseNaturalLanguage(input: string): ParseResult {
   // Check for query intent first (questions)
   if (isQuery(lower)) {
     return parseQuery(trimmed);
+  }
+
+  // Check for escalation intent before delete/edit (overlapping patterns)
+  const escalationResult = tryParseEscalation(trimmed, lower);
+  if (escalationResult) {
+    return escalationResult;
   }
 
   // Check for delete intent
@@ -735,6 +743,316 @@ function extractWhatIfDate(text: string): string | null {
     const now = new Date();
     const date = new Date(now.getFullYear(), now.getMonth() + 1, 1);
     return date.toISOString().split("T")[0];
+  }
+
+  return null;
+}
+
+// ---------------------------------------------------------------------------
+// Escalation parsing
+// ---------------------------------------------------------------------------
+
+/** Patterns indicating a delete-escalation intent (remove a price change rule). */
+const ESCALATION_DELETE_PATTERNS = [
+  /\b(?:cancel|remove|delete|undo)\b.*\b(?:increase|escalation|price\s+change|price\s+hike|raise|rise)\b/i,
+  /\b(?:cancel|remove|delete|undo)\b.*\b(?:annual|yearly|recurring|monthly|quarterly)\s+(?:increase|escalation|raise|rise)\b/i,
+  /\b(?:increase|escalation|price\s+change|raise|rise)\b.*\b(?:cancel|remove|delete|undo)\b/i,
+];
+
+/** Patterns indicating an add-escalation intent (schedule a price change). */
+const ESCALATION_ADD_PATTERNS = [
+  // "X goes up to $Y in Z" (one-off absolute)
+  /\b(?:goes?\s+up\s+to|increases?\s+to|going\s+up\s+to|rising\s+to|jumps?\s+to)\s+\$/i,
+  // "X goes up Y% ..." (percentage)
+  /\b(?:goes?\s+up|increases?|going\s+up|rising|rise)\s+(\d+(?:\.\d+)?)\s*%/i,
+  // "X goes up $Y ..." (fixed increase)
+  /\b(?:goes?\s+up|increases?|going\s+up|rising|rise)\s+\$\s*[\d,]+/i,
+  // "add a Y% annual increase to X"
+  /\badd\s+(?:a\s+)?(\d+(?:\.\d+)?)\s*%\s+\w+\s+increase\b/i,
+  // "add a $Y increase to X"
+  /\badd\s+(?:a\s+)?\$\s*[\d,]+(?:\.\d+)?\s+\w+\s+increase\b/i,
+];
+
+/**
+ * Try to parse the input as an escalation intent.
+ * Returns null if the input doesn't match escalation patterns.
+ */
+function tryParseEscalation(_input: string, lower: string): EscalationIntent | null {
+  // Check for delete-escalation first
+  if (isEscalationDelete(lower)) {
+    return parseEscalationDelete(lower);
+  }
+
+  // Check for add-escalation
+  if (isEscalationAdd(lower)) {
+    return parseEscalationAdd(lower);
+  }
+
+  return null;
+}
+
+function isEscalationDelete(lower: string): boolean {
+  return ESCALATION_DELETE_PATTERNS.some((p) => p.test(lower));
+}
+
+function isEscalationAdd(lower: string): boolean {
+  return ESCALATION_ADD_PATTERNS.some((p) => p.test(lower));
+}
+
+/**
+ * Parse a delete-escalation intent.
+ * "Cancel the rent increase" → delete escalation for rent
+ * "Remove the annual increase on rent" → delete escalation for rent
+ */
+function parseEscalationDelete(lower: string): EscalationIntent {
+  // Try to extract target name — look for "on X" or "for X" or extract from context
+  let targetName = "";
+
+  // "... on rent", "... on the rent", "... for rent"
+  const onMatch = lower.match(/\b(?:on|for)\s+(?:the\s+)?(?:my\s+)?(\w[\w\s]*?)(?:\s+(?:increase|escalation|price\s+change|raise|rise))?$/i);
+  if (onMatch) {
+    targetName = onMatch[1].trim();
+  }
+
+  // "cancel the rent increase", "remove the rent price change"
+  if (!targetName) {
+    const beforeIncreaseMatch = lower.match(
+      /(?:cancel|remove|delete|undo)\s+(?:the\s+)?(?:my\s+)?(\w[\w\s]*?)\s+(?:increase|escalation|price\s+change|price\s+hike|raise|rise)/i
+    );
+    if (beforeIncreaseMatch) {
+      targetName = beforeIncreaseMatch[1].trim();
+      // Strip "annual", "yearly", "recurring", "monthly" from name
+      targetName = targetName.replace(/\b(annual|yearly|recurring|monthly|quarterly)\b/gi, "").trim();
+    }
+  }
+
+  return {
+    type: "escalation",
+    action: "delete",
+    targetName: targetName || "unknown",
+    confidence: targetName ? "high" : "medium",
+  };
+}
+
+/**
+ * Parse an add-escalation intent.
+ * Handles all five valid combinations:
+ * - One-off absolute: "rent goes up to $2,200 in July"
+ * - One-off percentage: "insurance goes up 8% at renewal in March"
+ * - One-off fixed increase: "Netflix going up $3 next month"
+ * - Recurring percentage: "rent increases 3% every year in July"
+ * - Recurring fixed increase: "rent goes up $50 every July"
+ */
+function parseEscalationAdd(lower: string): EscalationIntent {
+  // Detect "add a X% Y increase to Z starting W" pattern
+  const addIncreaseWithDatePattern = /^add\s+(?:a\s+)?(\d+(?:\.\d+)?)\s*%\s+(\w+)\s+increase\s+to\s+(?:the\s+)?(?:my\s+)?(.+?)\s+starting\s+(.+)$/i;
+  const addIncreaseNoDatePattern = /^add\s+(?:a\s+)?(\d+(?:\.\d+)?)\s*%\s+(\w+)\s+increase\s+to\s+(?:the\s+)?(?:my\s+)?(.+)$/i;
+  const addIncreaseMatch = lower.match(addIncreaseWithDatePattern) ?? lower.match(addIncreaseNoDatePattern);
+  if (addIncreaseMatch) {
+    const value = parseFloat(addIncreaseMatch[1]);
+    const intervalWord = addIncreaseMatch[2].toLowerCase();
+    const targetName = addIncreaseMatch[3].trim();
+    const startingDate = addIncreaseMatch[4]?.trim();
+
+    const intervalMonths = parseIntervalWord(intervalWord);
+    const effectiveDate = startingDate ? extractEscalationDate(startingDate) : null;
+
+    return {
+      type: "escalation",
+      action: "add",
+      targetName,
+      confidence: "high",
+      changeType: "percentage",
+      value,
+      effectiveDate: effectiveDate ?? undefined,
+      intervalMonths: intervalMonths ?? undefined,
+    };
+  }
+
+  // Detect "add a $X Y increase to Z starting W" pattern
+  const addFixedWithDatePattern = /^add\s+(?:a\s+)?\$\s*([\d,]+(?:\.\d+)?)\s+(\w+)\s+increase\s+to\s+(?:the\s+)?(?:my\s+)?(.+?)\s+starting\s+(.+)$/i;
+  const addFixedNoDatePattern = /^add\s+(?:a\s+)?\$\s*([\d,]+(?:\.\d+)?)\s+(\w+)\s+increase\s+to\s+(?:the\s+)?(?:my\s+)?(.+)$/i;
+  const addFixedIncreaseMatch = lower.match(addFixedWithDatePattern) ?? lower.match(addFixedNoDatePattern);
+  if (addFixedIncreaseMatch) {
+    const value = parseFloat(addFixedIncreaseMatch[1].replace(/,/g, ""));
+    const intervalWord = addFixedIncreaseMatch[2].toLowerCase();
+    const targetName = addFixedIncreaseMatch[3].trim();
+    const startingDate = addFixedIncreaseMatch[4]?.trim();
+
+    const intervalMonths = parseIntervalWord(intervalWord);
+    const effectiveDate = startingDate ? extractEscalationDate(startingDate) : null;
+
+    return {
+      type: "escalation",
+      action: "add",
+      targetName,
+      confidence: "high",
+      changeType: "fixed_increase",
+      value,
+      effectiveDate: effectiveDate ?? undefined,
+      intervalMonths: intervalMonths ?? undefined,
+    };
+  }
+
+  // Extract target name — everything before the "goes up"/"increases" verb
+  const targetMatch = lower.match(
+    /^(?:my\s+)?(.+?)\s+(?:is\s+)?(?:goes?\s+up|increases?|going\s+up|rising|rise|jumps?)/i
+  );
+  const targetName = targetMatch
+    ? targetMatch[1].replace(/^(the|my|a|an)\s+/i, "").trim()
+    : "unknown";
+
+  // Detect change type and value
+  let changeType: EscalationChangeType;
+  let value: number;
+
+  // Check for "goes up to $X" (absolute)
+  const absoluteMatch = lower.match(
+    /(?:goes?\s+up\s+to|increases?\s+to|going\s+up\s+to|rising\s+to|jumps?\s+to)\s+\$\s*([\d,]+(?:\.\d{1,2})?)/i
+  );
+  // Check for percentage "goes up X%"
+  const percentMatch = lower.match(
+    /(?:goes?\s+up|increases?|going\s+up|rising|rise|jumps?)\s+(\d+(?:\.\d+)?)\s*%/i
+  );
+  // Check for fixed increase "goes up $X"
+  const fixedMatch = lower.match(
+    /(?:goes?\s+up|increases?|going\s+up|rising|rise|jumps?)\s+\$\s*([\d,]+(?:\.\d{1,2})?)/i
+  );
+
+  if (absoluteMatch) {
+    changeType = "absolute";
+    value = parseFloat(absoluteMatch[1].replace(/,/g, ""));
+  } else if (percentMatch) {
+    changeType = "percentage";
+    value = parseFloat(percentMatch[1]);
+  } else if (fixedMatch) {
+    changeType = "fixed_increase";
+    value = parseFloat(fixedMatch[1].replace(/,/g, ""));
+  } else {
+    // Fallback — shouldn't reach here if isEscalationAdd matched
+    return {
+      type: "escalation",
+      action: "add",
+      targetName,
+      confidence: "low",
+    };
+  }
+
+  // Detect recurrence: "every year", "every July", "every 12 months", "annually"
+  const intervalMonths = extractRecurrenceInterval(lower);
+
+  // Extract effective date
+  const effectiveDate = extractEscalationDate(lower);
+
+  const confidence: ParseConfidence =
+    targetName !== "unknown" && value !== undefined ? "high" : "medium";
+
+  return {
+    type: "escalation",
+    action: "add",
+    targetName,
+    confidence,
+    changeType,
+    value,
+    effectiveDate: effectiveDate ?? undefined,
+    intervalMonths: intervalMonths ?? undefined,
+  };
+}
+
+/**
+ * Parse an interval word like "annual", "yearly", "monthly", "quarterly" into months.
+ */
+function parseIntervalWord(word: string): number | null {
+  const map: Record<string, number> = {
+    annual: 12,
+    annually: 12,
+    yearly: 12,
+    year: 12,
+    monthly: 1,
+    month: 1,
+    quarterly: 3,
+    quarter: 3,
+  };
+  return map[word] ?? null;
+}
+
+/**
+ * Extract a recurrence interval in months from text.
+ * "every year" → 12, "every July" → 12, "annually" → 12, "every 6 months" → 6
+ */
+function extractRecurrenceInterval(text: string): number | undefined {
+  // "every N months"
+  const everyNMonths = text.match(/\bevery\s+(\d+)\s+months?\b/i);
+  if (everyNMonths) {
+    return parseInt(everyNMonths[1], 10);
+  }
+
+  // "every year" / "every year in July" / "annually"
+  if (/\bevery\s+year\b/i.test(text) || /\bannually\b/i.test(text)) {
+    return 12;
+  }
+
+  // "every July", "every March" (implies annual)
+  const everyMonthName = text.match(/\bevery\s+(\w+)\b/i);
+  if (everyMonthName && everyMonthName[1].toLowerCase() in MONTH_NAMES) {
+    return 12;
+  }
+
+  // "annual increase", "yearly increase"
+  if (/\b(annual|yearly)\s+(increase|escalation|raise|rise)\b/i.test(text)) {
+    return 12;
+  }
+
+  return undefined;
+}
+
+/**
+ * Extract a date from escalation text.
+ * Handles: "in July", "in March 2025", "next month", "in July 2027",
+ * "at renewal in March", "starting July 2027", "every July" (next July)
+ */
+function extractEscalationDate(text: string): string | null {
+  const lower = text.toLowerCase();
+
+  // "next month"
+  if (/\bnext\s+month\b/.test(lower)) {
+    const now = new Date();
+    const date = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    return date.toISOString().split("T")[0];
+  }
+
+  // "next year"
+  if (/\bnext\s+year\b/.test(lower)) {
+    const now = new Date();
+    const date = new Date(now.getFullYear() + 1, 0, 1);
+    return date.toISOString().split("T")[0];
+  }
+
+  // "in July 2027", "in March", "starting July 2027", "every July", "July 2027"
+  // Try multiple patterns to find month references
+  const monthPatterns = [
+    /\b(?:in|starting|from|every)\s+(\w+)\s+(\d{4})\b/i,
+    /\b(\w+)\s+(\d{4})\b/i,
+    /\b(?:in|starting|from|at\s+\w+\s+in)\s+(\w+)\b/i,
+    /\bevery\s+(\w+)\b/i,
+  ];
+
+  for (const pattern of monthPatterns) {
+    const match = lower.match(pattern);
+    if (match) {
+      const monthName = match[1].toLowerCase();
+      if (monthName in MONTH_NAMES) {
+        const now = new Date();
+        const month = MONTH_NAMES[monthName];
+        let year = match[2] ? parseInt(match[2], 10) : now.getFullYear();
+        // If month is in the past this year and no explicit year, use next year
+        if (!match[2] && (month < now.getMonth() || (month === now.getMonth() && now.getDate() > 1))) {
+          year = year + 1;
+        }
+        const date = new Date(year, month, 1);
+        return date.toISOString().split("T")[0];
+      }
+    }
   }
 
   return null;

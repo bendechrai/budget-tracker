@@ -89,6 +89,25 @@ export interface UnrecognizedResult {
   originalInput: string;
 }
 
+/** Escalation change type — how the new amount is determined. */
+export type EscalationChangeType = "absolute" | "percentage" | "fixed_increase";
+
+/** An escalation intent parsed from natural language. */
+export interface EscalationIntent {
+  type: "escalation";
+  action: "add" | "delete";
+  targetName: string;
+  confidence: ParseConfidence;
+  /** Only present for action=add */
+  changeType?: EscalationChangeType;
+  /** The value: target amount for absolute, percentage for percentage, dollar increase for fixed_increase */
+  value?: number;
+  /** When the change takes effect (ISO date string) */
+  effectiveDate?: string;
+  /** Recurrence interval in months (null/undefined means one-off) */
+  intervalMonths?: number;
+}
+
 /** The kind of what-if action the user wants to perform. */
 export type WhatIfAction = "toggle_off" | "override_amount" | "add_hypothetical";
 
@@ -115,5 +134,6 @@ export type ParseResult =
   | DeleteIntent
   | QueryIntent
   | WhatIfIntent
+  | EscalationIntent
   | ClarificationResult
   | UnrecognizedResult;

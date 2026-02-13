@@ -10,6 +10,7 @@ import type {
   DeleteIntent,
   QueryIntent,
   WhatIfIntent,
+  EscalationIntent,
   ClarificationResult,
   UnrecognizedResult,
 } from "../types";
@@ -389,6 +390,150 @@ describe("what-if intents", () => {
   it("does not parse non-what-if input starting with 'what' as what-if", () => {
     const result = parseNaturalLanguage("what's my biggest expense?");
     expect(result.type).toBe("query");
+  });
+});
+
+describe("escalation intents", () => {
+  describe("one-off absolute", () => {
+    it('parses "My rent goes up to $2,200 in July" as one-off absolute', () => {
+      const result = parseNaturalLanguage("My rent goes up to $2,200 in July");
+      expect(result.type).toBe("escalation");
+      const esc = result as EscalationIntent;
+      expect(esc.action).toBe("add");
+      expect(esc.targetName).toBe("rent");
+      expect(esc.changeType).toBe("absolute");
+      expect(esc.value).toBe(2200);
+      expect(esc.effectiveDate).toMatch(/^\d{4}-07-01$/);
+      expect(esc.intervalMonths).toBeUndefined();
+      expect(esc.confidence).toBe("high");
+    });
+
+    it('parses "rent goes to $2,500 in March" as one-off absolute', () => {
+      const result = parseNaturalLanguage("rent goes up to $2,500 in March");
+      expect(result.type).toBe("escalation");
+      const esc = result as EscalationIntent;
+      expect(esc.changeType).toBe("absolute");
+      expect(esc.value).toBe(2500);
+      expect(esc.effectiveDate).toMatch(/^\d{4}-03-01$/);
+    });
+  });
+
+  describe("one-off percentage", () => {
+    it('parses "Insurance goes up 8% at renewal in March" as one-off percentage', () => {
+      const result = parseNaturalLanguage("Insurance goes up 8% at renewal in March");
+      expect(result.type).toBe("escalation");
+      const esc = result as EscalationIntent;
+      expect(esc.action).toBe("add");
+      expect(esc.targetName).toBe("insurance");
+      expect(esc.changeType).toBe("percentage");
+      expect(esc.value).toBe(8);
+      expect(esc.effectiveDate).toMatch(/^\d{4}-03-01$/);
+      expect(esc.intervalMonths).toBeUndefined();
+    });
+  });
+
+  describe("one-off fixed increase", () => {
+    it('parses "Netflix is going up $3 next month" as one-off fixed increase', () => {
+      const result = parseNaturalLanguage("Netflix is going up $3 next month");
+      expect(result.type).toBe("escalation");
+      const esc = result as EscalationIntent;
+      expect(esc.action).toBe("add");
+      expect(esc.targetName).toBe("netflix");
+      expect(esc.changeType).toBe("fixed_increase");
+      expect(esc.value).toBe(3);
+      expect(esc.effectiveDate).toBeDefined();
+      expect(esc.intervalMonths).toBeUndefined();
+    });
+  });
+
+  describe("recurring percentage", () => {
+    it('parses "Rent increases 3% every year in July" as recurring percentage', () => {
+      const result = parseNaturalLanguage("Rent increases 3% every year in July");
+      expect(result.type).toBe("escalation");
+      const esc = result as EscalationIntent;
+      expect(esc.action).toBe("add");
+      expect(esc.targetName).toBe("rent");
+      expect(esc.changeType).toBe("percentage");
+      expect(esc.value).toBe(3);
+      expect(esc.effectiveDate).toMatch(/^\d{4}-07-01$/);
+      expect(esc.intervalMonths).toBe(12);
+    });
+
+    it('parses "Add a 5% annual increase to rent starting July 2027" as recurring percentage', () => {
+      const result = parseNaturalLanguage("Add a 5% annual increase to rent starting July 2027");
+      expect(result.type).toBe("escalation");
+      const esc = result as EscalationIntent;
+      expect(esc.action).toBe("add");
+      expect(esc.targetName).toBe("rent");
+      expect(esc.changeType).toBe("percentage");
+      expect(esc.value).toBe(5);
+      expect(esc.effectiveDate).toBe("2027-07-01");
+      expect(esc.intervalMonths).toBe(12);
+    });
+  });
+
+  describe("recurring fixed increase", () => {
+    it('parses "Rent goes up $50 every July" as recurring fixed increase', () => {
+      const result = parseNaturalLanguage("Rent goes up $50 every July");
+      expect(result.type).toBe("escalation");
+      const esc = result as EscalationIntent;
+      expect(esc.action).toBe("add");
+      expect(esc.targetName).toBe("rent");
+      expect(esc.changeType).toBe("fixed_increase");
+      expect(esc.value).toBe(50);
+      expect(esc.intervalMonths).toBe(12);
+      expect(esc.effectiveDate).toMatch(/^\d{4}-07-01$/);
+    });
+  });
+
+  describe("delete escalation", () => {
+    it('parses "Cancel the rent increase" as delete escalation', () => {
+      const result = parseNaturalLanguage("Cancel the rent increase");
+      expect(result.type).toBe("escalation");
+      const esc = result as EscalationIntent;
+      expect(esc.action).toBe("delete");
+      expect(esc.targetName).toBe("rent");
+      expect(esc.confidence).toBe("high");
+    });
+
+    it('parses "Remove the annual increase on rent" as delete escalation', () => {
+      const result = parseNaturalLanguage("Remove the annual increase on rent");
+      expect(result.type).toBe("escalation");
+      const esc = result as EscalationIntent;
+      expect(esc.action).toBe("delete");
+      expect(esc.targetName).toBe("rent");
+      expect(esc.confidence).toBe("high");
+    });
+
+    it('parses "delete the price change on insurance" as delete escalation', () => {
+      const result = parseNaturalLanguage("delete the price change on insurance");
+      expect(result.type).toBe("escalation");
+      const esc = result as EscalationIntent;
+      expect(esc.action).toBe("delete");
+      expect(esc.targetName).toBe("insurance");
+    });
+  });
+
+  describe("does not interfere with non-escalation intents", () => {
+    it('still parses "delete Spotify" as a regular delete', () => {
+      const result = parseNaturalLanguage("delete Spotify");
+      expect(result.type).toBe("delete");
+    });
+
+    it('still parses "cancel Netflix" as a regular delete', () => {
+      const result = parseNaturalLanguage("cancel Netflix");
+      expect(result.type).toBe("delete");
+    });
+
+    it('still parses "change gym to $60" as a regular edit', () => {
+      const result = parseNaturalLanguage("change gym to $60");
+      expect(result.type).toBe("edit");
+    });
+
+    it('still parses "What if Netflix goes up to $30?" as what-if', () => {
+      const result = parseNaturalLanguage("What if Netflix goes up to $30?");
+      expect(result.type).toBe("whatif");
+    });
   });
 });
 
