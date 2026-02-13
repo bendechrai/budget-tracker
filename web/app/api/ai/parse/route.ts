@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth/getCurrentUser";
 import { parseNaturalLanguage } from "@/lib/ai/nlParser";
 import { logError } from "@/lib/logging";
+import { prisma } from "@/lib/prisma";
 
 interface ParseBody {
   text: string;
@@ -45,6 +46,19 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     if (result.type === "clarification" || result.type === "unrecognized") {
       return NextResponse.json({
         intent: result,
+      });
+    }
+
+    // For what-if intents, look up matching obligations by name
+    if (result.type === "whatif") {
+      const obligations = await prisma.obligation.findMany({
+        where: { userId: user.id, isActive: true },
+        select: { id: true, name: true },
+      });
+
+      return NextResponse.json({
+        intent: result,
+        obligations,
       });
     }
 

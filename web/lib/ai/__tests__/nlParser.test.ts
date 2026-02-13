@@ -9,6 +9,7 @@ import type {
   EditIntent,
   DeleteIntent,
   QueryIntent,
+  WhatIfIntent,
   ClarificationResult,
   UnrecognizedResult,
 } from "../types";
@@ -286,6 +287,108 @@ describe("parseNaturalLanguage", () => {
       const create = result as CreateIntent;
       expect(create.targetType).toBe("income");
     });
+  });
+});
+
+describe("what-if intents", () => {
+  it('parses "What if I cancel gym?" as toggle_off', () => {
+    const result = parseNaturalLanguage("What if I cancel gym?");
+    expect(result.type).toBe("whatif");
+    const whatif = result as WhatIfIntent;
+    expect(whatif.changes).toHaveLength(1);
+    expect(whatif.changes[0].action).toBe("toggle_off");
+    expect(whatif.changes[0].targetName).toBe("gym");
+  });
+
+  it('parses "What if I cancel Netflix?" as toggle_off', () => {
+    const result = parseNaturalLanguage("What if I cancel Netflix?");
+    expect(result.type).toBe("whatif");
+    const whatif = result as WhatIfIntent;
+    expect(whatif.changes).toHaveLength(1);
+    expect(whatif.changes[0].action).toBe("toggle_off");
+    expect(whatif.changes[0].targetName).toMatch(/netflix/i);
+  });
+
+  it('parses "What if Netflix goes up to $30?" as override_amount', () => {
+    const result = parseNaturalLanguage("What if Netflix goes up to $30?");
+    expect(result.type).toBe("whatif");
+    const whatif = result as WhatIfIntent;
+    expect(whatif.changes).toHaveLength(1);
+    expect(whatif.changes[0].action).toBe("override_amount");
+    expect(whatif.changes[0].targetName).toMatch(/netflix/i);
+    expect(whatif.changes[0].amount).toBe(30);
+  });
+
+  it('parses "What if rent increases to $2,200?" as override_amount', () => {
+    const result = parseNaturalLanguage("What if rent increases to $2,200?");
+    expect(result.type).toBe("whatif");
+    const whatif = result as WhatIfIntent;
+    expect(whatif.changes).toHaveLength(1);
+    expect(whatif.changes[0].action).toBe("override_amount");
+    expect(whatif.changes[0].targetName).toBe("rent");
+    expect(whatif.changes[0].amount).toBe(2200);
+  });
+
+  it('parses "What if I add a $2,000 holiday in December?" as add_hypothetical', () => {
+    const result = parseNaturalLanguage("What if I add a $2,000 holiday in December?");
+    expect(result.type).toBe("whatif");
+    const whatif = result as WhatIfIntent;
+    expect(whatif.changes).toHaveLength(1);
+    expect(whatif.changes[0].action).toBe("add_hypothetical");
+    expect(whatif.changes[0].targetName).toBe("Holiday");
+    expect(whatif.changes[0].amount).toBe(2000);
+    expect(whatif.changes[0].dueDate).toBeDefined();
+    expect(whatif.changes[0].dueDate).toMatch(/^\d{4}-12-01$/);
+  });
+
+  it('parses "What if I cancel gym and Netflix?" as multiple toggle_offs', () => {
+    const result = parseNaturalLanguage("What if I cancel gym and Netflix?");
+    expect(result.type).toBe("whatif");
+    const whatif = result as WhatIfIntent;
+    expect(whatif.changes).toHaveLength(2);
+    expect(whatif.changes[0].action).toBe("toggle_off");
+    expect(whatif.changes[0].targetName).toBe("gym");
+    expect(whatif.changes[1].action).toBe("toggle_off");
+    expect(whatif.changes[1].targetName).toMatch(/netflix/i);
+  });
+
+  it('parses "What if I drop the gym membership?" as toggle_off', () => {
+    const result = parseNaturalLanguage("What if I drop the gym membership?");
+    expect(result.type).toBe("whatif");
+    const whatif = result as WhatIfIntent;
+    expect(whatif.changes).toHaveLength(1);
+    expect(whatif.changes[0].action).toBe("toggle_off");
+    expect(whatif.changes[0].targetName).toBe("gym");
+  });
+
+  it('parses "What if I remove Spotify?" as toggle_off', () => {
+    const result = parseNaturalLanguage("What if I remove Spotify?");
+    expect(result.type).toBe("whatif");
+    const whatif = result as WhatIfIntent;
+    expect(whatif.changes).toHaveLength(1);
+    expect(whatif.changes[0].action).toBe("toggle_off");
+    expect(whatif.changes[0].targetName).toMatch(/spotify/i);
+  });
+
+  it("returns high confidence for what-if intents with clear targets", () => {
+    const result = parseNaturalLanguage("What if I cancel gym?");
+    const whatif = result as WhatIfIntent;
+    expect(whatif.confidence).toBe("high");
+  });
+
+  it('parses "What if I add a $500 car repair next month?" as add_hypothetical', () => {
+    const result = parseNaturalLanguage("What if I add a $500 car repair next month?");
+    expect(result.type).toBe("whatif");
+    const whatif = result as WhatIfIntent;
+    expect(whatif.changes).toHaveLength(1);
+    expect(whatif.changes[0].action).toBe("add_hypothetical");
+    expect(whatif.changes[0].amount).toBe(500);
+    expect(whatif.changes[0].dueDate).toBeDefined();
+  });
+
+  it("does not parse non-what-if input starting with 'what' as what-if", () => {
+    const result = parseNaturalLanguage("what's my biggest expense?");
+    expect(result.type).toBe("query");
   });
 });
 

@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, waitFor, cleanup } from "@testing-library/react";
 import AppLayout from "../layout";
+import { WhatIfProvider } from "@/app/contexts/WhatIfContext";
+import type { ReactNode } from "react";
 
 const mockPush = vi.fn();
 
@@ -37,6 +39,10 @@ function mockFetchResponse(data: unknown, status = 200) {
   });
 }
 
+function renderWithProvider(ui: ReactNode) {
+  return render(<WhatIfProvider>{ui}</WhatIfProvider>);
+}
+
 describe("AppLayout", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -52,7 +58,7 @@ describe("AppLayout", () => {
       mockFetchResponse({ suggestions: [], count: 0 })
     );
 
-    render(
+    renderWithProvider(
       <AppLayout>
         <div data-testid="child-content">Hello</div>
       </AppLayout>
@@ -68,7 +74,7 @@ describe("AppLayout", () => {
       mockFetchResponse({ suggestions: [], count: 0 })
     );
 
-    render(
+    renderWithProvider(
       <AppLayout>
         <div>Content</div>
       </AppLayout>
@@ -83,7 +89,7 @@ describe("AppLayout", () => {
       .mockResolvedValueOnce(mockFetchResponse({ suggestions: [], count: 0 }))
       .mockResolvedValueOnce(mockFetchResponse({ success: true }));
 
-    render(
+    renderWithProvider(
       <AppLayout>
         <div>Content</div>
       </AppLayout>
@@ -106,7 +112,7 @@ describe("AppLayout", () => {
       mockFetchResponse({ suggestions: [], count: 0 })
     );
 
-    render(
+    renderWithProvider(
       <AppLayout>
         <p>Dashboard content here</p>
       </AppLayout>
@@ -121,7 +127,7 @@ describe("AppLayout", () => {
       mockFetchResponse({ suggestions: [], count: 0 })
     );
 
-    render(
+    renderWithProvider(
       <AppLayout>
         <div>Content</div>
       </AppLayout>

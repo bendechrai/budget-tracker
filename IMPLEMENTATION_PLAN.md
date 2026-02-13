@@ -475,6 +475,12 @@
 
 ## Completed (continued)
 
+- [x] **Add what-if support to AI bar NL parser**
+  - Files: `web/lib/ai/nlParser.ts` (update), `web/lib/ai/types.ts` (update), `web/app/components/AIBar.tsx` (update), `web/app/api/ai/parse/route.ts` (update)
+  - Spec: `specs/10-what-if.md`
+  - Acceptance: "What if I cancel gym?" → toggles gym off in what-if context. "What if Netflix goes up to $30?" → overrides amount. "What if I add a $2,000 holiday in December?" → adds hypothetical. Multiple what-if commands are additive.
+  - Tests: Unit test: parse what-if intents correctly, additive behavior
+
 - [x] **Add scenario banner component**
   - Files: `web/app/components/ScenarioBanner.tsx`, `web/app/components/scenario-banner.module.css`
   - Spec: `specs/10-what-if.md`
@@ -488,12 +494,6 @@
   - Tests: Component test: chart renders both lines, hero shows scenario indicator
 
 ## Backlog
-
-- [ ] **Add what-if support to AI bar NL parser**
-  - Files: `web/lib/ai/nlParser.ts` (update), `web/app/components/AIBar.tsx` (update)
-  - Spec: `specs/10-what-if.md`
-  - Acceptance: "What if I cancel gym?" → toggles gym off in what-if context. "What if Netflix goes up to $30?" → overrides amount. "What if I add a $2,000 holiday in December?" → adds hypothetical. Multiple what-if commands are additive.
-  - Tests: Unit test: parse what-if intents correctly, additive behavior
 
 ### Spec 02 (continued) — Onboarding Statement Upload Path
 

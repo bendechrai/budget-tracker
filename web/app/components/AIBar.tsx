@@ -3,7 +3,9 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import styles from "./ai-bar.module.css";
 import { logError } from "@/lib/logging";
-import type { ParseResult } from "@/lib/ai/types";
+import type { ParseResult, WhatIfIntent } from "@/lib/ai/types";
+import { useWhatIf } from "@/app/contexts/WhatIfContext";
+import type { HypotheticalObligation } from "@/app/contexts/WhatIfContext";
 
 interface Position {
   x: number;
@@ -13,6 +15,7 @@ interface Position {
 interface AIResponse {
   intent: ParseResult;
   answer?: string;
+  obligations?: Array<{ id: string; name: string }>;
 }
 
 function formatResponse(data: AIResponse): string {
@@ -44,7 +47,94 @@ function formatResponse(data: AIResponse): string {
     return `Parsed: Delete "${intent.targetName}"`;
   }
 
+  if (intent.type === "whatif") {
+    return formatWhatIfResponse(intent, data.obligations);
+  }
+
   return "Response received";
+}
+
+/**
+ * Find an obligation matching a target name (case-insensitive substring).
+ */
+function findMatchingObligation(
+  targetName: string,
+  obligations: Array<{ id: string; name: string }>
+): { id: string; name: string } | undefined {
+  const lower = targetName.toLowerCase();
+  return obligations.find(
+    (o) => o.name.toLowerCase() === lower
+  ) ?? obligations.find(
+    (o) => o.name.toLowerCase().includes(lower) || lower.includes(o.name.toLowerCase())
+  );
+}
+
+function formatWhatIfResponse(
+  intent: WhatIfIntent,
+  obligations?: Array<{ id: string; name: string }>
+): string {
+  const parts: string[] = [];
+  for (const change of intent.changes) {
+    if (change.action === "toggle_off") {
+      const matched = obligations && change.targetName
+        ? findMatchingObligation(change.targetName, obligations)
+        : undefined;
+      const name = matched?.name ?? change.targetName ?? "item";
+      parts.push(`toggled off "${name}"`);
+    } else if (change.action === "override_amount") {
+      const matched = obligations && change.targetName
+        ? findMatchingObligation(change.targetName, obligations)
+        : undefined;
+      const name = matched?.name ?? change.targetName ?? "item";
+      parts.push(`set "${name}" to $${change.amount}`);
+    } else if (change.action === "add_hypothetical") {
+      const name = change.targetName ?? "Hypothetical";
+      parts.push(`added hypothetical "${name}"`);
+    }
+  }
+  if (parts.length === 0) return "Scenario updated";
+  return `Scenario: ${parts.join(", ")}`;
+}
+
+interface WhatIfContextActions {
+  toggleObligation: (id: string) => void;
+  overrideAmount: (id: string, amount: number) => void;
+  addHypothetical: (obligation: HypotheticalObligation) => void;
+}
+
+function applyWhatIfChanges(
+  intent: WhatIfIntent,
+  obligations: Array<{ id: string; name: string }>,
+  ctx: WhatIfContextActions
+): void {
+  for (const change of intent.changes) {
+    if (change.action === "toggle_off" && change.targetName) {
+      const matched = findMatchingObligation(change.targetName, obligations);
+      if (matched) {
+        ctx.toggleObligation(matched.id);
+      }
+    } else if (change.action === "override_amount" && change.targetName && change.amount != null) {
+      const matched = findMatchingObligation(change.targetName, obligations);
+      if (matched) {
+        ctx.overrideAmount(matched.id, change.amount);
+      }
+    } else if (change.action === "add_hypothetical") {
+      const dueDate = change.dueDate
+        ? new Date(change.dueDate)
+        : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+      ctx.addHypothetical({
+        id: `hypothetical-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        name: change.targetName ?? "Hypothetical",
+        type: "one_off",
+        amount: change.amount ?? 0,
+        frequency: change.frequency ?? null,
+        frequencyDays: null,
+        nextDueDate: dueDate,
+        endDate: null,
+        fundGroupId: null,
+      });
+    }
+  }
 }
 
 export default function AIBar() {
@@ -53,6 +143,8 @@ export default function AIBar() {
   const [loading, setLoading] = useState(false);
   const [response, setResponse] = useState<{ text: string; isError: boolean } | null>(null);
   const [position, setPosition] = useState<Position | null>(null);
+
+  const whatIf = useWhatIf();
 
   const wrapperRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<{ startX: number; startY: number; startPosX: number; startPosY: number } | null>(null);
@@ -94,6 +186,12 @@ export default function AIBar() {
       }
 
       const data = (await res.json()) as AIResponse;
+
+      // Apply what-if changes to context
+      if (data.intent.type === "whatif") {
+        applyWhatIfChanges(data.intent, data.obligations ?? [], whatIf);
+      }
+
       setResponse({ text: formatResponse(data), isError: false });
       setInput("");
     } catch (err) {
@@ -102,7 +200,7 @@ export default function AIBar() {
     } finally {
       setLoading(false);
     }
-  }, [input, loading]);
+  }, [input, loading, whatIf]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLInputElement>) => {

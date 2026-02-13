@@ -2,6 +2,8 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, waitFor, cleanup, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import AIBar from "../AIBar";
+import { WhatIfProvider } from "@/app/contexts/WhatIfContext";
+import type { ReactNode } from "react";
 
 vi.mock("@/lib/logging", () => ({
   logError: vi.fn(),
@@ -12,6 +14,10 @@ function mockFetchResponse(data: unknown, status = 200) {
     status,
     headers: { "Content-Type": "application/json" },
   });
+}
+
+function renderWithProvider(ui: ReactNode) {
+  return render(<WhatIfProvider>{ui}</WhatIfProvider>);
 }
 
 describe("AIBar", () => {
@@ -25,7 +31,7 @@ describe("AIBar", () => {
   });
 
   it("renders collapsed pill by default", () => {
-    render(<AIBar />);
+    renderWithProvider(<AIBar />);
 
     const pill = screen.getByTestId("ai-bar-pill");
     expect(pill).toBeDefined();
@@ -35,7 +41,7 @@ describe("AIBar", () => {
 
   it("expands to show panel on click", async () => {
     const user = userEvent.setup();
-    render(<AIBar />);
+    renderWithProvider(<AIBar />);
 
     await user.click(screen.getByTestId("ai-bar-pill"));
 
@@ -46,7 +52,7 @@ describe("AIBar", () => {
 
   it("collapses when close button is clicked", async () => {
     const user = userEvent.setup();
-    render(<AIBar />);
+    renderWithProvider(<AIBar />);
 
     await user.click(screen.getByTestId("ai-bar-pill"));
     expect(screen.getByTestId("ai-bar-panel")).toBeDefined();
@@ -74,7 +80,7 @@ describe("AIBar", () => {
       })
     );
 
-    render(<AIBar />);
+    renderWithProvider(<AIBar />);
 
     await user.click(screen.getByTestId("ai-bar-pill"));
     await user.type(screen.getByTestId("ai-bar-input"), "Add Netflix $22.99 monthly");
@@ -105,7 +111,7 @@ describe("AIBar", () => {
       })
     );
 
-    render(<AIBar />);
+    renderWithProvider(<AIBar />);
 
     await user.click(screen.getByTestId("ai-bar-pill"));
     await user.type(screen.getByTestId("ai-bar-input"), "What is my biggest expense?");
@@ -123,7 +129,7 @@ describe("AIBar", () => {
       mockFetchResponse({ error: "unauthorized" }, 401)
     );
 
-    render(<AIBar />);
+    renderWithProvider(<AIBar />);
 
     await user.click(screen.getByTestId("ai-bar-pill"));
     await user.type(screen.getByTestId("ai-bar-input"), "test");
@@ -139,7 +145,7 @@ describe("AIBar", () => {
     const user = userEvent.setup();
     vi.mocked(global.fetch).mockRejectedValueOnce(new Error("Network error"));
 
-    render(<AIBar />);
+    renderWithProvider(<AIBar />);
 
     await user.click(screen.getByTestId("ai-bar-pill"));
     await user.type(screen.getByTestId("ai-bar-input"), "test");
@@ -153,7 +159,7 @@ describe("AIBar", () => {
 
   it("disables submit button when input is empty", async () => {
     const user = userEvent.setup();
-    render(<AIBar />);
+    renderWithProvider(<AIBar />);
 
     await user.click(screen.getByTestId("ai-bar-pill"));
 
@@ -173,7 +179,7 @@ describe("AIBar", () => {
       })
     );
 
-    render(<AIBar />);
+    renderWithProvider(<AIBar />);
 
     await user.click(screen.getByTestId("ai-bar-pill"));
     await user.type(screen.getByTestId("ai-bar-input"), "change subscription");
@@ -187,7 +193,7 @@ describe("AIBar", () => {
 
   it("has accessible labels", async () => {
     const user = userEvent.setup();
-    render(<AIBar />);
+    renderWithProvider(<AIBar />);
 
     expect(screen.getByLabelText("Open AI assistant")).toBeDefined();
 
@@ -200,7 +206,7 @@ describe("AIBar", () => {
 
   it("supports drag repositioning via mouse events", async () => {
     const user = userEvent.setup();
-    render(<AIBar />);
+    renderWithProvider(<AIBar />);
 
     await user.click(screen.getByTestId("ai-bar-pill"));
 
@@ -217,5 +223,128 @@ describe("AIBar", () => {
     const style = wrapper.style;
     // Position should be set (not necessarily exact values due to initial position calc)
     expect(style.position).toBe("fixed");
+  });
+
+  describe("what-if integration", () => {
+    it("shows scenario response for what-if toggle_off intent", async () => {
+      const user = userEvent.setup();
+      vi.mocked(global.fetch).mockResolvedValueOnce(
+        mockFetchResponse({
+          intent: {
+            type: "whatif",
+            changes: [
+              { action: "toggle_off", targetName: "gym" },
+            ],
+            confidence: "high",
+          },
+          obligations: [
+            { id: "obl-1", name: "Gym" },
+            { id: "obl-2", name: "Netflix" },
+          ],
+        })
+      );
+
+      renderWithProvider(<AIBar />);
+
+      await user.click(screen.getByTestId("ai-bar-pill"));
+      await user.type(screen.getByTestId("ai-bar-input"), "What if I cancel gym?");
+      await user.click(screen.getByTestId("ai-bar-submit"));
+
+      await waitFor(() => {
+        const response = screen.getByTestId("ai-bar-response");
+        expect(response.textContent).toContain("toggled off");
+        expect(response.textContent).toContain("Gym");
+      });
+    });
+
+    it("shows scenario response for what-if override_amount intent", async () => {
+      const user = userEvent.setup();
+      vi.mocked(global.fetch).mockResolvedValueOnce(
+        mockFetchResponse({
+          intent: {
+            type: "whatif",
+            changes: [
+              { action: "override_amount", targetName: "netflix", amount: 30 },
+            ],
+            confidence: "high",
+          },
+          obligations: [
+            { id: "obl-1", name: "Netflix" },
+          ],
+        })
+      );
+
+      renderWithProvider(<AIBar />);
+
+      await user.click(screen.getByTestId("ai-bar-pill"));
+      await user.type(screen.getByTestId("ai-bar-input"), "What if Netflix goes up to $30?");
+      await user.click(screen.getByTestId("ai-bar-submit"));
+
+      await waitFor(() => {
+        const response = screen.getByTestId("ai-bar-response");
+        expect(response.textContent).toContain("Netflix");
+        expect(response.textContent).toContain("$30");
+      });
+    });
+
+    it("shows scenario response for what-if add_hypothetical intent", async () => {
+      const user = userEvent.setup();
+      vi.mocked(global.fetch).mockResolvedValueOnce(
+        mockFetchResponse({
+          intent: {
+            type: "whatif",
+            changes: [
+              { action: "add_hypothetical", targetName: "Holiday", amount: 2000, dueDate: "2026-12-01" },
+            ],
+            confidence: "high",
+          },
+          obligations: [],
+        })
+      );
+
+      renderWithProvider(<AIBar />);
+
+      await user.click(screen.getByTestId("ai-bar-pill"));
+      await user.type(screen.getByTestId("ai-bar-input"), "What if I add a $2000 holiday in December?");
+      await user.click(screen.getByTestId("ai-bar-submit"));
+
+      await waitFor(() => {
+        const response = screen.getByTestId("ai-bar-response");
+        expect(response.textContent).toContain("hypothetical");
+        expect(response.textContent).toContain("Holiday");
+      });
+    });
+
+    it("shows combined scenario response for multiple what-if changes", async () => {
+      const user = userEvent.setup();
+      vi.mocked(global.fetch).mockResolvedValueOnce(
+        mockFetchResponse({
+          intent: {
+            type: "whatif",
+            changes: [
+              { action: "toggle_off", targetName: "gym" },
+              { action: "toggle_off", targetName: "netflix" },
+            ],
+            confidence: "high",
+          },
+          obligations: [
+            { id: "obl-1", name: "Gym" },
+            { id: "obl-2", name: "Netflix" },
+          ],
+        })
+      );
+
+      renderWithProvider(<AIBar />);
+
+      await user.click(screen.getByTestId("ai-bar-pill"));
+      await user.type(screen.getByTestId("ai-bar-input"), "What if I cancel gym and Netflix?");
+      await user.click(screen.getByTestId("ai-bar-submit"));
+
+      await waitFor(() => {
+        const response = screen.getByTestId("ai-bar-response");
+        expect(response.textContent).toContain("Gym");
+        expect(response.textContent).toContain("Netflix");
+      });
+    });
   });
 });

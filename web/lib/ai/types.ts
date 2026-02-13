@@ -89,11 +89,31 @@ export interface UnrecognizedResult {
   originalInput: string;
 }
 
+/** The kind of what-if action the user wants to perform. */
+export type WhatIfAction = "toggle_off" | "override_amount" | "add_hypothetical";
+
+/** A single what-if change parsed from user input. */
+export interface WhatIfChange {
+  action: WhatIfAction;
+  targetName?: string;
+  amount?: number;
+  frequency?: IncomeFrequency;
+  dueDate?: string;
+}
+
+/** A what-if intent with one or more scenario changes. */
+export interface WhatIfIntent {
+  type: "whatif";
+  changes: WhatIfChange[];
+  confidence: ParseConfidence;
+}
+
 /** All possible results from parsing natural language input. */
 export type ParseResult =
   | CreateIntent
   | EditIntent
   | DeleteIntent
   | QueryIntent
+  | WhatIfIntent
   | ClarificationResult
   | UnrecognizedResult;

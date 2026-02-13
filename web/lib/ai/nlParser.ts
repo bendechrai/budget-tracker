@@ -11,6 +11,8 @@ import type {
   EditIntent,
   DeleteIntent,
   QueryIntent,
+  WhatIfIntent,
+  WhatIfChange,
   TargetType,
   ParseConfidence,
 } from "./types";
@@ -110,6 +112,11 @@ export function parseNaturalLanguage(input: string): ParseResult {
   }
 
   const lower = trimmed.toLowerCase();
+
+  // Check for what-if intent first
+  if (isWhatIf(lower)) {
+    return parseWhatIf(trimmed, lower);
+  }
 
   // Check for query intent first (questions)
   if (isQuery(lower)) {
@@ -482,6 +489,255 @@ function detectTargetType(text: string): TargetType {
   }
   if (/\b(income)\b/i.test(lower)) return "income";
   return "expense";
+}
+
+/** Keywords indicating a cancel/toggle-off what-if action. */
+const WHATIF_CANCEL_KEYWORDS = [
+  "cancel",
+  "drop",
+  "remove",
+  "stop",
+  "get rid of",
+  "ditch",
+  "cut",
+  "skip",
+  "didn't have",
+  "don't have",
+  "didn't pay",
+  "don't pay",
+];
+
+/**
+ * Detect whether input is a what-if scenario request.
+ */
+function isWhatIf(lower: string): boolean {
+  return lower.startsWith("what if ");
+}
+
+/**
+ * Parse what-if intent(s) from input.
+ * Supports:
+ *   "What if I cancel gym?" → toggle_off
+ *   "What if Netflix goes up to $30?" → override_amount
+ *   "What if I add a $2,000 holiday in December?" → add_hypothetical
+ *   "What if I cancel gym and Netflix?" → multiple toggle_off
+ */
+function parseWhatIf(_input: string, lower: string): WhatIfIntent {
+  // Strip "what if " prefix and trailing punctuation
+  let rest = lower.slice("what if ".length).trim();
+  rest = rest.replace(/[?!.]+$/, "").trim();
+
+  // Strip leading "I " or "my "
+  rest = rest.replace(/^(i\s+|my\s+)/i, "");
+
+  // Check for compound "and" — split and parse each part
+  const parts = splitWhatIfParts(rest);
+
+  const changes: WhatIfChange[] = [];
+
+  for (const part of parts) {
+    const change = parseWhatIfPart(part.trim());
+    if (change) {
+      changes.push(change);
+    }
+  }
+
+  if (changes.length === 0) {
+    // Fallback: treat as a toggle-off with the entire rest as target name
+    const name = cleanWhatIfTargetName(rest);
+    changes.push({
+      action: "toggle_off",
+      targetName: name || rest,
+    });
+  }
+
+  const confidence: ParseConfidence = changes.length > 0 ? "high" : "medium";
+
+  return {
+    type: "whatif",
+    changes,
+    confidence,
+  };
+}
+
+/**
+ * Split a what-if clause on "and" while keeping compound names intact.
+ * "cancel gym and Netflix" → ["cancel gym", "cancel Netflix"]
+ * "add a $2000 holiday" → ["add a $2000 holiday"]
+ */
+function splitWhatIfParts(rest: string): string[] {
+  // Check if "and" appears as a coordinator between clauses
+  // Pattern: "verb X and Y" or "verb X and verb Y"
+  const andSplit = rest.split(/\s+and\s+/);
+
+  if (andSplit.length <= 1) {
+    return [rest];
+  }
+
+  // Check if the first part has a cancel verb — if so, propagate it
+  const firstPart = andSplit[0];
+  const verb = extractWhatIfVerb(firstPart);
+
+  if (verb) {
+    return andSplit.map((part, i) => {
+      if (i === 0) return part;
+      // If subsequent part already has a verb, keep it
+      if (extractWhatIfVerb(part)) return part;
+      // Otherwise prepend the verb from the first part
+      return `${verb} ${part}`;
+    });
+  }
+
+  return andSplit;
+}
+
+/**
+ * Extract the leading verb from a what-if clause.
+ */
+function extractWhatIfVerb(text: string): string | null {
+  for (const kw of WHATIF_CANCEL_KEYWORDS) {
+    if (text.startsWith(kw)) return kw;
+  }
+  if (text.startsWith("add")) return "add";
+  return null;
+}
+
+/**
+ * Parse a single what-if clause into a WhatIfChange.
+ */
+function parseWhatIfPart(part: string): WhatIfChange | null {
+  // Check for "add" pattern → add_hypothetical
+  // "add a $2,000 holiday in December"
+  const addMatch = part.match(/^add\s+/i);
+  if (addMatch) {
+    return parseWhatIfAdd(part.slice(addMatch[0].length));
+  }
+
+  // Check for amount override pattern
+  // "Netflix goes up to $30", "rent increases to $2200", "X goes to $Y"
+  const overridePatterns = [
+    /^(.+?)\s+(?:goes?\s+up\s+to|increases?\s+to|goes?\s+to|is|was|were|costs?)\s+\$\s*([\d,]+(?:\.\d{1,2})?)/i,
+    /^(.+?)\s+(?:goes?\s+up\s+to|increases?\s+to|goes?\s+to|is|was|were|costs?)\s+([\d,]+(?:\.\d{1,2})?)/i,
+  ];
+
+  for (const pattern of overridePatterns) {
+    const match = part.match(pattern);
+    if (match) {
+      const name = cleanWhatIfTargetName(match[1]);
+      const amount = parseFloat(match[2].replace(/,/g, ""));
+      if (name && !isNaN(amount)) {
+        return {
+          action: "override_amount",
+          targetName: name,
+          amount,
+        };
+      }
+    }
+  }
+
+  // Check for cancel/toggle-off patterns
+  for (const kw of WHATIF_CANCEL_KEYWORDS) {
+    if (part.startsWith(kw)) {
+      const afterKeyword = part.slice(kw.length).trim();
+      const name = cleanWhatIfTargetName(afterKeyword);
+      if (name) {
+        return {
+          action: "toggle_off",
+          targetName: name,
+        };
+      }
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Parse an "add" what-if clause into a hypothetical obligation.
+ * "a $2,000 holiday in December" → add_hypothetical
+ */
+function parseWhatIfAdd(rest: string): WhatIfChange {
+  // Strip leading articles
+  const cleaned = rest.replace(/^(a|an|the)\s+/i, "");
+
+  const amount = extractAmount(cleaned);
+  const frequency = extractFrequency(cleaned);
+  const dueDate = extractWhatIfDate(cleaned);
+
+  // Strip date references before extracting name so "in December" doesn't become part of the name
+  const withoutDate = cleaned
+    .replace(/\b(in\s+\w+(\s+\d{4})?)\b/gi, "")
+    .replace(/\bnext\s+month\b/gi, "");
+  const name = extractName(withoutDate);
+
+  return {
+    action: "add_hypothetical",
+    targetName: name || "Hypothetical",
+    amount: amount ?? 0,
+    frequency: frequency ?? undefined,
+    dueDate: dueDate ?? undefined,
+  };
+}
+
+/**
+ * Clean a target name from a what-if clause by stripping noise words.
+ */
+function cleanWhatIfTargetName(text: string): string {
+  return text
+    .replace(/^(the|my|a|an)\s+/i, "")
+    .replace(/\s+(subscription|membership|payment|expense)$/i, "")
+    .trim();
+}
+
+/** Month names for date extraction. */
+const MONTH_NAMES: Record<string, number> = {
+  january: 0, jan: 0,
+  february: 1, feb: 1,
+  march: 2, mar: 2,
+  april: 3, apr: 3,
+  may: 4,
+  june: 5, jun: 5,
+  july: 6, jul: 6,
+  august: 7, aug: 7,
+  september: 8, sep: 8, sept: 8,
+  october: 9, oct: 9,
+  november: 10, nov: 10,
+  december: 11, dec: 11,
+};
+
+/**
+ * Extract a rough date reference from text (e.g. "in December", "next month").
+ * Returns ISO date string or null.
+ */
+function extractWhatIfDate(text: string): string | null {
+  const lower = text.toLowerCase();
+
+  // "in December", "in March 2025"
+  const monthMatch = lower.match(/\bin\s+(\w+)(?:\s+(\d{4}))?\b/);
+  if (monthMatch) {
+    const monthName = monthMatch[1];
+    const yearStr = monthMatch[2];
+    if (monthName in MONTH_NAMES) {
+      const now = new Date();
+      let year = yearStr ? parseInt(yearStr, 10) : now.getFullYear();
+      const month = MONTH_NAMES[monthName];
+      // If month is in the past this year and no year specified, use next year
+      if (!yearStr && month < now.getMonth()) {
+        year = year + 1;
+      }
+      const date = new Date(year, month, 1);
+      return date.toISOString().split("T")[0];
+    }
+  }
+
+  // "next month"
+  if (/\bnext\s+month\b/.test(lower)) {
+    const now = new Date();
+    const date = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    return date.toISOString().split("T")[0];
+  }
+
+  return null;
 }
 
 /**

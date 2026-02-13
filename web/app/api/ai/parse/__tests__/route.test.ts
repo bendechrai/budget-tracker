@@ -10,6 +10,15 @@ vi.mock("@/lib/logging", () => ({
   logError: vi.fn(),
 }));
 
+const mockFindMany = vi.fn().mockResolvedValue([]);
+vi.mock("@/lib/prisma", () => ({
+  prisma: {
+    obligation: {
+      findMany: (...args: unknown[]) => mockFindMany(...args),
+    },
+  },
+}));
+
 import { POST } from "../route";
 
 const mockUser = { id: "user_1", email: "test@example.com" };
