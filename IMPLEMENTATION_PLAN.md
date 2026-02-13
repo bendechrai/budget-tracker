@@ -577,13 +577,13 @@
   - Acceptance: Mini-form with: change type selector (absolute/percentage/fixed_increase), value input, effective date picker, optional "repeats every N months" toggle. Preview shows timeline of amount changes. Submits to POST /api/escalations. Confirmation prompt for >50% increases. Hidden for one-off obligations.
   - Tests: Component test: renders all fields, preview updates on input, submits valid data, shows confirmation for large increases
 
-## In Progress
-
-- [ ] **Add escalation display to obligations list/detail**
-  - Files: `web/app/obligations/page.tsx` (update)
+- [x] **Add escalation display to obligations list/detail**
+  - Files: `web/app/obligations/page.tsx` (update), `web/app/obligations/obligations.module.css` (update)
   - Spec: `specs/11-escalation.md`
   - Acceptance: Each obligation shows upcoming escalation rules as a timeline of changes. Applied rules shown as history. Delete button on each rule. "Add price change" action available. Escalation section hidden for one-off obligations.
   - Tests: Component test: renders escalation timeline, delete calls API, hidden for one-off type
+
+## In Progress
 
 - [ ] **Add "Add price change" preset to sparkle button for obligations**
   - Files: `web/app/components/SparkleButton.tsx` (update)

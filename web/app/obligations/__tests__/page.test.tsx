@@ -119,12 +119,32 @@ const pastDueObligation = {
   customEntries: [],
 };
 
+const mockEscalations: Record<string, unknown[]> = {};
+
 function mockFetchResponses(active: unknown[], archived: unknown[] = []) {
-  vi.mocked(global.fetch).mockImplementation((input: string | URL | Request) => {
+  vi.mocked(global.fetch).mockImplementation((input: string | URL | Request, init?: RequestInit) => {
     const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
     if (url.includes("archived=true")) {
       return Promise.resolve(
         new Response(JSON.stringify(archived), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        })
+      );
+    }
+    if (url.includes("/api/escalations") && (!init || init.method !== "DELETE")) {
+      const obIdMatch = url.match(/obligationId=([^&]+)/);
+      const obId = obIdMatch ? obIdMatch[1] : "";
+      return Promise.resolve(
+        new Response(JSON.stringify(mockEscalations[obId] ?? []), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        })
+      );
+    }
+    if (url.includes("/api/escalations/") && init?.method === "DELETE") {
+      return Promise.resolve(
+        new Response(JSON.stringify({ success: true }), {
           status: 200,
           headers: { "Content-Type": "application/json" },
         })
@@ -144,6 +164,10 @@ describe("ObligationsPage", () => {
     vi.clearAllMocks();
     global.fetch = vi.fn();
     window.confirm = vi.fn();
+    // Clear mockEscalations
+    for (const key of Object.keys(mockEscalations)) {
+      delete mockEscalations[key];
+    }
     currentOverrides = {
       toggledOffIds: new Set<string>(),
       amountOverrides: new Map<string, number>(),
@@ -955,5 +979,269 @@ describe("ObligationsPage", () => {
     await user.click(screen.getByRole("button", { name: "Remove Holiday Fund" }));
 
     expect(mockRemoveHypothetical).toHaveBeenCalledWith("hypo-1");
+  });
+
+  // Escalation display tests
+
+  it("shows escalation section for non-one-off obligations", async () => {
+    mockFetchResponses(mockObligations);
+
+    render(<ObligationsPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Netflix")).toBeDefined();
+    });
+
+    // Netflix (recurring) and Tax Repayment (recurring_with_end) should have escalation sections
+    expect(screen.getByTestId("escalation-section-1")).toBeDefined();
+    expect(screen.getByTestId("escalation-section-2")).toBeDefined();
+  });
+
+  it("hides escalation section for one-off obligations", async () => {
+    mockFetchResponses(mockObligations);
+
+    render(<ObligationsPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Car Rego")).toBeDefined();
+    });
+
+    // Car Rego is one-off, should not have escalation section
+    expect(screen.queryByTestId("escalation-section-3")).toBeNull();
+  });
+
+  it("expands escalation section and shows rules on toggle click", async () => {
+    const user = userEvent.setup();
+    mockEscalations["1"] = [
+      {
+        id: "esc-1",
+        obligationId: "1",
+        changeType: "percentage",
+        value: 3,
+        effectiveDate: "2026-07-01T00:00:00.000Z",
+        intervalMonths: 12,
+        isApplied: false,
+        appliedAt: null,
+      },
+    ];
+
+    mockFetchResponses(mockObligations);
+
+    render(<ObligationsPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Netflix")).toBeDefined();
+    });
+
+    // Click to expand escalation section for Netflix
+    await user.click(screen.getByRole("button", { name: "Toggle escalation rules for Netflix" }));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("escalation-rule-esc-1")).toBeDefined();
+    });
+
+    expect(screen.getByText("+3%")).toBeDefined();
+    expect(screen.getByText(/Every year/)).toBeDefined();
+  });
+
+  it("shows applied badge for applied escalation rules", async () => {
+    const user = userEvent.setup();
+    mockEscalations["1"] = [
+      {
+        id: "esc-applied",
+        obligationId: "1",
+        changeType: "absolute",
+        value: 25.99,
+        effectiveDate: "2026-01-01T00:00:00.000Z",
+        intervalMonths: null,
+        isApplied: true,
+        appliedAt: "2026-01-01T00:00:00.000Z",
+      },
+    ];
+
+    mockFetchResponses(mockObligations);
+
+    render(<ObligationsPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Netflix")).toBeDefined();
+    });
+
+    await user.click(screen.getByRole("button", { name: "Toggle escalation rules for Netflix" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("Applied")).toBeDefined();
+    });
+  });
+
+  it("calls delete API when remove button is clicked on an escalation rule", async () => {
+    const user = userEvent.setup();
+    mockEscalations["1"] = [
+      {
+        id: "esc-del",
+        obligationId: "1",
+        changeType: "fixed_increase",
+        value: 5,
+        effectiveDate: "2026-06-01T00:00:00.000Z",
+        intervalMonths: null,
+        isApplied: false,
+        appliedAt: null,
+      },
+    ];
+
+    mockFetchResponses(mockObligations);
+
+    render(<ObligationsPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Netflix")).toBeDefined();
+    });
+
+    await user.click(screen.getByRole("button", { name: "Toggle escalation rules for Netflix" }));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("escalation-rule-esc-del")).toBeDefined();
+    });
+
+    await user.click(screen.getByRole("button", { name: "Delete escalation rule esc-del" }));
+
+    await waitFor(() => {
+      expect(vi.mocked(global.fetch)).toHaveBeenCalledWith(
+        "/api/escalations/esc-del",
+        expect.objectContaining({ method: "DELETE" })
+      );
+    });
+  });
+
+  it("shows escalation count badge when rules exist", async () => {
+    const user = userEvent.setup();
+    mockEscalations["1"] = [
+      {
+        id: "esc-count-1",
+        obligationId: "1",
+        changeType: "percentage",
+        value: 5,
+        effectiveDate: "2026-07-01T00:00:00.000Z",
+        intervalMonths: 12,
+        isApplied: false,
+        appliedAt: null,
+      },
+      {
+        id: "esc-count-2",
+        obligationId: "1",
+        changeType: "absolute",
+        value: 30,
+        effectiveDate: "2026-04-01T00:00:00.000Z",
+        intervalMonths: null,
+        isApplied: false,
+        appliedAt: null,
+      },
+    ];
+
+    mockFetchResponses(mockObligations);
+
+    render(<ObligationsPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Netflix")).toBeDefined();
+    });
+
+    // Click to expand (which fetches escalations)
+    await user.click(screen.getByRole("button", { name: "Toggle escalation rules for Netflix" }));
+
+    await waitFor(() => {
+      // The count badge should show "2"
+      expect(screen.getByText("2")).toBeDefined();
+    });
+  });
+
+  it("shows 'Add price change' button in expanded escalation section", async () => {
+    const user = userEvent.setup();
+    mockFetchResponses(mockObligations);
+
+    render(<ObligationsPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Netflix")).toBeDefined();
+    });
+
+    await user.click(screen.getByRole("button", { name: "Toggle escalation rules for Netflix" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("Add price change")).toBeDefined();
+    });
+  });
+
+  it("shows EscalationForm when 'Add price change' is clicked", async () => {
+    const user = userEvent.setup();
+    mockFetchResponses(mockObligations);
+
+    render(<ObligationsPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Netflix")).toBeDefined();
+    });
+
+    await user.click(screen.getByRole("button", { name: "Toggle escalation rules for Netflix" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("Add price change")).toBeDefined();
+    });
+
+    await user.click(screen.getByRole("button", { name: "Add price change" }));
+
+    expect(screen.getByTestId("escalation-form")).toBeDefined();
+  });
+
+  it("formats different escalation change types correctly", async () => {
+    const user = userEvent.setup();
+    mockEscalations["1"] = [
+      {
+        id: "esc-abs",
+        obligationId: "1",
+        changeType: "absolute",
+        value: 30,
+        effectiveDate: "2026-07-01T00:00:00.000Z",
+        intervalMonths: null,
+        isApplied: false,
+        appliedAt: null,
+      },
+      {
+        id: "esc-pct",
+        obligationId: "1",
+        changeType: "percentage",
+        value: 5,
+        effectiveDate: "2026-08-01T00:00:00.000Z",
+        intervalMonths: null,
+        isApplied: false,
+        appliedAt: null,
+      },
+      {
+        id: "esc-fix",
+        obligationId: "1",
+        changeType: "fixed_increase",
+        value: 3.5,
+        effectiveDate: "2026-09-01T00:00:00.000Z",
+        intervalMonths: null,
+        isApplied: false,
+        appliedAt: null,
+      },
+    ];
+
+    mockFetchResponses(mockObligations);
+
+    render(<ObligationsPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Netflix")).toBeDefined();
+    });
+
+    await user.click(screen.getByRole("button", { name: "Toggle escalation rules for Netflix" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("Set to $30.00")).toBeDefined();
+      expect(screen.getByText("+5%")).toBeDefined();
+      expect(screen.getByText("+$3.50")).toBeDefined();
+    });
   });
 });

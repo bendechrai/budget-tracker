@@ -120,6 +120,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
   padding: 16px;
   border: 1px solid #ddd;
   border-radius: 8px;
@@ -390,6 +391,139 @@
   margin-left: 8px;
 }
 
+.escalationSection {
+  width: 100%;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #edf2f7;
+}
+
+.escalationHeader {
+  display: flex;
+  align-items: center;
+}
+
+.escalationToggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 13px;
+  color: #666;
+  padding: 0;
+}
+
+.escalationToggle:hover {
+  color: var(--foreground);
+}
+
+.escalationCount {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #2b6cb0;
+  background: #ebf8ff;
+  border-radius: 9px;
+  padding: 0 4px;
+  margin-left: 6px;
+}
+
+.escalationBody {
+  margin-top: 8px;
+}
+
+.escalationList {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 8px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.escalationItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 8px;
+  background: #f7fafc;
+  border-radius: 4px;
+  font-size: 13px;
+}
+
+.escalationItemApplied {
+  opacity: 0.6;
+}
+
+.escalationInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.escalationDesc {
+  font-weight: 500;
+  color: var(--foreground);
+}
+
+.escalationMeta {
+  font-size: 12px;
+  color: #666;
+}
+
+.appliedBadge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 500;
+  color: #38a169;
+  background: #f0fff4;
+  padding: 1px 5px;
+  border-radius: 3px;
+  margin-left: 6px;
+}
+
+.escalationDeleteButton {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 12px;
+  color: #e53e3e;
+  padding: 2px 6px;
+}
+
+.escalationDeleteButton:hover {
+  background: #fff5f5;
+  border-radius: 4px;
+}
+
+.escalationEmpty {
+  font-size: 13px;
+  color: #999;
+  margin: 0 0 8px 0;
+}
+
+.addEscalationButton {
+  padding: 4px 10px;
+  border: 1px dashed #cbd5e0;
+  border-radius: 4px;
+  font-size: 13px;
+  cursor: pointer;
+  background: transparent;
+  color: #666;
+  transition: border-color 0.2s;
+}
+
+.addEscalationButton:hover {
+  border-color: var(--foreground);
+  color: var(--foreground);
+}
+
 @media (prefers-color-scheme: dark) {
   .whatIfBadge {
     color: #b794f4;
@@ -529,6 +663,58 @@
 
   .archiveEmpty {
     color: #666;
+  }
+
+  .escalationSection {
+    border-color: #333;
+  }
+
+  .escalationToggle {
+    color: #999;
+  }
+
+  .escalationToggle:hover {
+    color: var(--foreground);
+  }
+
+  .escalationCount {
+    color: #63b3ed;
+    background: #1a365d;
+  }
+
+  .escalationItem {
+    background: #1a1a2e;
+  }
+
+  .escalationMeta {
+    color: #999;
+  }
+
+  .appliedBadge {
+    color: #68d391;
+    background: #1a2e1a;
+  }
+
+  .escalationDeleteButton {
+    color: #fc8181;
+  }
+
+  .escalationDeleteButton:hover {
+    background: #1a0000;
+  }
+
+  .escalationEmpty {
+    color: #666;
+  }
+
+  .addEscalationButton {
+    border-color: #444;
+    color: #999;
+  }
+
+  .addEscalationButton:hover {
+    border-color: var(--foreground);
+    color: var(--foreground);
   }
 }
 

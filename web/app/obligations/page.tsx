@@ -7,10 +7,22 @@ import { logError } from "@/lib/logging";
 import SparkleButton from "@/app/components/SparkleButton";
 import { useWhatIf } from "@/app/contexts/WhatIfContext";
 import HypotheticalForm from "./HypotheticalForm";
+import EscalationForm from "./EscalationForm";
 
 interface FundGroup {
   id: string;
   name: string;
+}
+
+interface Escalation {
+  id: string;
+  obligationId: string;
+  changeType: "absolute" | "percentage" | "fixed_increase";
+  value: number;
+  effectiveDate: string;
+  intervalMonths: number | null;
+  isApplied: boolean;
+  appliedAt: string | null;
 }
 
 interface CustomScheduleEntry {
@@ -72,6 +84,29 @@ function formatDate(dateStr: string): string {
     month: "short",
     day: "numeric",
   });
+}
+
+function formatEscalationDescription(esc: Escalation): string {
+  if (esc.changeType === "absolute") {
+    return `Set to $${Number(esc.value).toFixed(2)}`;
+  }
+  if (esc.changeType === "percentage") {
+    return `+${Number(esc.value)}%`;
+  }
+  return `+$${Number(esc.value).toFixed(2)}`;
+}
+
+function formatEscalationRecurrence(esc: Escalation): string {
+  if (esc.intervalMonths === null) {
+    return "One-off";
+  }
+  if (esc.intervalMonths === 12) {
+    return "Every year";
+  }
+  if (esc.intervalMonths === 1) {
+    return "Every month";
+  }
+  return `Every ${esc.intervalMonths} months`;
 }
 
 function isPastDue(nextDueDate: string): boolean {
@@ -148,6 +183,9 @@ export default function ObligationsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [showHypotheticalForm, setShowHypotheticalForm] = useState(false);
+  const [escalations, setEscalations] = useState<Map<string, Escalation[]>>(new Map());
+  const [expandedEscalations, setExpandedEscalations] = useState<Set<string>>(new Set());
+  const [escalationFormTarget, setEscalationFormTarget] = useState<string | null>(null);
   const { overrides, toggleObligation, overrideAmount, addHypothetical, removeHypothetical } = useWhatIf();
 
   const archiveObligation = useCallback(async (ob: Obligation) => {
@@ -203,6 +241,58 @@ export default function ObligationsPage() {
       setLoading(false);
     }
   }, [archiveObligation]);
+
+  const fetchEscalationsForObligation = useCallback(async (obligationId: string) => {
+    try {
+      const res = await fetch(`/api/escalations?obligationId=${obligationId}`);
+      if (!res.ok) return;
+      const data = (await res.json()) as Escalation[];
+      setEscalations((prev) => {
+        const next = new Map(prev);
+        next.set(obligationId, data);
+        return next;
+      });
+    } catch (err) {
+      logError("failed to fetch escalations", err);
+    }
+  }, []);
+
+  function toggleEscalationExpanded(obligationId: string) {
+    setExpandedEscalations((prev) => {
+      const next = new Set(prev);
+      if (next.has(obligationId)) {
+        next.delete(obligationId);
+      } else {
+        next.add(obligationId);
+        // Fetch escalations when expanding if not already loaded
+        if (!escalations.has(obligationId)) {
+          void fetchEscalationsForObligation(obligationId);
+        }
+      }
+      return next;
+    });
+  }
+
+  async function handleDeleteEscalation(escalationId: string, obligationId: string) {
+    try {
+      const res = await fetch(`/api/escalations/${escalationId}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        setError("Failed to delete escalation rule");
+        return;
+      }
+      setEscalations((prev) => {
+        const next = new Map(prev);
+        const current = next.get(obligationId) ?? [];
+        next.set(obligationId, current.filter((e) => e.id !== escalationId));
+        return next;
+      });
+    } catch (err) {
+      logError("failed to delete escalation", err);
+      setError("Failed to delete escalation rule");
+    }
+  }
 
   useEffect(() => {
     void fetchObligations();
@@ -417,6 +507,84 @@ export default function ObligationsPage() {
                           Delete
                         </button>
                       </div>
+                      {ob.type !== "one_off" && (
+                        <div className={styles.escalationSection} data-testid={`escalation-section-${ob.id}`}>
+                          <div className={styles.escalationHeader}>
+                            <button
+                              type="button"
+                              className={styles.escalationToggle}
+                              onClick={() => toggleEscalationExpanded(ob.id)}
+                              aria-label={`Toggle escalation rules for ${ob.name}`}
+                            >
+                              {expandedEscalations.has(ob.id) ? "▾" : "▸"} Price changes
+                              {escalations.has(ob.id) && escalations.get(ob.id)!.length > 0 && (
+                                <span className={styles.escalationCount}>
+                                  {escalations.get(ob.id)!.length}
+                                </span>
+                              )}
+                            </button>
+                          </div>
+                          {expandedEscalations.has(ob.id) && (
+                            <div className={styles.escalationBody}>
+                              {escalations.has(ob.id) && escalations.get(ob.id)!.length > 0 ? (
+                                <ul className={styles.escalationList}>
+                                  {escalations.get(ob.id)!.map((esc) => (
+                                    <li
+                                      key={esc.id}
+                                      className={`${styles.escalationItem} ${esc.isApplied ? styles.escalationItemApplied : ""}`}
+                                      data-testid={`escalation-rule-${esc.id}`}
+                                    >
+                                      <div className={styles.escalationInfo}>
+                                        <span className={styles.escalationDesc}>
+                                          {formatEscalationDescription(esc)}
+                                        </span>
+                                        <span className={styles.escalationMeta}>
+                                          {formatDate(esc.effectiveDate)} · {formatEscalationRecurrence(esc)}
+                                          {esc.isApplied && (
+                                            <span className={styles.appliedBadge}>Applied</span>
+                                          )}
+                                        </span>
+                                      </div>
+                                      <button
+                                        type="button"
+                                        className={styles.escalationDeleteButton}
+                                        onClick={() => void handleDeleteEscalation(esc.id, ob.id)}
+                                        aria-label={`Delete escalation rule ${esc.id}`}
+                                      >
+                                        Remove
+                                      </button>
+                                    </li>
+                                  ))}
+                                </ul>
+                              ) : (
+                                <p className={styles.escalationEmpty}>
+                                  No price changes scheduled.
+                                </p>
+                              )}
+                              {escalationFormTarget === ob.id ? (
+                                <EscalationForm
+                                  obligationId={ob.id}
+                                  obligationName={ob.name}
+                                  currentAmount={ob.amount}
+                                  onSaved={() => {
+                                    setEscalationFormTarget(null);
+                                    void fetchEscalationsForObligation(ob.id);
+                                  }}
+                                  onCancel={() => setEscalationFormTarget(null)}
+                                />
+                              ) : (
+                                <button
+                                  type="button"
+                                  className={styles.addEscalationButton}
+                                  onClick={() => setEscalationFormTarget(ob.id)}
+                                >
+                                  Add price change
+                                </button>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </li>
                   );
                 })}
