@@ -608,3 +608,59 @@
   - Tests: Unit tests: applies past-date one-off, skips future-date, skips paused obligations, skips already-applied rules, applies deferred rules on resume
 
 ## In Progress
+
+- [ ] **Install Playwright and create configuration**
+  - Files: `web/package.json`, `web/playwright.config.ts`, `Dockerfile.web`
+  - Spec: `specs/12-ui-testing.md`
+  - Acceptance: `@playwright/test` is a dev dependency. `playwright.config.ts` exists with baseURL `http://localhost:3000`, Chromium project, `storageState` support, and reasonable timeouts. `npm run test:e2e` script runs Playwright. Dockerfile installs Chromium via `npx playwright install --with-deps chromium`. `npx playwright test` exits cleanly (no tests yet).
+  - Tests: `npm run test:e2e` executes without configuration errors
+
+## Backlog
+
+- [ ] **Add Playwright global setup with auth session**
+  - Files: `web/e2e/global-setup.ts`, `web/e2e/global-teardown.ts`, `web/playwright.config.ts` (update)
+  - Spec: `specs/12-ui-testing.md`
+  - Acceptance: Global setup seeds a test user via Prisma (with onboardingComplete=true and sample data: at least one income source, one obligation). Logs in via the `/api/auth/login` endpoint and saves `storageState` to a file. Global teardown cleans up the test user and associated data. All subsequent test files reuse the saved session.
+  - Tests: Running `npm run test:e2e` completes global setup without error; storageState file is created
+
+- [ ] **Add layout persistence e2e test**
+  - Files: `web/e2e/layout.spec.ts`
+  - Spec: `specs/12-ui-testing.md`
+  - Acceptance: Test visits every authenticated route (`/dashboard`, `/income`, `/obligations`, `/transactions`, `/suggestions`, `/import`) and verifies: nav component is visible, AI bar pill is visible, page-specific content renders (not blank). Uses `data-testid` selectors.
+  - Tests: All six routes pass layout assertions
+
+- [ ] **Add navigation e2e test**
+  - Files: `web/e2e/navigation.spec.ts`
+  - Spec: `specs/12-ui-testing.md`
+  - Acceptance: Clicks each nav link and verifies navigation to the correct page. Header and AI bar remain visible after each navigation. Active nav item is highlighted on the correct page.
+  - Tests: Navigation between all six routes works; active state is correct on each page
+
+- [ ] **Add authentication gating e2e test**
+  - Files: `web/e2e/auth.spec.ts`
+  - Spec: `specs/12-ui-testing.md`
+  - Acceptance: Unauthenticated request to `/dashboard` redirects to `/login`. Login page does not show the app header/nav or AI bar. Uses a separate browser context without storageState.
+  - Tests: Redirect and layout absence assertions pass
+
+- [ ] **Add AI bar structural e2e test**
+  - Files: `web/e2e/ai-bar.spec.ts`
+  - Spec: `specs/12-ui-testing.md`
+  - Acceptance: AI bar pill is visible. Clicking it expands the input field. Typing and submitting shows a response area. After navigating to another page, the AI bar is still present (persists across navigation).
+  - Tests: Expand/collapse, input submission, and cross-navigation persistence assertions pass
+
+- [ ] **Add sparkle button e2e test**
+  - Files: `web/e2e/sparkle.spec.ts`
+  - Spec: `specs/12-ui-testing.md`
+  - Acceptance: Sparkle button appears on income and obligation list items. Clicking a sparkle button opens the modal/popover. Modal shows item summary and action buttons.
+  - Tests: Sparkle button visibility, modal open, and content assertions pass
+
+- [ ] **Add form smoke e2e tests**
+  - Files: `web/e2e/forms.spec.ts`
+  - Spec: `specs/12-ui-testing.md`
+  - Acceptance: Income source form at `/income/new` submits successfully (new item appears in list). Obligation form at `/obligations/new` submits successfully. Submitting a form with missing required fields displays validation errors. Tests use the seeded auth session.
+  - Tests: Form submission success and validation error assertions pass
+
+- [ ] **Add e2e test runner to Ralph validation loop**
+  - Files: `PROMPT_build.md`
+  - Spec: `specs/12-ui-testing.md`
+  - Acceptance: `PROMPT_build.md` validation step includes `docker compose -f /project/docker-compose.yml exec web npm run test:e2e` after the existing `npm test` step. E2e tests skip gracefully (exit 0) when the dev server is not running.
+  - Tests: Ralph validation step list includes e2e command; e2e tests skip without failure when server is unavailable
