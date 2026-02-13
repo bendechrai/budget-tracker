@@ -113,41 +113,45 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {!loading && !error && isFullyFunded && snapshot && (
-          <div className={`${styles.heroCard} ${styles.heroCelebration}`}>
-            <div className={styles.celebrationEmoji} aria-hidden="true">
-              &#127881;
-            </div>
-            <h2 className={styles.celebrationTitle}>
-              {"You're fully covered!"}
-            </h2>
-            <p className={styles.celebrationDescription}>
-              All obligations are fully funded. Next due date:{" "}
-              {formatDate(snapshot.nextActionDate)}
-            </p>
-          </div>
-        )}
+        {!loading && !error && !isEmptyState && (
+          <div className={styles.topRow}>
+            {isFullyFunded && snapshot && (
+              <div className={`${styles.heroCard} ${styles.heroCelebration}`}>
+                <div className={styles.celebrationEmoji} aria-hidden="true">
+                  &#127881;
+                </div>
+                <h2 className={styles.celebrationTitle}>
+                  {"You're fully covered!"}
+                </h2>
+                <p className={styles.celebrationDescription}>
+                  All obligations are fully funded. Next due date:{" "}
+                  {formatDate(snapshot.nextActionDate)}
+                </p>
+              </div>
+            )}
 
-        {!loading && !error && !isFullyFunded && !isEmptyState && snapshot && (
-          <div className={styles.heroCard}>
-            <p className={styles.heroLabel}>Next action</p>
-            <p className={styles.heroAmount}>
-              {formatCurrency(snapshot.nextActionAmount)}
-            </p>
-            <p className={styles.heroDescription}>
-              {snapshot.nextActionDescription}
-            </p>
-            <p className={styles.heroDeadline}>
-              Due by {formatDate(snapshot.nextActionDate)}
-            </p>
-          </div>
-        )}
+            {!isFullyFunded && snapshot && (
+              <div className={styles.heroCard}>
+                <p className={styles.heroLabel}>Next action</p>
+                <p className={styles.heroAmount}>
+                  {formatCurrency(snapshot.nextActionAmount)}
+                </p>
+                <p className={styles.heroDescription}>
+                  {snapshot.nextActionDescription}
+                </p>
+                <p className={styles.heroDeadline}>
+                  Due by {formatDate(snapshot.nextActionDate)}
+                </p>
+              </div>
+            )}
 
-        {!loading && !error && !isEmptyState && snapshot && (
-          <HealthBar
-            totalFunded={snapshot.totalFunded}
-            totalRequired={snapshot.totalRequired}
-          />
+            {snapshot && (
+              <HealthBar
+                totalFunded={snapshot.totalFunded}
+                totalRequired={snapshot.totalRequired}
+              />
+            )}
+          </div>
         )}
 
         {!loading && !error && !isEmptyState && (
@@ -155,11 +159,14 @@ export default function DashboardPage() {
         )}
 
         {!loading && !error && !isEmptyState && (
-          <TimelineChart />
-        )}
-
-        {!loading && !error && !isEmptyState && (
-          <UpcomingObligations />
+          <div className={styles.mainContent}>
+            <div className={styles.timelineSection}>
+              <TimelineChart />
+            </div>
+            <aside className={styles.sidebar}>
+              <UpcomingObligations />
+            </aside>
+          </div>
         )}
       </div>
     </div>

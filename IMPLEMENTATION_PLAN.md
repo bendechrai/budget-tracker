@@ -410,17 +410,15 @@
   - Acceptance: Displays high-confidence suggestions as dismissible cards. Links to suggestions feed. Example: "We noticed a new $14.99 monthly charge from Spotify."
   - Tests: Component test: renders nudge cards for high-confidence suggestions, dismiss works
 
-## In Progress
-
-## Backlog
-
-### Spec 08 — Dashboard
-
-- [ ] **Add responsive dashboard layout**
-  - Files: `web/app/(app)/dashboard/dashboard.module.css` (update)
+- [x] **Add responsive dashboard layout**
+  - Files: `web/app/(app)/dashboard/dashboard.module.css` (update), `web/app/(app)/dashboard/page.tsx` (update)
   - Spec: `specs/08-dashboard.md`
   - Acceptance: Desktop: hero + health bar side by side at top, timeline full width below, upcoming in sidebar. Mobile: single column stack. CSS Modules media queries.
   - Tests: Component test: renders without error at different viewport sizes (or snapshot test)
+
+## In Progress
+
+## Backlog
 
 ### Spec 09 — AI Interaction Layer
 

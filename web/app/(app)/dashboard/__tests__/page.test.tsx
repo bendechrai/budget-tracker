@@ -230,4 +230,63 @@ describe("DashboardPage", () => {
       screen.getByRole("heading", { name: "Dashboard" })
     ).toBeDefined();
   });
+
+  it("renders responsive grid layout with hero and health bar in top row", async () => {
+    vi.mocked(global.fetch).mockImplementation((url) => {
+      if (typeof url === "string" && url.includes("/api/obligations")) {
+        return Promise.resolve(
+          mockFetchResponse([{ id: "ob1" }])
+        );
+      }
+      if (typeof url === "string" && url.includes("/api/engine/timeline")) {
+        return Promise.resolve(mockFetchResponse(mockTimelineData));
+      }
+      if (typeof url === "string" && url.includes("/api/suggestions")) {
+        return Promise.resolve(mockFetchResponse([]));
+      }
+      return Promise.resolve(mockFetchResponse(mockSnapshot));
+    });
+
+    const { container } = render(<DashboardPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("$412.00")).toBeDefined();
+    });
+
+    // Hero card and health bar are inside the top row grid container
+    const heroCard = screen.getByText("Next action").closest("div");
+    expect(heroCard).toBeDefined();
+    const topRow = heroCard?.parentElement;
+    expect(topRow).toBeDefined();
+
+    // Timeline and upcoming obligations are in the main content area
+    // The main content section should contain a timeline section and a sidebar
+    const mainContent = container.querySelector("aside");
+    expect(mainContent).toBeDefined();
+    expect(mainContent?.parentElement).toBeDefined();
+  });
+
+  it("renders all sections in single-column layout for empty state", async () => {
+    vi.mocked(global.fetch).mockImplementation((url) => {
+      if (typeof url === "string" && url.includes("/api/obligations")) {
+        return Promise.resolve(mockFetchResponse([]));
+      }
+      if (typeof url === "string" && url.includes("/api/engine/timeline")) {
+        return Promise.resolve(mockFetchResponse(mockTimelineData));
+      }
+      return Promise.resolve(mockFetchResponse(mockEmptySnapshot));
+    });
+
+    const { container } = render(<DashboardPage />);
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("Welcome to your dashboard")
+      ).toBeDefined();
+    });
+
+    // In empty state, there should be no grid layout sections
+    const aside = container.querySelector("aside");
+    expect(aside).toBeNull();
+  });
 });

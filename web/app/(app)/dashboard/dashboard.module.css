@@ -8,7 +8,7 @@
 
 .container {
   width: 100%;
-  max-width: 700px;
+  max-width: 1100px;
 }
 
 .title {
@@ -16,6 +16,13 @@
   font-weight: 600;
   color: var(--foreground);
   margin-bottom: 32px;
+}
+
+.topRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-bottom: 24px;
 }
 
 .heroCard {
@@ -68,6 +75,21 @@
 .celebrationDescription {
   font-size: 15px;
   color: #666;
+}
+
+.mainContent {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 24px;
+  margin-top: 24px;
+}
+
+.timelineSection {
+  min-width: 0;
+}
+
+.sidebar {
+  min-width: 0;
 }
 
 .emptyState {
@@ -174,6 +196,20 @@
 
   .loading {
     color: #999;
+  }
+}
+
+/* Tablet: stack main content to single column */
+@media (max-width: 900px) {
+  .mainContent {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Mobile: single column for everything */
+@media (max-width: 640px) {
+  .topRow {
+    grid-template-columns: 1fr;
   }
 }
 
