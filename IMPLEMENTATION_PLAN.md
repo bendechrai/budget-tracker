@@ -453,17 +453,15 @@
   - Acceptance: Shows parsed intent as a preview (create: full form preview, edit: diff view, delete: confirmation). User can confirm, tweak, or cancel. On confirm, executes the action via the appropriate API.
   - Tests: Component test: renders preview, confirm executes action, cancel dismisses
 
-## In Progress
-
-## Backlog
-
-### Spec 09 — AI Interaction Layer
-
-- [ ] **Integrate AI bar and sparkle button into app layout and list pages**
+- [x] **Integrate AI bar and sparkle button into app layout and list pages**
   - Files: `web/app/(app)/layout.tsx` (update), `web/app/income/page.tsx` (update), `web/app/obligations/page.tsx` (update)
   - Spec: `specs/09-ai-interaction.md`
   - Acceptance: AI bar appears in the app layout (all authenticated pages). Sparkle buttons appear on every income source and obligation in list views. Actions from both trigger engine recalculation on data changes.
   - Tests: Integration test: AI bar visible on dashboard, sparkle buttons on list items
+
+## In Progress
+
+## Backlog
 
 ### Spec 10 — What-If Modeling
 

@@ -400,6 +400,24 @@ describe("IncomePage", () => {
     });
   });
 
+  it("renders sparkle buttons on each income source", async () => {
+    vi.mocked(global.fetch).mockResolvedValueOnce(
+      new Response(JSON.stringify(mockIncomeSources), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      })
+    );
+
+    render(<IncomePage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Salary")).toBeDefined();
+    });
+
+    expect(screen.getByTestId("sparkle-button-1")).toBeDefined();
+    expect(screen.getByTestId("sparkle-button-2")).toBeDefined();
+  });
+
   it("shows custom frequency with days", async () => {
     const customSource = [
       {

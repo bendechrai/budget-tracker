@@ -390,6 +390,20 @@ describe("ObligationsPage", () => {
     ).toBeDefined();
   });
 
+  it("renders sparkle buttons on each obligation", async () => {
+    mockFetchResponses(mockObligations);
+
+    render(<ObligationsPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Netflix")).toBeDefined();
+    });
+
+    expect(screen.getByTestId("sparkle-button-1")).toBeDefined();
+    expect(screen.getByTestId("sparkle-button-2")).toBeDefined();
+    expect(screen.getByTestId("sparkle-button-3")).toBeDefined();
+  });
+
   it("shows frequency for recurring obligations", async () => {
     mockFetchResponses([mockObligations[0]]);
 

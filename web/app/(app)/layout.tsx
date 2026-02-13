@@ -1,5 +1,6 @@
 import { ReactNode } from "react";
 import Nav from "@/app/components/Nav";
+import AIBar from "@/app/components/AIBar";
 import LogoutButton from "./LogoutButton";
 import styles from "./layout.module.css";
 
@@ -15,6 +16,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         </div>
       </header>
       <main className={styles.main}>{children}</main>
+      <AIBar />
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import styles from "./obligations.module.css";
 import { logError } from "@/lib/logging";
+import SparkleButton from "@/app/components/SparkleButton";
 
 interface FundGroup {
   id: string;
@@ -339,6 +340,16 @@ export default function ObligationsPage() {
                         </span>
                       </div>
                       <div className={styles.listItemActions}>
+                        <SparkleButton
+                          item={{
+                            id: ob.id,
+                            name: ob.name,
+                            amount: ob.amount,
+                            frequency: ob.frequency,
+                            type: "obligation",
+                          }}
+                          onAction={() => void fetchObligations()}
+                        />
                         <button
                           type="button"
                           className={styles.pauseButton}

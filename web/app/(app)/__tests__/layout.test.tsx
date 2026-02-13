@@ -115,4 +115,19 @@ describe("AppLayout", () => {
     expect(screen.getByRole("main")).toBeDefined();
     expect(screen.getByText("Dashboard content here")).toBeDefined();
   });
+
+  it("renders the AI bar", async () => {
+    vi.mocked(global.fetch).mockResolvedValue(
+      mockFetchResponse({ suggestions: [], count: 0 })
+    );
+
+    render(
+      <AppLayout>
+        <div>Content</div>
+      </AppLayout>
+    );
+
+    expect(screen.getByTestId("ai-bar")).toBeDefined();
+    expect(screen.getByRole("button", { name: "Open AI assistant" })).toBeDefined();
+  });
 });

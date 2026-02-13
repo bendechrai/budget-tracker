@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import styles from "./income.module.css";
 import { logError } from "@/lib/logging";
+import SparkleButton from "@/app/components/SparkleButton";
 
 interface IncomeSource {
   id: string;
@@ -183,6 +184,16 @@ export default function IncomePage() {
                   </span>
                 </div>
                 <div className={styles.listItemActions}>
+                  <SparkleButton
+                    item={{
+                      id: source.id,
+                      name: source.name,
+                      amount: source.expectedAmount,
+                      frequency: source.frequency,
+                      type: "income",
+                    }}
+                    onAction={() => void fetchIncomeSources()}
+                  />
                   <button
                     type="button"
                     className={styles.pauseButton}
