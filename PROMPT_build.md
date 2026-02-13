@@ -65,6 +65,7 @@ Run ALL of these in order. Stop at the first failure.
 docker compose -f /project/docker-compose.yml exec web npx tsc --noEmit
 docker compose -f /project/docker-compose.yml exec web npm run lint
 docker compose -f /project/docker-compose.yml exec web npm test
+docker compose -f /project/docker-compose.yml exec web npm run test:e2e
 docker compose -f /project/docker-compose.yml exec web npm run build
 ```
 

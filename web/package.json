@@ -16,7 +16,7 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
-    "test:e2e": "npx playwright test --pass-with-no-tests",
+    "test:e2e": "node e2e/run-e2e.mjs",
     "postinstall": "prisma generate"
   },
   "dependencies": {

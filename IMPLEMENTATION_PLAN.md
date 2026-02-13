@@ -659,13 +659,13 @@
   - Acceptance: Income source form at `/income/new` submits successfully (new item appears in list). Obligation form at `/obligations/new` submits successfully. Submitting a form with missing required fields displays validation errors. Tests use the seeded auth session.
   - Tests: Form submission success and validation error assertions pass
 
-## Backlog
-
-- [ ] **Add e2e test runner to Ralph validation loop**
-  - Files: `PROMPT_build.md`
+- [x] **Add e2e test runner to Ralph validation loop**
+  - Files: `PROMPT_build.md`, `web/package.json`, `web/e2e/run-e2e.mjs`
   - Spec: `specs/12-ui-testing.md`
   - Acceptance: `PROMPT_build.md` validation step includes `docker compose -f /project/docker-compose.yml exec web npm run test:e2e` after the existing `npm test` step. E2e tests skip gracefully (exit 0) when the dev server is not running.
   - Tests: Ralph validation step list includes e2e command; e2e tests skip without failure when server is unavailable
+
+## Backlog
 
 ### Spec 09a — Replace regex NL parser with Claude API
 
