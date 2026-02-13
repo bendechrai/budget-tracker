@@ -517,15 +517,15 @@
   - Acceptance: User can upload bank statements (reuses import infrastructure). After parsing, shows detected patterns as suggestions. User can accept/tweak/dismiss each. Navigates to fund setup when done. Can skip.
   - Tests: Component test: upload works, suggestions display, skip navigates to fund setup
 
-## Backlog
-
-### Spec 05 (continued) — PDF Statement Import
-
-- [ ] **Add PDF statement parser utility (AI-powered)**
-  - Files: `web/lib/import/pdfParser.ts`, `web/package.json` (add pdf-parse or similar)
+- [x] **Add PDF statement parser utility (AI-powered)**
+  - Files: `web/lib/import/pdfParser.ts`, `web/package.json` (add pdf-parse, @anthropic-ai/sdk)
   - Spec: `specs/05-bank-statement-import.md`
   - Acceptance: Extracts text from PDF. Sends to AI (Opus 4.6) to parse into transaction objects. Returns transactions with confidence indicators for unusual formats. Handles multi-page statements.
   - Tests: Unit test with sample PDF data (mocked AI response)
+
+## Backlog
+
+### Spec 05 (continued) — PDF Statement Import
 
 - [ ] **Update import upload route to support PDF format**
   - Files: `web/app/api/import/upload/route.ts` (update)
