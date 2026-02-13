@@ -473,15 +473,15 @@
 
 ## In Progress
 
-## Backlog
+## Completed (continued)
 
-### Spec 10 — What-If Modeling
-
-- [ ] **Add scenario banner component**
+- [x] **Add scenario banner component**
   - Files: `web/app/components/ScenarioBanner.tsx`, `web/app/components/scenario-banner.module.css`
   - Spec: `specs/10-what-if.md`
   - Acceptance: Appears at top of dashboard when what-if changes are active. Shows summary of changes ("2 expenses toggled off, 1 amount changed"). Reset button clears all. Apply button with confirmation dialog makes changes permanent (pauses toggled-off, updates amounts, saves hypotheticals).
   - Tests: Component test: shows summary, reset clears context, apply triggers confirmation
+
+## Backlog
 
 - [ ] **Update dashboard to support what-if overlay**
   - Files: `web/app/(app)/dashboard/page.tsx` (update), `web/app/(app)/dashboard/TimelineChart.tsx` (update), `web/app/(app)/dashboard/HealthBar.tsx` (update)

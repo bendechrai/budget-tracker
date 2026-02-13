@@ -27,6 +27,23 @@ vi.mock("@/lib/logging", () => ({
   logError: vi.fn(),
 }));
 
+vi.mock("@/app/contexts/WhatIfContext", () => ({
+  useWhatIf: () => ({
+    isActive: false,
+    changeSummary: "",
+    overrides: {
+      toggledOffIds: new Set<string>(),
+      amountOverrides: new Map<string, number>(),
+      hypotheticals: [],
+    },
+    resetAll: vi.fn(),
+    toggleObligation: vi.fn(),
+    overrideAmount: vi.fn(),
+    addHypothetical: vi.fn(),
+    removeHypothetical: vi.fn(),
+  }),
+}));
+
 // Mock recharts to avoid SVG rendering issues in tests
 vi.mock("recharts", () => ({
   ResponsiveContainer: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,

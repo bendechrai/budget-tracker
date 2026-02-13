@@ -8,6 +8,7 @@ import HealthBar from "./HealthBar";
 import TimelineChart from "./TimelineChart";
 import UpcomingObligations from "./UpcomingObligations";
 import NudgeCards from "./NudgeCards";
+import ScenarioBanner from "@/app/components/ScenarioBanner";
 
 interface EngineSnapshot {
   id: string;
@@ -86,6 +87,8 @@ export default function DashboardPage() {
     <div className={styles.page}>
       <div className={styles.container}>
         <h1 className={styles.title}>Dashboard</h1>
+
+        <ScenarioBanner />
 
         {error && (
           <div className={styles.error} role="alert">
