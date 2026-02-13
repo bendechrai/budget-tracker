@@ -607,13 +607,13 @@
   - Acceptance: Utility that checks for unapplied one-off escalation rules whose effectiveDate has passed (and obligation is not paused). Updates the obligation's base amount according to the rule. Marks the rule as applied with appliedAt timestamp. Called during engine recalculation. For paused obligations, defers application until resume.
   - Tests: Unit tests: applies past-date one-off, skips future-date, skips paused obligations, skips already-applied rules, applies deferred rules on resume
 
-## In Progress
-
-- [ ] **Install Playwright and create configuration**
+- [x] **Install Playwright and create configuration**
   - Files: `web/package.json`, `web/playwright.config.ts`, `Dockerfile.web`
   - Spec: `specs/12-ui-testing.md`
   - Acceptance: `@playwright/test` is a dev dependency. `playwright.config.ts` exists with baseURL `http://localhost:3000`, Chromium project, `storageState` support, and reasonable timeouts. `npm run test:e2e` script runs Playwright. Dockerfile installs Chromium via `npx playwright install --with-deps chromium`. `npx playwright test` exits cleanly (no tests yet).
   - Tests: `npm run test:e2e` executes without configuration errors
+
+## In Progress
 
 ## Backlog
 
