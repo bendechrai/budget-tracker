@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth/getCurrentUser";
-import { parseNaturalLanguage } from "@/lib/ai/nlParser";
+import { parseNaturalLanguage, MissingApiKeyError } from "@/lib/ai/nlParser";
 import { logError } from "@/lib/logging";
 import { prisma } from "@/lib/prisma";
+import type { FinancialContext } from "@/lib/ai/types";
 
 interface ParseBody {
   text: string;
@@ -32,13 +33,56 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    const result = parseNaturalLanguage(text);
+    // Load financial context for the NL parser
+    const [incomeSources, obligations] = await Promise.all([
+      prisma.incomeSource.findMany({
+        where: { userId: user.id, isActive: true },
+        select: {
+          id: true,
+          name: true,
+          expectedAmount: true,
+          frequency: true,
+        },
+      }),
+      prisma.obligation.findMany({
+        where: { userId: user.id, isActive: true },
+        select: {
+          id: true,
+          name: true,
+          amount: true,
+          frequency: true,
+          type: true,
+          nextDueDate: true,
+        },
+      }),
+    ]);
+
+    const context: FinancialContext = {
+      incomeSources: incomeSources.map((inc) => ({
+        id: inc.id,
+        name: inc.name,
+        expectedAmount: Number(inc.expectedAmount),
+        frequency: inc.frequency,
+      })),
+      obligations: obligations.map((obl) => ({
+        id: obl.id,
+        name: obl.name,
+        amount: Number(obl.amount),
+        frequency: obl.frequency,
+        type: obl.type,
+        nextDueDate: obl.nextDueDate
+          ? obl.nextDueDate.toISOString().split("T")[0]
+          : null,
+      })),
+    };
+
+    const result = await parseNaturalLanguage(text, context);
 
     // For queries, provide a direct answer based on available data
     if (result.type === "query") {
       return NextResponse.json({
         intent: result,
-        answer: result.question,
+        answer: result.answer ?? result.question,
       });
     }
 
@@ -51,14 +95,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     // For what-if intents, look up matching obligations by name
     if (result.type === "whatif") {
-      const obligations = await prisma.obligation.findMany({
+      const obligs = await prisma.obligation.findMany({
         where: { userId: user.id, isActive: true },
         select: { id: true, name: true },
       });
 
       return NextResponse.json({
         intent: result,
-        obligations,
+        obligations: obligs,
       });
     }
 
@@ -67,6 +111,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       intent: result,
     });
   } catch (error) {
+    if (error instanceof MissingApiKeyError) {
+      return NextResponse.json(
+        { error: "missing_api_key", message: "AI features require an API key" },
+        { status: 503 }
+      );
+    }
     logError("failed to parse AI input", error);
     return NextResponse.json(
       { error: "internal server error" },

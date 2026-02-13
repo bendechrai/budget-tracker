@@ -1,1066 +1,275 @@
 /**
  * Natural language parser for financial management commands.
- * Parses user input into structured intents: create, edit, delete, query.
- * Rule-based approach — no external AI API calls required.
+ * Uses Claude API (Sonnet) to parse user input into structured intents.
  */
 
-import type { IncomeFrequency } from "@/app/generated/prisma/client";
-import type {
-  ParseResult,
-  CreateIntent,
-  EditIntent,
-  DeleteIntent,
-  QueryIntent,
-  WhatIfIntent,
-  WhatIfChange,
-  EscalationIntent,
-  EscalationChangeType,
-  TargetType,
-  ParseConfidence,
-} from "./types";
+import Anthropic from "@anthropic-ai/sdk";
+import { logError } from "@/lib/logging";
+import type { ParseResult, FinancialContext } from "./types";
 
-/** Patterns indicating income (vs expense). */
-const INCOME_KEYWORDS = [
-  "paid",
-  "earn",
-  "salary",
-  "wage",
-  "income",
-  "get paid",
-  "receive",
-  "payment from",
-];
+/** Error returned when the API key is not configured. */
+export class MissingApiKeyError extends Error {
+  constructor() {
+    super("ANTHROPIC_API_KEY is not set");
+    this.name = "MissingApiKeyError";
+  }
+}
 
-/** Patterns indicating a create action. */
-const CREATE_KEYWORDS = ["add", "create", "new", "track", "start tracking"];
+const SYSTEM_PROMPT = `You are a financial intent parser. You receive natural language input from a user managing their budget and must classify it into a structured JSON intent.
 
-/** Patterns indicating an edit action. */
-const EDIT_KEYWORDS = ["change", "update", "modify", "set", "make", "adjust"];
+The user has income sources (money coming in) and obligations/expenses (money going out). You will be given their current financial data so you can resolve references like "the gym" or "my Netflix".
 
-/** Patterns indicating a delete action. */
-const DELETE_KEYWORDS = ["delete", "remove", "cancel", "stop tracking", "drop"];
+## Intent Types
 
-/** Patterns indicating a query. */
-const QUERY_PATTERNS = [
-  /^what('s| is| are)/i,
-  /^how (much|many)/i,
-  /^when/i,
-  /^do I/i,
-  /^am I/i,
-  /^show me/i,
-  /^list/i,
-  /^tell me/i,
-  /\?$/,
-];
+Return exactly ONE JSON object matching one of these schemas:
 
-/** Frequency keyword mapping. */
-const FREQUENCY_MAP: Record<string, IncomeFrequency> = {
-  weekly: "weekly",
-  "every week": "weekly",
-  "per week": "weekly",
-  "/week": "weekly",
-  fortnightly: "fortnightly",
-  "every two weeks": "fortnightly",
-  "every 2 weeks": "fortnightly",
-  "bi-weekly": "fortnightly",
-  biweekly: "fortnightly",
-  "every fortnight": "fortnightly",
-  monthly: "monthly",
-  "every month": "monthly",
-  "per month": "monthly",
-  "/month": "monthly",
-  "a month": "monthly",
-  quarterly: "quarterly",
-  "every quarter": "quarterly",
-  "every 3 months": "quarterly",
-  "every three months": "quarterly",
-  yearly: "annual",
-  annually: "annual",
-  "every year": "annual",
-  "per year": "annual",
-  "/year": "annual",
-  "a year": "annual",
-  annual: "annual",
-};
+### create
+Create a new income source or obligation.
+\`\`\`json
+{
+  "type": "create",
+  "targetType": "income" | "expense",
+  "confidence": "high" | "medium" | "low",
+  "incomeFields": {
+    "name": "string (descriptive name)",
+    "expectedAmount": number,
+    "frequency": "weekly" | "fortnightly" | "monthly" | "quarterly" | "annual",
+    "isIrregular": boolean
+  },
+  "obligationFields": {
+    "name": "string (descriptive name)",
+    "type": "recurring" | "recurring_with_end" | "one_off" | "custom",
+    "amount": number,
+    "frequency": "weekly" | "fortnightly" | "monthly" | "quarterly" | "annual",
+    "nextDueDate": "YYYY-MM-DD or omit",
+    "customEntries": [{"dueDate": "YYYY-MM-DD", "amount": number}]
+  }
+}
+\`\`\`
+Include ONLY incomeFields for income, ONLY obligationFields for expense. For the name field, use a sensible descriptive name — NOT the verb from the user's command. E.g. "Add an income of $1000 a month" → name: "Monthly Income", not "Add". "Netflix $22.99 monthly" → name: "Netflix".
 
-/** Frequency shorthand after amount (e.g. "$100/month"). */
-const FREQUENCY_SLASH_MAP: Record<string, IncomeFrequency> = {
-  wk: "weekly",
-  week: "weekly",
-  fortnight: "fortnightly",
-  fn: "fortnightly",
-  mo: "monthly",
-  month: "monthly",
-  mth: "monthly",
-  qtr: "quarterly",
-  quarter: "quarterly",
-  yr: "annual",
-  year: "annual",
-};
+### edit
+Edit an existing item. Match the targetName against the user's existing items.
+\`\`\`json
+{
+  "type": "edit",
+  "targetType": "income" | "expense",
+  "targetName": "string (matched name from user's data)",
+  "confidence": "high" | "medium" | "low",
+  "changes": {
+    "name": "string (optional)",
+    "amount": number,
+    "frequency": "string (optional)",
+    "isPaused": boolean
+  }
+}
+\`\`\`
+Only include fields in changes that the user wants to change.
+
+### delete
+Delete an existing item.
+\`\`\`json
+{
+  "type": "delete",
+  "targetType": "income" | "expense",
+  "targetName": "string (matched name from user's data)",
+  "confidence": "high" | "medium" | "low"
+}
+\`\`\`
+
+### query
+Answer a question about the user's finances. Provide a direct, computed answer using the financial data provided.
+\`\`\`json
+{
+  "type": "query",
+  "question": "the original question",
+  "answer": "your computed answer using their data",
+  "confidence": "high" | "medium" | "low"
+}
+\`\`\`
+
+### whatif
+A what-if scenario. Starts with "what if".
+\`\`\`json
+{
+  "type": "whatif",
+  "changes": [
+    {
+      "action": "toggle_off" | "override_amount" | "add_hypothetical",
+      "targetName": "string",
+      "amount": number,
+      "frequency": "string (optional)",
+      "dueDate": "YYYY-MM-DD (optional)"
+    }
+  ],
+  "confidence": "high" | "medium" | "low"
+}
+\`\`\`
+
+### escalation
+A price change / escalation rule for an obligation.
+\`\`\`json
+{
+  "type": "escalation",
+  "action": "add" | "delete",
+  "targetName": "string",
+  "confidence": "high" | "medium" | "low",
+  "changeType": "absolute" | "percentage" | "fixed_increase",
+  "value": number,
+  "effectiveDate": "YYYY-MM-DD (optional)",
+  "intervalMonths": number
+}
+\`\`\`
+- absolute: sets new price (e.g. "goes up to $2,200")
+- percentage: increases by percentage (e.g. "goes up 3%")
+- fixed_increase: increases by dollar amount (e.g. "goes up $50")
+- intervalMonths: for recurring escalations (12 = annual, null/omit for one-off)
+- For delete action, only targetName and confidence are needed.
+
+### clarification
+When the input is ambiguous and you need more information.
+\`\`\`json
+{
+  "type": "clarification",
+  "message": "your question to the user",
+  "originalInput": "the original input"
+}
+\`\`\`
+
+### unrecognized
+When the input cannot be understood as a financial command.
+\`\`\`json
+{
+  "type": "unrecognized",
+  "message": "I help with budgeting and expenses. Try something like 'Add rent $1,500 monthly'",
+  "originalInput": "the original input"
+}
+\`\`\`
+
+## Rules
+- Return ONLY valid JSON. No markdown, no explanation, no code fences.
+- For create intents, always generate a sensible descriptive name. Never use the verb as the name.
+- For edit/delete, match targetName against the user's existing items using fuzzy matching (e.g. "the gym" matches "Gym Membership").
+- For query intents, compute and provide a real answer using the financial data. Do NOT echo the question back.
+- For dates, use the first of the month when only a month is given. If a month is in the past and no year is specified, use next year.
+- Today's date is provided in the user message for date calculations.
+- Default expense type to "recurring" unless the input clearly indicates otherwise.
+- Default frequency to "monthly" when not specified for recurring items.
+- Empty or whitespace-only input should return unrecognized.`;
 
 /**
- * Parse natural language input into a structured intent.
+ * Build the user message with financial context.
  */
-export function parseNaturalLanguage(input: string): ParseResult {
+function buildUserMessage(input: string, context: FinancialContext): string {
+  const today = new Date().toISOString().split("T")[0];
+  let message = `Today's date: ${today}\n\nUser input: "${input}"`;
+
+  if (context.incomeSources.length > 0 || context.obligations.length > 0) {
+    message += "\n\n## User's Financial Data\n";
+
+    if (context.incomeSources.length > 0) {
+      message += "\n### Income Sources\n";
+      for (const inc of context.incomeSources) {
+        message += `- ${inc.name}: $${inc.expectedAmount} ${inc.frequency}\n`;
+      }
+    }
+
+    if (context.obligations.length > 0) {
+      message += "\n### Obligations/Expenses\n";
+      for (const obl of context.obligations) {
+        message += `- ${obl.name}: $${obl.amount} ${obl.frequency ?? obl.type}`;
+        if (obl.nextDueDate) {
+          message += ` (next due: ${obl.nextDueDate})`;
+        }
+        message += "\n";
+      }
+    }
+  }
+
+  return message;
+}
+
+/**
+ * Parse the LLM response JSON into a ParseResult.
+ * Validates the structure and returns a safe default if parsing fails.
+ */
+function parseResponse(responseText: string, originalInput: string): ParseResult {
+  const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) {
+    return {
+      type: "unrecognized",
+      message: "I help with budgeting and expenses. Try something like 'Add rent $1,500 monthly'",
+      originalInput,
+    };
+  }
+
+  const parsed = JSON.parse(jsonMatch[0]) as ParseResult;
+
+  // Validate type field exists and is recognized
+  const validTypes = ["create", "edit", "delete", "query", "whatif", "escalation", "clarification", "unrecognized"];
+  if (!parsed.type || !validTypes.includes(parsed.type)) {
+    return {
+      type: "unrecognized",
+      message: "I help with budgeting and expenses. Try something like 'Add rent $1,500 monthly'",
+      originalInput,
+    };
+  }
+
+  return parsed;
+}
+
+/**
+ * Parse natural language input into a structured intent using Claude API.
+ *
+ * @param input - The raw user text input
+ * @param context - The user's financial data for resolving references
+ * @param client - Optional Anthropic client (for testing/dependency injection)
+ * @returns Parsed intent result
+ * @throws MissingApiKeyError if ANTHROPIC_API_KEY is not set
+ */
+export async function parseNaturalLanguage(
+  input: string,
+  context: FinancialContext,
+  client?: Anthropic
+): Promise<ParseResult> {
   const trimmed = input.trim();
 
   if (!trimmed) {
     return {
       type: "unrecognized",
-      message:
-        "I help with budgeting and expenses. Try something like 'Add rent $1,500 monthly'",
+      message: "I help with budgeting and expenses. Try something like 'Add rent $1,500 monthly'",
       originalInput: input,
     };
   }
 
-  const lower = trimmed.toLowerCase();
-
-  // Check for what-if intent first
-  if (isWhatIf(lower)) {
-    return parseWhatIf(trimmed, lower);
+  if (!process.env.ANTHROPIC_API_KEY) {
+    throw new MissingApiKeyError();
   }
 
-  // Check for query intent first (questions)
-  if (isQuery(lower)) {
-    return parseQuery(trimmed);
-  }
+  const anthropic = client ?? new Anthropic();
 
-  // Check for escalation intent before delete/edit (overlapping patterns)
-  const escalationResult = tryParseEscalation(trimmed, lower);
-  if (escalationResult) {
-    return escalationResult;
-  }
-
-  // Check for delete intent
-  if (isDelete(lower)) {
-    return parseDelete(trimmed, lower);
-  }
-
-  // Check for edit intent
-  if (isEdit(lower)) {
-    return parseEdit(trimmed, lower);
-  }
-
-  // Check for create intent (explicit or implicit)
-  if (isCreate(lower)) {
-    return parseCreate(trimmed, lower);
-  }
-
-  // Try implicit create: "Netflix $22.99 monthly"
-  const implicitCreate = tryImplicitCreate(trimmed, lower);
-  if (implicitCreate) {
-    return implicitCreate;
-  }
-
-  // Ambiguous: just a name with no verb
-  if (/^[a-z\s]+$/i.test(trimmed) && trimmed.split(/\s+/).length <= 4) {
-    return {
-      type: "clarification",
-      message: `Would you like to add "${trimmed}" as a new expense, or edit your existing ${trimmed} entry?`,
-      originalInput: input,
-    };
-  }
-
-  return {
-    type: "unrecognized",
-    message:
-      "I help with budgeting and expenses. Try something like 'Add rent $1,500 monthly'",
-    originalInput: input,
-  };
-}
-
-function isQuery(lower: string): boolean {
-  return QUERY_PATTERNS.some((p) => p.test(lower));
-}
-
-function isDelete(lower: string): boolean {
-  return DELETE_KEYWORDS.some((kw) => lower.startsWith(kw));
-}
-
-function isEdit(lower: string): boolean {
-  return EDIT_KEYWORDS.some((kw) => lower.startsWith(kw));
-}
-
-function isCreate(lower: string): boolean {
-  return CREATE_KEYWORDS.some((kw) => lower.startsWith(kw));
-}
-
-/**
- * Parse a query intent.
- */
-function parseQuery(input: string): QueryIntent {
-  return {
-    type: "query",
-    question: input,
-    confidence: "high",
-  };
-}
-
-/**
- * Parse a delete intent.
- * Examples: "delete Spotify", "remove the gym membership", "cancel Netflix"
- */
-function parseDelete(input: string, lower: string): DeleteIntent {
-  // Strip the delete keyword
-  let rest = lower;
-  for (const kw of DELETE_KEYWORDS) {
-    if (rest.startsWith(kw)) {
-      rest = rest.slice(kw.length).trim();
-      break;
-    }
-  }
-
-  // Strip articles
-  rest = rest.replace(/^(the|my|a|an)\s+/i, "");
-
-  // Strip trailing "subscription", "membership" etc. for matching
-  const targetName = rest
-    .replace(/\s+(subscription|membership|payment|expense|income)$/i, "")
-    .trim();
-
-  const targetType = detectTargetType(lower);
-
-  return {
-    type: "delete",
-    targetType,
-    targetName: targetName || extractNameFromInput(input),
-    confidence: targetName ? "high" : "medium",
-  };
-}
-
-/**
- * Parse an edit intent.
- * Examples: "change gym to $60", "change gym membership to $60",
- * "update Netflix to $25 monthly", "set rent to $2000"
- */
-function parseEdit(input: string, lower: string): EditIntent {
-  // Strip the edit keyword
-  let rest = lower;
-  for (const kw of EDIT_KEYWORDS) {
-    if (rest.startsWith(kw)) {
-      rest = rest.slice(kw.length).trim();
-      break;
-    }
-  }
-
-  // Strip articles
-  rest = rest.replace(/^(the|my|a|an)\s+/i, "");
-
-  // Try to parse "X to $Y [frequency]" pattern
-  const toPattern = /^(.+?)\s+to\s+(.+)$/i;
-  const toMatch = rest.match(toPattern);
-
-  let targetName: string;
-  let changePart: string;
-
-  if (toMatch) {
-    targetName = toMatch[1].trim();
-    changePart = toMatch[2].trim();
-  } else {
-    // Try "X $Y" pattern
-    const amountInRest = extractAmount(rest);
-    if (amountInRest !== null) {
-      const beforeAmount = rest.replace(/\$[\d,]+(?:\.\d{1,2})?/, "").trim();
-      targetName = beforeAmount;
-      changePart = rest;
-    } else {
-      targetName = rest;
-      changePart = "";
-    }
-  }
-
-  // Clean up target name
-  targetName = targetName
-    .replace(/\s+(subscription|membership|payment|expense|income)$/i, "")
-    .trim();
-
-  const changes: EditIntent["changes"] = {};
-  let confidence: ParseConfidence = "medium";
-
-  // Extract amount from change part
-  const amount = extractAmount(changePart);
-  if (amount !== null) {
-    changes.amount = amount;
-    confidence = "high";
-  }
-
-  // Extract frequency from change part
-  const frequency = extractFrequency(changePart);
-  if (frequency) {
-    changes.frequency = frequency;
-    confidence = "high";
-  }
-
-  // Handle pause/resume
-  if (/\bpause\b/i.test(lower)) {
-    changes.isPaused = true;
-    confidence = "high";
-  } else if (/\b(unpause|resume)\b/i.test(lower)) {
-    changes.isPaused = false;
-    confidence = "high";
-  }
-
-  const targetType = detectTargetType(lower);
-
-  return {
-    type: "edit",
-    targetType,
-    targetName: targetName || extractNameFromInput(input),
-    confidence,
-    changes,
-  };
-}
-
-/**
- * Parse a create intent.
- * Examples: "Add Netflix $22.99 monthly", "track rent $1500/month",
- * "I get paid $3,200 every second Friday"
- */
-function parseCreate(input: string, lower: string): CreateIntent {
-  // Strip the create keyword
-  let rest = lower;
-  for (const kw of CREATE_KEYWORDS) {
-    if (rest.startsWith(kw)) {
-      rest = rest.slice(kw.length).trim();
-      break;
-    }
-  }
-
-  return buildCreateIntent(input, rest);
-}
-
-/**
- * Try to parse as an implicit create (no verb).
- * "Netflix $22.99 monthly" → create expense
- * "$3,200 salary every two weeks" → create income
- */
-function tryImplicitCreate(input: string, lower: string): CreateIntent | null {
-  const amount = extractAmount(lower);
-  const frequency = extractFrequency(lower);
-
-  if (amount !== null && frequency) {
-    return buildCreateIntent(input, lower);
-  }
-
-  // Check for income pattern: "I get paid $X..."
-  if (/i\s+(get\s+)?paid/i.test(lower) || INCOME_KEYWORDS.some((kw) => lower.includes(kw))) {
-    return buildCreateIntent(input, lower);
-  }
-
-  return null;
-}
-
-/**
- * Build a CreateIntent from the descriptive part of input.
- */
-function buildCreateIntent(originalInput: string, rest: string): CreateIntent {
-  const targetType = detectTargetType(rest);
-  const amount = extractAmount(rest);
-  const frequency = extractFrequency(rest);
-  const name = extractName(rest);
-
-  let confidence: ParseConfidence = "low";
-  if (amount !== null && name) confidence = "medium";
-  if (amount !== null && name && frequency) confidence = "high";
-
-  if (targetType === "income") {
-    return {
-      type: "create",
-      targetType: "income",
-      confidence,
-      incomeFields: {
-        name: name || extractNameFromInput(originalInput),
-        expectedAmount: amount ?? 0,
-        frequency: frequency ?? "monthly",
-        isIrregular: frequency === "irregular",
-      },
-    };
-  }
-
-  return {
-    type: "create",
-    targetType: "expense",
-    confidence,
-    obligationFields: {
-      name: name || extractNameFromInput(originalInput),
-      type: "recurring",
-      amount: amount ?? 0,
-      frequency: frequency ?? "monthly",
-    },
-  };
-}
-
-/**
- * Extract a dollar amount from text.
- * Handles: $22.99, $1,500, $3200, 22.99
- */
-export function extractAmount(text: string): number | null {
-  // Match $X,XXX.XX or $X.XX or $XXXX patterns
-  const dollarMatch = text.match(/\$\s*([\d,]+(?:\.\d{1,2})?)/);
-  if (dollarMatch) {
-    return parseFloat(dollarMatch[1].replace(/,/g, ""));
-  }
-
-  // Match amount with slash-frequency: "1800/year", "22.99/month"
-  const slashMatch = text.match(/([\d,]+(?:\.\d{1,2})?)\/\w+/);
-  if (slashMatch) {
-    return parseFloat(slashMatch[1].replace(/,/g, ""));
-  }
-
-  return null;
-}
-
-/**
- * Extract frequency from text.
- */
-export function extractFrequency(text: string): IncomeFrequency | null {
-  const lower = text.toLowerCase();
-
-  // Check for "every second Friday/week" → fortnightly
-  if (/every\s+(second|other|2nd)\s+(week|friday|monday|tuesday|wednesday|thursday|saturday|sunday)/i.test(lower)) {
-    return "fortnightly";
-  }
-
-  // Check explicit frequency keywords (longer phrases first)
-  const sortedKeys = Object.keys(FREQUENCY_MAP).sort(
-    (a, b) => b.length - a.length
-  );
-  for (const key of sortedKeys) {
-    if (lower.includes(key)) {
-      return FREQUENCY_MAP[key];
-    }
-  }
-
-  // Check slash-frequency: "$100/month", "1800/year"
-  const slashMatch = lower.match(/\/(\w+)/);
-  if (slashMatch) {
-    const unit = slashMatch[1];
-    if (unit in FREQUENCY_SLASH_MAP) {
-      return FREQUENCY_SLASH_MAP[unit];
-    }
-  }
-
-  return null;
-}
-
-/**
- * Extract a name/label from parsed text by removing amounts, frequencies, and noise.
- */
-function extractName(text: string): string {
-  let cleaned = text
-    // Remove dollar amounts
-    .replace(/\$\s*[\d,]+(?:\.\d{1,2})?/g, "")
-    // Remove slash-frequencies (e.g. /month, /year)
-    .replace(/\/\w+/g, "")
-    // Remove "I get paid" and similar
-    .replace(/i\s+(get\s+)?paid/gi, "")
-    .replace(/i\s+(earn|receive|make)/gi, "");
-
-  // Remove frequency keywords
-  const sortedKeys = Object.keys(FREQUENCY_MAP).sort(
-    (a, b) => b.length - a.length
-  );
-  for (const key of sortedKeys) {
-    cleaned = cleaned.replace(new RegExp(`\\b${escapeRegex(key)}\\b`, "gi"), "");
-  }
-
-  // Remove articles and common noise words
-  cleaned = cleaned
-    .replace(/\b(the|my|a|an|as|for|of|in|on|at|to|is|it)\b/gi, "")
-    .replace(/\b(new|expense|income|subscription|membership|payment)\b/gi, "")
-    .replace(/\s+/g, " ")
-    .trim();
-
-  // Capitalize first letter of each word
-  return cleaned
-    .split(" ")
-    .filter(Boolean)
-    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-    .join(" ");
-}
-
-/**
- * Last-resort name extraction from original input.
- */
-function extractNameFromInput(input: string): string {
-  const name = extractName(input.toLowerCase());
-  return name || "Unnamed";
-}
-
-/**
- * Detect whether the input refers to income or an expense.
- */
-function detectTargetType(text: string): TargetType {
-  const lower = text.toLowerCase();
-  for (const keyword of INCOME_KEYWORDS) {
-    if (lower.includes(keyword)) return "income";
-  }
-  if (/\b(income)\b/i.test(lower)) return "income";
-  return "expense";
-}
-
-/** Keywords indicating a cancel/toggle-off what-if action. */
-const WHATIF_CANCEL_KEYWORDS = [
-  "cancel",
-  "drop",
-  "remove",
-  "stop",
-  "get rid of",
-  "ditch",
-  "cut",
-  "skip",
-  "didn't have",
-  "don't have",
-  "didn't pay",
-  "don't pay",
-];
-
-/**
- * Detect whether input is a what-if scenario request.
- */
-function isWhatIf(lower: string): boolean {
-  return lower.startsWith("what if ");
-}
-
-/**
- * Parse what-if intent(s) from input.
- * Supports:
- *   "What if I cancel gym?" → toggle_off
- *   "What if Netflix goes up to $30?" → override_amount
- *   "What if I add a $2,000 holiday in December?" → add_hypothetical
- *   "What if I cancel gym and Netflix?" → multiple toggle_off
- */
-function parseWhatIf(_input: string, lower: string): WhatIfIntent {
-  // Strip "what if " prefix and trailing punctuation
-  let rest = lower.slice("what if ".length).trim();
-  rest = rest.replace(/[?!.]+$/, "").trim();
-
-  // Strip leading "I " or "my "
-  rest = rest.replace(/^(i\s+|my\s+)/i, "");
-
-  // Check for compound "and" — split and parse each part
-  const parts = splitWhatIfParts(rest);
-
-  const changes: WhatIfChange[] = [];
-
-  for (const part of parts) {
-    const change = parseWhatIfPart(part.trim());
-    if (change) {
-      changes.push(change);
-    }
-  }
-
-  if (changes.length === 0) {
-    // Fallback: treat as a toggle-off with the entire rest as target name
-    const name = cleanWhatIfTargetName(rest);
-    changes.push({
-      action: "toggle_off",
-      targetName: name || rest,
+  try {
+    const message = await anthropic.messages.create({
+      model: "claude-sonnet-4-5-20250929",
+      max_tokens: 1024,
+      system: SYSTEM_PROMPT,
+      messages: [
+        {
+          role: "user",
+          content: buildUserMessage(trimmed, context),
+        },
+      ],
     });
-  }
 
-  const confidence: ParseConfidence = changes.length > 0 ? "high" : "medium";
+    const responseText =
+      message.content[0].type === "text" ? message.content[0].text : "";
 
-  return {
-    type: "whatif",
-    changes,
-    confidence,
-  };
-}
-
-/**
- * Split a what-if clause on "and" while keeping compound names intact.
- * "cancel gym and Netflix" → ["cancel gym", "cancel Netflix"]
- * "add a $2000 holiday" → ["add a $2000 holiday"]
- */
-function splitWhatIfParts(rest: string): string[] {
-  // Check if "and" appears as a coordinator between clauses
-  // Pattern: "verb X and Y" or "verb X and verb Y"
-  const andSplit = rest.split(/\s+and\s+/);
-
-  if (andSplit.length <= 1) {
-    return [rest];
-  }
-
-  // Check if the first part has a cancel verb — if so, propagate it
-  const firstPart = andSplit[0];
-  const verb = extractWhatIfVerb(firstPart);
-
-  if (verb) {
-    return andSplit.map((part, i) => {
-      if (i === 0) return part;
-      // If subsequent part already has a verb, keep it
-      if (extractWhatIfVerb(part)) return part;
-      // Otherwise prepend the verb from the first part
-      return `${verb} ${part}`;
-    });
-  }
-
-  return andSplit;
-}
-
-/**
- * Extract the leading verb from a what-if clause.
- */
-function extractWhatIfVerb(text: string): string | null {
-  for (const kw of WHATIF_CANCEL_KEYWORDS) {
-    if (text.startsWith(kw)) return kw;
-  }
-  if (text.startsWith("add")) return "add";
-  return null;
-}
-
-/**
- * Parse a single what-if clause into a WhatIfChange.
- */
-function parseWhatIfPart(part: string): WhatIfChange | null {
-  // Check for "add" pattern → add_hypothetical
-  // "add a $2,000 holiday in December"
-  const addMatch = part.match(/^add\s+/i);
-  if (addMatch) {
-    return parseWhatIfAdd(part.slice(addMatch[0].length));
-  }
-
-  // Check for amount override pattern
-  // "Netflix goes up to $30", "rent increases to $2200", "X goes to $Y"
-  const overridePatterns = [
-    /^(.+?)\s+(?:goes?\s+up\s+to|increases?\s+to|goes?\s+to|is|was|were|costs?)\s+\$\s*([\d,]+(?:\.\d{1,2})?)/i,
-    /^(.+?)\s+(?:goes?\s+up\s+to|increases?\s+to|goes?\s+to|is|was|were|costs?)\s+([\d,]+(?:\.\d{1,2})?)/i,
-  ];
-
-  for (const pattern of overridePatterns) {
-    const match = part.match(pattern);
-    if (match) {
-      const name = cleanWhatIfTargetName(match[1]);
-      const amount = parseFloat(match[2].replace(/,/g, ""));
-      if (name && !isNaN(amount)) {
-        return {
-          action: "override_amount",
-          targetName: name,
-          amount,
-        };
-      }
+    return parseResponse(responseText, input);
+  } catch (error) {
+    if (error instanceof MissingApiKeyError) {
+      throw error;
     }
+    logError("Claude API call failed in NL parser", error);
+    throw new Error("Something went wrong — try again");
   }
-
-  // Check for cancel/toggle-off patterns
-  for (const kw of WHATIF_CANCEL_KEYWORDS) {
-    if (part.startsWith(kw)) {
-      const afterKeyword = part.slice(kw.length).trim();
-      const name = cleanWhatIfTargetName(afterKeyword);
-      if (name) {
-        return {
-          action: "toggle_off",
-          targetName: name,
-        };
-      }
-    }
-  }
-
-  return null;
-}
-
-/**
- * Parse an "add" what-if clause into a hypothetical obligation.
- * "a $2,000 holiday in December" → add_hypothetical
- */
-function parseWhatIfAdd(rest: string): WhatIfChange {
-  // Strip leading articles
-  const cleaned = rest.replace(/^(a|an|the)\s+/i, "");
-
-  const amount = extractAmount(cleaned);
-  const frequency = extractFrequency(cleaned);
-  const dueDate = extractWhatIfDate(cleaned);
-
-  // Strip date references before extracting name so "in December" doesn't become part of the name
-  const withoutDate = cleaned
-    .replace(/\b(in\s+\w+(\s+\d{4})?)\b/gi, "")
-    .replace(/\bnext\s+month\b/gi, "");
-  const name = extractName(withoutDate);
-
-  return {
-    action: "add_hypothetical",
-    targetName: name || "Hypothetical",
-    amount: amount ?? 0,
-    frequency: frequency ?? undefined,
-    dueDate: dueDate ?? undefined,
-  };
-}
-
-/**
- * Clean a target name from a what-if clause by stripping noise words.
- */
-function cleanWhatIfTargetName(text: string): string {
-  return text
-    .replace(/^(the|my|a|an)\s+/i, "")
-    .replace(/\s+(subscription|membership|payment|expense)$/i, "")
-    .trim();
-}
-
-/** Month names for date extraction. */
-const MONTH_NAMES: Record<string, number> = {
-  january: 0, jan: 0,
-  february: 1, feb: 1,
-  march: 2, mar: 2,
-  april: 3, apr: 3,
-  may: 4,
-  june: 5, jun: 5,
-  july: 6, jul: 6,
-  august: 7, aug: 7,
-  september: 8, sep: 8, sept: 8,
-  october: 9, oct: 9,
-  november: 10, nov: 10,
-  december: 11, dec: 11,
-};
-
-/**
- * Extract a rough date reference from text (e.g. "in December", "next month").
- * Returns ISO date string or null.
- */
-function extractWhatIfDate(text: string): string | null {
-  const lower = text.toLowerCase();
-
-  // "in December", "in March 2025"
-  const monthMatch = lower.match(/\bin\s+(\w+)(?:\s+(\d{4}))?\b/);
-  if (monthMatch) {
-    const monthName = monthMatch[1];
-    const yearStr = monthMatch[2];
-    if (monthName in MONTH_NAMES) {
-      const now = new Date();
-      let year = yearStr ? parseInt(yearStr, 10) : now.getFullYear();
-      const month = MONTH_NAMES[monthName];
-      // If month is in the past this year and no year specified, use next year
-      if (!yearStr && month < now.getMonth()) {
-        year = year + 1;
-      }
-      const date = new Date(year, month, 1);
-      return date.toISOString().split("T")[0];
-    }
-  }
-
-  // "next month"
-  if (/\bnext\s+month\b/.test(lower)) {
-    const now = new Date();
-    const date = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-    return date.toISOString().split("T")[0];
-  }
-
-  return null;
-}
-
-// ---------------------------------------------------------------------------
-// Escalation parsing
-// ---------------------------------------------------------------------------
-
-/** Patterns indicating a delete-escalation intent (remove a price change rule). */
-const ESCALATION_DELETE_PATTERNS = [
-  /\b(?:cancel|remove|delete|undo)\b.*\b(?:increase|escalation|price\s+change|price\s+hike|raise|rise)\b/i,
-  /\b(?:cancel|remove|delete|undo)\b.*\b(?:annual|yearly|recurring|monthly|quarterly)\s+(?:increase|escalation|raise|rise)\b/i,
-  /\b(?:increase|escalation|price\s+change|raise|rise)\b.*\b(?:cancel|remove|delete|undo)\b/i,
-];
-
-/** Patterns indicating an add-escalation intent (schedule a price change). */
-const ESCALATION_ADD_PATTERNS = [
-  // "X goes up to $Y in Z" (one-off absolute)
-  /\b(?:goes?\s+up\s+to|increases?\s+to|going\s+up\s+to|rising\s+to|jumps?\s+to)\s+\$/i,
-  // "X goes up Y% ..." (percentage)
-  /\b(?:goes?\s+up|increases?|going\s+up|rising|rise)\s+(\d+(?:\.\d+)?)\s*%/i,
-  // "X goes up $Y ..." (fixed increase)
-  /\b(?:goes?\s+up|increases?|going\s+up|rising|rise)\s+\$\s*[\d,]+/i,
-  // "add a Y% annual increase to X"
-  /\badd\s+(?:a\s+)?(\d+(?:\.\d+)?)\s*%\s+\w+\s+increase\b/i,
-  // "add a $Y increase to X"
-  /\badd\s+(?:a\s+)?\$\s*[\d,]+(?:\.\d+)?\s+\w+\s+increase\b/i,
-];
-
-/**
- * Try to parse the input as an escalation intent.
- * Returns null if the input doesn't match escalation patterns.
- */
-function tryParseEscalation(_input: string, lower: string): EscalationIntent | null {
-  // Check for delete-escalation first
-  if (isEscalationDelete(lower)) {
-    return parseEscalationDelete(lower);
-  }
-
-  // Check for add-escalation
-  if (isEscalationAdd(lower)) {
-    return parseEscalationAdd(lower);
-  }
-
-  return null;
-}
-
-function isEscalationDelete(lower: string): boolean {
-  return ESCALATION_DELETE_PATTERNS.some((p) => p.test(lower));
-}
-
-function isEscalationAdd(lower: string): boolean {
-  return ESCALATION_ADD_PATTERNS.some((p) => p.test(lower));
-}
-
-/**
- * Parse a delete-escalation intent.
- * "Cancel the rent increase" → delete escalation for rent
- * "Remove the annual increase on rent" → delete escalation for rent
- */
-function parseEscalationDelete(lower: string): EscalationIntent {
-  // Try to extract target name — look for "on X" or "for X" or extract from context
-  let targetName = "";
-
-  // "... on rent", "... on the rent", "... for rent"
-  const onMatch = lower.match(/\b(?:on|for)\s+(?:the\s+)?(?:my\s+)?(\w[\w\s]*?)(?:\s+(?:increase|escalation|price\s+change|raise|rise))?$/i);
-  if (onMatch) {
-    targetName = onMatch[1].trim();
-  }
-
-  // "cancel the rent increase", "remove the rent price change"
-  if (!targetName) {
-    const beforeIncreaseMatch = lower.match(
-      /(?:cancel|remove|delete|undo)\s+(?:the\s+)?(?:my\s+)?(\w[\w\s]*?)\s+(?:increase|escalation|price\s+change|price\s+hike|raise|rise)/i
-    );
-    if (beforeIncreaseMatch) {
-      targetName = beforeIncreaseMatch[1].trim();
-      // Strip "annual", "yearly", "recurring", "monthly" from name
-      targetName = targetName.replace(/\b(annual|yearly|recurring|monthly|quarterly)\b/gi, "").trim();
-    }
-  }
-
-  return {
-    type: "escalation",
-    action: "delete",
-    targetName: targetName || "unknown",
-    confidence: targetName ? "high" : "medium",
-  };
-}
-
-/**
- * Parse an add-escalation intent.
- * Handles all five valid combinations:
- * - One-off absolute: "rent goes up to $2,200 in July"
- * - One-off percentage: "insurance goes up 8% at renewal in March"
- * - One-off fixed increase: "Netflix going up $3 next month"
- * - Recurring percentage: "rent increases 3% every year in July"
- * - Recurring fixed increase: "rent goes up $50 every July"
- */
-function parseEscalationAdd(lower: string): EscalationIntent {
-  // Detect "add a X% Y increase to Z starting W" pattern
-  const addIncreaseWithDatePattern = /^add\s+(?:a\s+)?(\d+(?:\.\d+)?)\s*%\s+(\w+)\s+increase\s+to\s+(?:the\s+)?(?:my\s+)?(.+?)\s+starting\s+(.+)$/i;
-  const addIncreaseNoDatePattern = /^add\s+(?:a\s+)?(\d+(?:\.\d+)?)\s*%\s+(\w+)\s+increase\s+to\s+(?:the\s+)?(?:my\s+)?(.+)$/i;
-  const addIncreaseMatch = lower.match(addIncreaseWithDatePattern) ?? lower.match(addIncreaseNoDatePattern);
-  if (addIncreaseMatch) {
-    const value = parseFloat(addIncreaseMatch[1]);
-    const intervalWord = addIncreaseMatch[2].toLowerCase();
-    const targetName = addIncreaseMatch[3].trim();
-    const startingDate = addIncreaseMatch[4]?.trim();
-
-    const intervalMonths = parseIntervalWord(intervalWord);
-    const effectiveDate = startingDate ? extractEscalationDate(startingDate) : null;
-
-    return {
-      type: "escalation",
-      action: "add",
-      targetName,
-      confidence: "high",
-      changeType: "percentage",
-      value,
-      effectiveDate: effectiveDate ?? undefined,
-      intervalMonths: intervalMonths ?? undefined,
-    };
-  }
-
-  // Detect "add a $X Y increase to Z starting W" pattern
-  const addFixedWithDatePattern = /^add\s+(?:a\s+)?\$\s*([\d,]+(?:\.\d+)?)\s+(\w+)\s+increase\s+to\s+(?:the\s+)?(?:my\s+)?(.+?)\s+starting\s+(.+)$/i;
-  const addFixedNoDatePattern = /^add\s+(?:a\s+)?\$\s*([\d,]+(?:\.\d+)?)\s+(\w+)\s+increase\s+to\s+(?:the\s+)?(?:my\s+)?(.+)$/i;
-  const addFixedIncreaseMatch = lower.match(addFixedWithDatePattern) ?? lower.match(addFixedNoDatePattern);
-  if (addFixedIncreaseMatch) {
-    const value = parseFloat(addFixedIncreaseMatch[1].replace(/,/g, ""));
-    const intervalWord = addFixedIncreaseMatch[2].toLowerCase();
-    const targetName = addFixedIncreaseMatch[3].trim();
-    const startingDate = addFixedIncreaseMatch[4]?.trim();
-
-    const intervalMonths = parseIntervalWord(intervalWord);
-    const effectiveDate = startingDate ? extractEscalationDate(startingDate) : null;
-
-    return {
-      type: "escalation",
-      action: "add",
-      targetName,
-      confidence: "high",
-      changeType: "fixed_increase",
-      value,
-      effectiveDate: effectiveDate ?? undefined,
-      intervalMonths: intervalMonths ?? undefined,
-    };
-  }
-
-  // Extract target name — everything before the "goes up"/"increases" verb
-  const targetMatch = lower.match(
-    /^(?:my\s+)?(.+?)\s+(?:is\s+)?(?:goes?\s+up|increases?|going\s+up|rising|rise|jumps?)/i
-  );
-  const targetName = targetMatch
-    ? targetMatch[1].replace(/^(the|my|a|an)\s+/i, "").trim()
-    : "unknown";
-
-  // Detect change type and value
-  let changeType: EscalationChangeType;
-  let value: number;
-
-  // Check for "goes up to $X" (absolute)
-  const absoluteMatch = lower.match(
-    /(?:goes?\s+up\s+to|increases?\s+to|going\s+up\s+to|rising\s+to|jumps?\s+to)\s+\$\s*([\d,]+(?:\.\d{1,2})?)/i
-  );
-  // Check for percentage "goes up X%"
-  const percentMatch = lower.match(
-    /(?:goes?\s+up|increases?|going\s+up|rising|rise|jumps?)\s+(\d+(?:\.\d+)?)\s*%/i
-  );
-  // Check for fixed increase "goes up $X"
-  const fixedMatch = lower.match(
-    /(?:goes?\s+up|increases?|going\s+up|rising|rise|jumps?)\s+\$\s*([\d,]+(?:\.\d{1,2})?)/i
-  );
-
-  if (absoluteMatch) {
-    changeType = "absolute";
-    value = parseFloat(absoluteMatch[1].replace(/,/g, ""));
-  } else if (percentMatch) {
-    changeType = "percentage";
-    value = parseFloat(percentMatch[1]);
-  } else if (fixedMatch) {
-    changeType = "fixed_increase";
-    value = parseFloat(fixedMatch[1].replace(/,/g, ""));
-  } else {
-    // Fallback — shouldn't reach here if isEscalationAdd matched
-    return {
-      type: "escalation",
-      action: "add",
-      targetName,
-      confidence: "low",
-    };
-  }
-
-  // Detect recurrence: "every year", "every July", "every 12 months", "annually"
-  const intervalMonths = extractRecurrenceInterval(lower);
-
-  // Extract effective date
-  const effectiveDate = extractEscalationDate(lower);
-
-  const confidence: ParseConfidence =
-    targetName !== "unknown" && value !== undefined ? "high" : "medium";
-
-  return {
-    type: "escalation",
-    action: "add",
-    targetName,
-    confidence,
-    changeType,
-    value,
-    effectiveDate: effectiveDate ?? undefined,
-    intervalMonths: intervalMonths ?? undefined,
-  };
-}
-
-/**
- * Parse an interval word like "annual", "yearly", "monthly", "quarterly" into months.
- */
-function parseIntervalWord(word: string): number | null {
-  const map: Record<string, number> = {
-    annual: 12,
-    annually: 12,
-    yearly: 12,
-    year: 12,
-    monthly: 1,
-    month: 1,
-    quarterly: 3,
-    quarter: 3,
-  };
-  return map[word] ?? null;
-}
-
-/**
- * Extract a recurrence interval in months from text.
- * "every year" → 12, "every July" → 12, "annually" → 12, "every 6 months" → 6
- */
-function extractRecurrenceInterval(text: string): number | undefined {
-  // "every N months"
-  const everyNMonths = text.match(/\bevery\s+(\d+)\s+months?\b/i);
-  if (everyNMonths) {
-    return parseInt(everyNMonths[1], 10);
-  }
-
-  // "every year" / "every year in July" / "annually"
-  if (/\bevery\s+year\b/i.test(text) || /\bannually\b/i.test(text)) {
-    return 12;
-  }
-
-  // "every July", "every March" (implies annual)
-  const everyMonthName = text.match(/\bevery\s+(\w+)\b/i);
-  if (everyMonthName && everyMonthName[1].toLowerCase() in MONTH_NAMES) {
-    return 12;
-  }
-
-  // "annual increase", "yearly increase"
-  if (/\b(annual|yearly)\s+(increase|escalation|raise|rise)\b/i.test(text)) {
-    return 12;
-  }
-
-  return undefined;
-}
-
-/**
- * Extract a date from escalation text.
- * Handles: "in July", "in March 2025", "next month", "in July 2027",
- * "at renewal in March", "starting July 2027", "every July" (next July)
- */
-function extractEscalationDate(text: string): string | null {
-  const lower = text.toLowerCase();
-
-  // "next month"
-  if (/\bnext\s+month\b/.test(lower)) {
-    const now = new Date();
-    const date = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-    return date.toISOString().split("T")[0];
-  }
-
-  // "next year"
-  if (/\bnext\s+year\b/.test(lower)) {
-    const now = new Date();
-    const date = new Date(now.getFullYear() + 1, 0, 1);
-    return date.toISOString().split("T")[0];
-  }
-
-  // "in July 2027", "in March", "starting July 2027", "every July", "July 2027"
-  // Try multiple patterns to find month references
-  const monthPatterns = [
-    /\b(?:in|starting|from|every)\s+(\w+)\s+(\d{4})\b/i,
-    /\b(\w+)\s+(\d{4})\b/i,
-    /\b(?:in|starting|from|at\s+\w+\s+in)\s+(\w+)\b/i,
-    /\bevery\s+(\w+)\b/i,
-  ];
-
-  for (const pattern of monthPatterns) {
-    const match = lower.match(pattern);
-    if (match) {
-      const monthName = match[1].toLowerCase();
-      if (monthName in MONTH_NAMES) {
-        const now = new Date();
-        const month = MONTH_NAMES[monthName];
-        let year = match[2] ? parseInt(match[2], 10) : now.getFullYear();
-        // If month is in the past this year and no explicit year, use next year
-        if (!match[2] && (month < now.getMonth() || (month === now.getMonth() && now.getDate() > 1))) {
-          year = year + 1;
-        }
-        const date = new Date(year, month, 1);
-        return date.toISOString().split("T")[0];
-      }
-    }
-  }
-
-  return null;
-}
-
-/**
- * Escape special regex characters in a string.
- */
-function escapeRegex(str: string): string {
-  return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }

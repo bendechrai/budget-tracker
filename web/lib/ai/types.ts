@@ -72,6 +72,8 @@ export interface DeleteIntent {
 export interface QueryIntent {
   type: "query";
   question: string;
+  /** Direct answer computed by the LLM using financial context. */
+  answer?: string;
   confidence: ParseConfidence;
 }
 
@@ -137,3 +139,27 @@ export type ParseResult =
   | EscalationIntent
   | ClarificationResult
   | UnrecognizedResult;
+
+/** Summarized income source for AI context. */
+export interface FinancialContextIncome {
+  id: string;
+  name: string;
+  expectedAmount: number;
+  frequency: string;
+}
+
+/** Summarized obligation for AI context. */
+export interface FinancialContextObligation {
+  id: string;
+  name: string;
+  amount: number;
+  frequency: string | null;
+  type: string;
+  nextDueDate: string | null;
+}
+
+/** Financial context passed to the NL parser so the LLM can resolve references. */
+export interface FinancialContext {
+  incomeSources: FinancialContextIncome[];
+  obligations: FinancialContextObligation[];
+}
