@@ -647,13 +647,13 @@
   - Acceptance: AI bar pill is visible. Clicking it expands the input field. Typing and submitting shows a response area. After navigating to another page, the AI bar is still present (persists across navigation).
   - Tests: Expand/collapse, input submission, and cross-navigation persistence assertions pass
 
-## Backlog
-
-- [ ] **Add sparkle button e2e test**
+- [x] **Add sparkle button e2e test**
   - Files: `web/e2e/sparkle.spec.ts`
   - Spec: `specs/12-ui-testing.md`
   - Acceptance: Sparkle button appears on income and obligation list items. Clicking a sparkle button opens the modal/popover. Modal shows item summary and action buttons.
   - Tests: Sparkle button visibility, modal open, and content assertions pass
+
+## Backlog
 
 - [ ] **Add form smoke e2e tests**
   - Files: `web/e2e/forms.spec.ts`
