@@ -1,5 +1,19 @@
 import type { IncomeFrequency, ObligationType } from "@/app/generated/prisma/client";
 
+export interface WhatIfOverrides {
+  /** Obligation IDs to exclude from the scenario */
+  toggledOffIds: string[];
+  /** Map of obligation ID → overridden amount */
+  amountOverrides: Record<string, number>;
+  /** Hypothetical obligations to include in the scenario */
+  hypotheticals: ObligationInput[];
+}
+
+export interface WhatIfResult {
+  actual: EngineResult;
+  scenario: EngineResult;
+}
+
 export interface ObligationInput {
   id: string;
   name: string;
@@ -334,4 +348,56 @@ export function calculateContributions(input: EngineInput): EngineResult {
       rawContributions.every((c) => c.isFullyFunded),
     capacityExceeded: false,
   };
+}
+
+/**
+ * Applies what-if overrides to an EngineInput, producing a modified input
+ * for scenario calculation.
+ *
+ * - Excludes obligations whose IDs are in toggledOffIds
+ * - Replaces amounts for obligations in amountOverrides
+ * - Appends hypothetical obligations
+ */
+function applyWhatIfOverrides(
+  input: EngineInput,
+  overrides: WhatIfOverrides
+): EngineInput {
+  const toggledOffSet = new Set(overrides.toggledOffIds);
+  const amountMap = new Map(Object.entries(overrides.amountOverrides));
+
+  const filteredObligations = input.obligations
+    .filter((o) => !toggledOffSet.has(o.id))
+    .map((o) => {
+      const overriddenAmount = amountMap.get(o.id);
+      if (overriddenAmount !== undefined) {
+        return { ...o, amount: overriddenAmount };
+      }
+      return o;
+    });
+
+  const scenarioObligations = [
+    ...filteredObligations,
+    ...overrides.hypotheticals,
+  ];
+
+  return {
+    ...input,
+    obligations: scenarioObligations,
+  };
+}
+
+/**
+ * Calculates both actual and scenario projections.
+ *
+ * Runs the engine once with the original input (actual) and once with
+ * what-if overrides applied (scenario). Returns both results for comparison.
+ */
+export function calculateWithWhatIf(
+  input: EngineInput,
+  overrides: WhatIfOverrides
+): WhatIfResult {
+  const actual = calculateContributions(input);
+  const scenarioInput = applyWhatIfOverrides(input, overrides);
+  const scenario = calculateContributions(scenarioInput);
+  return { actual, scenario };
 }

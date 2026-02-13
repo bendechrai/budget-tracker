@@ -2,8 +2,10 @@
 import { describe, it, expect } from "vitest";
 import {
   calculateContributions,
+  calculateWithWhatIf,
   getNextDueDateAfter,
   type ObligationInput,
+  type WhatIfOverrides,
 } from "../calculate";
 
 function makeObligation(
@@ -679,5 +681,251 @@ describe("getNextDueDateAfter", () => {
   it("returns null for null frequency", () => {
     const result = getNextDueDateAfter(new Date("2025-03-01"), null, null);
     expect(result).toBeNull();
+  });
+});
+
+describe("calculateWithWhatIf", () => {
+  const emptyOverrides: WhatIfOverrides = {
+    toggledOffIds: [],
+    amountOverrides: {},
+    hypotheticals: [],
+  };
+
+  describe("with toggled-off obligation", () => {
+    it("excludes toggled-off obligations from scenario but keeps them in actual", () => {
+      const obligations = [
+        makeObligation({ id: "obl-1", name: "Rent", amount: 1200 }),
+        makeObligation({ id: "obl-2", name: "Gym", amount: 50, nextDueDate: new Date("2025-04-01") }),
+      ];
+
+      const result = calculateWithWhatIf(
+        {
+          obligations,
+          fundBalances: [],
+          maxContributionPerCycle: null,
+          contributionCycleDays: 30,
+          now: NOW,
+        },
+        {
+          ...emptyOverrides,
+          toggledOffIds: ["obl-2"],
+        }
+      );
+
+      // Actual includes both
+      expect(result.actual.contributions).toHaveLength(2);
+      expect(result.actual.totalRequired).toBe(1250);
+
+      // Scenario excludes Gym
+      expect(result.scenario.contributions).toHaveLength(1);
+      expect(result.scenario.contributions[0].obligationId).toBe("obl-1");
+      expect(result.scenario.totalRequired).toBe(1200);
+    });
+
+    it("toggling off all obligations yields fully funded scenario", () => {
+      const result = calculateWithWhatIf(
+        {
+          obligations: [makeObligation({ id: "obl-1", amount: 500 })],
+          fundBalances: [],
+          maxContributionPerCycle: null,
+          contributionCycleDays: 30,
+          now: NOW,
+        },
+        {
+          ...emptyOverrides,
+          toggledOffIds: ["obl-1"],
+        }
+      );
+
+      expect(result.scenario.contributions).toHaveLength(0);
+      expect(result.scenario.totalRequired).toBe(0);
+      // No obligations = empty state (isFullyFunded false)
+      expect(result.scenario.isFullyFunded).toBe(false);
+    });
+  });
+
+  describe("with amount override", () => {
+    it("uses overridden amount in scenario while keeping original in actual", () => {
+      const result = calculateWithWhatIf(
+        {
+          obligations: [
+            makeObligation({
+              id: "obl-1",
+              name: "Netflix",
+              amount: 15,
+              nextDueDate: new Date("2025-04-01"),
+            }),
+          ],
+          fundBalances: [],
+          maxContributionPerCycle: null,
+          contributionCycleDays: 30,
+          now: NOW,
+        },
+        {
+          ...emptyOverrides,
+          amountOverrides: { "obl-1": 30 },
+        }
+      );
+
+      // Actual uses original amount
+      expect(result.actual.contributions[0].amountNeeded).toBe(15);
+      expect(result.actual.totalRequired).toBe(15);
+
+      // Scenario uses overridden amount
+      expect(result.scenario.contributions[0].amountNeeded).toBe(30);
+      expect(result.scenario.totalRequired).toBe(30);
+    });
+  });
+
+  describe("with hypothetical obligation", () => {
+    it("includes hypothetical in scenario but not in actual", () => {
+      const hypothetical: ObligationInput = makeObligation({
+        id: "hyp-1",
+        name: "Holiday",
+        type: "one_off",
+        amount: 2000,
+        frequency: null,
+        nextDueDate: new Date("2025-12-01"),
+      });
+
+      const result = calculateWithWhatIf(
+        {
+          obligations: [
+            makeObligation({ id: "obl-1", amount: 600, nextDueDate: new Date("2025-04-01") }),
+          ],
+          fundBalances: [],
+          maxContributionPerCycle: null,
+          contributionCycleDays: 30,
+          now: NOW,
+        },
+        {
+          ...emptyOverrides,
+          hypotheticals: [hypothetical],
+        }
+      );
+
+      // Actual has only the real obligation
+      expect(result.actual.contributions).toHaveLength(1);
+      expect(result.actual.totalRequired).toBe(600);
+
+      // Scenario has both real + hypothetical
+      expect(result.scenario.contributions).toHaveLength(2);
+      expect(result.scenario.totalRequired).toBe(2600);
+      const hypContrib = result.scenario.contributions.find(
+        (c) => c.obligationId === "hyp-1"
+      );
+      expect(hypContrib).toBeDefined();
+      expect(hypContrib!.amountNeeded).toBe(2000);
+    });
+
+    it("generates shortfall when hypothetical pushes past capacity", () => {
+      const hypothetical: ObligationInput = makeObligation({
+        id: "hyp-1",
+        name: "Holiday",
+        type: "one_off",
+        amount: 5000,
+        frequency: null,
+        nextDueDate: new Date("2025-04-01"),
+      });
+
+      const result = calculateWithWhatIf(
+        {
+          obligations: [
+            makeObligation({ id: "obl-1", amount: 600, nextDueDate: new Date("2025-04-01") }),
+          ],
+          fundBalances: [],
+          maxContributionPerCycle: 500,
+          contributionCycleDays: 30,
+          now: NOW,
+        },
+        {
+          ...emptyOverrides,
+          hypotheticals: [hypothetical],
+        }
+      );
+
+      // Actual: $600 in 1 cycle, capacity $500 → shortfall
+      expect(result.actual.capacityExceeded).toBe(true);
+
+      // Scenario: $600 + $5000 in 1 cycle, capacity $500 → worse shortfall
+      expect(result.scenario.capacityExceeded).toBe(true);
+      expect(result.scenario.shortfallWarnings.length).toBeGreaterThanOrEqual(1);
+      expect(result.scenario.totalRequired).toBe(5600);
+    });
+  });
+
+  describe("with no overrides", () => {
+    it("returns identical actual and scenario results", () => {
+      const result = calculateWithWhatIf(
+        {
+          obligations: [makeObligation({ id: "obl-1", amount: 600 })],
+          fundBalances: [],
+          maxContributionPerCycle: null,
+          contributionCycleDays: 30,
+          now: NOW,
+        },
+        emptyOverrides
+      );
+
+      expect(result.actual.totalRequired).toBe(result.scenario.totalRequired);
+      expect(result.actual.totalFunded).toBe(result.scenario.totalFunded);
+      expect(result.actual.contributions).toHaveLength(
+        result.scenario.contributions.length
+      );
+      expect(result.actual.isFullyFunded).toBe(result.scenario.isFullyFunded);
+    });
+  });
+
+  describe("combined overrides", () => {
+    it("applies toggle, amount override, and hypothetical together", () => {
+      const hypothetical: ObligationInput = makeObligation({
+        id: "hyp-1",
+        name: "Holiday",
+        type: "one_off",
+        amount: 1000,
+        frequency: null,
+        nextDueDate: new Date("2025-06-01"),
+      });
+
+      const result = calculateWithWhatIf(
+        {
+          obligations: [
+            makeObligation({ id: "obl-1", name: "Rent", amount: 1200, nextDueDate: new Date("2025-04-01") }),
+            makeObligation({ id: "obl-2", name: "Gym", amount: 50, nextDueDate: new Date("2025-04-01") }),
+            makeObligation({ id: "obl-3", name: "Netflix", amount: 15, nextDueDate: new Date("2025-04-01") }),
+          ],
+          fundBalances: [],
+          maxContributionPerCycle: null,
+          contributionCycleDays: 30,
+          now: NOW,
+        },
+        {
+          toggledOffIds: ["obl-2"],       // Toggle off Gym
+          amountOverrides: { "obl-3": 30 }, // Netflix $15 → $30
+          hypotheticals: [hypothetical],     // Add Holiday $1000
+        }
+      );
+
+      // Actual: Rent(1200) + Gym(50) + Netflix(15) = 1265
+      expect(result.actual.contributions).toHaveLength(3);
+      expect(result.actual.totalRequired).toBe(1265);
+
+      // Scenario: Rent(1200) + Netflix(30) + Holiday(1000) = 2230
+      // Gym toggled off, Netflix overridden to 30
+      expect(result.scenario.contributions).toHaveLength(3);
+      expect(result.scenario.totalRequired).toBe(2230);
+
+      // Verify Gym is not in scenario
+      const gymInScenario = result.scenario.contributions.find(
+        (c) => c.obligationId === "obl-2"
+      );
+      expect(gymInScenario).toBeUndefined();
+
+      // Verify Netflix uses overridden amount
+      const netflixInScenario = result.scenario.contributions.find(
+        (c) => c.obligationId === "obl-3"
+      );
+      expect(netflixInScenario!.amountNeeded).toBe(30);
+    });
   });
 });

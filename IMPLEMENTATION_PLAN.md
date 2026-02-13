@@ -459,6 +459,12 @@
   - Acceptance: AI bar appears in the app layout (all authenticated pages). Sparkle buttons appear on every income source and obligation in list views. Actions from both trigger engine recalculation on data changes.
   - Tests: Integration test: AI bar visible on dashboard, sparkle buttons on list items
 
+- [x] **Add what-if engine calculation variant**
+  - Files: `web/lib/engine/calculate.ts` (update)
+  - Spec: `specs/10-what-if.md`
+  - Acceptance: Engine calculation function accepts optional what-if overrides parameter. Excludes toggled-off obligations. Uses overridden amounts. Includes hypothetical obligations. Returns separate scenario projection alongside actual.
+  - Tests: Unit test: calculation with toggled-off obligation, with amount override, with hypothetical
+
 ## In Progress
 
 ## Backlog
@@ -470,12 +476,6 @@
   - Spec: `specs/10-what-if.md`
   - Acceptance: React context holds what-if overrides: toggled-off obligation IDs, amount overrides, hypothetical obligations. Provides functions to toggle, override amount, add hypothetical, reset all, and apply. Client-side only, does not persist on refresh.
   - Tests: Unit test: toggle obligation, override amount, add hypothetical, reset clears all
-
-- [ ] **Add what-if engine calculation variant**
-  - Files: `web/lib/engine/calculate.ts` (update)
-  - Spec: `specs/10-what-if.md`
-  - Acceptance: Engine calculation function accepts optional what-if overrides parameter. Excludes toggled-off obligations. Uses overridden amounts. Includes hypothetical obligations. Returns separate scenario projection alongside actual.
-  - Tests: Unit test: calculation with toggled-off obligation, with amount override, with hypothetical
 
 - [ ] **Add what-if toggle controls on obligations list**
   - Files: `web/app/obligations/page.tsx` (update)
