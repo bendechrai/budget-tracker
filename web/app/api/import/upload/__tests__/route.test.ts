@@ -28,6 +28,11 @@ vi.mock("@/lib/logging", () => ({
   logError: vi.fn(),
 }));
 
+const mockParsePDF = vi.fn();
+vi.mock("@/lib/import/pdfParser", () => ({
+  parsePDF: (...args: unknown[]) => mockParsePDF(...args),
+}));
+
 import { POST } from "../route";
 
 const SAMPLE_CSV = [
@@ -160,7 +165,7 @@ describe("POST /api/import/upload", () => {
   });
 
   it("returns 400 for unsupported file format", async () => {
-    const req = makeUploadRequest("statement.pdf", "pdf content");
+    const req = makeUploadRequest("statement.txt", "text content");
 
     const res = await POST(req);
 
@@ -325,5 +330,147 @@ describe("POST /api/import/upload", () => {
         description: true,
       },
     });
+  });
+
+  it("imports PDF file with high-confidence transactions", async () => {
+    mockParsePDF.mockResolvedValue({
+      transactions: [
+        {
+          date: new Date("2024-01-15"),
+          description: "Coffee Shop",
+          amount: 4.5,
+          type: "debit" as const,
+          referenceId: null,
+        },
+        {
+          date: new Date("2024-01-16"),
+          description: "Salary",
+          amount: 3000,
+          type: "credit" as const,
+          referenceId: null,
+        },
+      ],
+      lowConfidenceTransactions: [],
+    });
+
+    const req = makeUploadRequest("statement.pdf", "fake pdf content");
+
+    const res = await POST(req);
+
+    expect(res.status).toBe(201);
+    const data = await res.json();
+    expect(data.fileName).toBe("statement.pdf");
+    expect(data.format).toBe("pdf");
+    expect(data.transactionsFound).toBe(2);
+    expect(data.transactionsImported).toBe(2);
+    expect(data.duplicatesSkipped).toBe(0);
+    expect(data.duplicatesFlagged).toBe(0);
+    expect(data.flagged).toEqual([]);
+
+    expect(mockCreateMany).toHaveBeenCalledTimes(1);
+    const createCall = mockCreateMany.mock.calls[0][0] as {
+      data: Array<{ userId: string; sourceFileName: string }>;
+    };
+    expect(createCall.data).toHaveLength(2);
+    expect(createCall.data[0].sourceFileName).toBe("statement.pdf");
+  });
+
+  it("flags low-confidence PDF transactions for user review", async () => {
+    mockParsePDF.mockResolvedValue({
+      transactions: [
+        {
+          date: new Date("2024-01-15"),
+          description: "Coffee Shop",
+          amount: 4.5,
+          type: "debit" as const,
+          referenceId: null,
+        },
+      ],
+      lowConfidenceTransactions: [
+        {
+          date: new Date("2024-01-17"),
+          description: "Unknown Charge",
+          amount: 99.99,
+          type: "debit" as const,
+          referenceId: null,
+        },
+      ],
+    });
+
+    const req = makeUploadRequest("statement.pdf", "fake pdf content");
+
+    const res = await POST(req);
+
+    expect(res.status).toBe(201);
+    const data = await res.json();
+    expect(data.transactionsFound).toBe(2);
+    expect(data.transactionsImported).toBe(1);
+    expect(data.duplicatesFlagged).toBe(1);
+    expect(data.flagged).toHaveLength(1);
+    expect(data.flagged[0].reason).toContain("low confidence");
+    expect(data.flagged[0].matchedExisting).toBeNull();
+    expect(data.flagged[0].transaction.description).toBe("Unknown Charge");
+  });
+
+  it("returns 400 when PDF yields no transactions", async () => {
+    mockParsePDF.mockResolvedValue({
+      transactions: [],
+      lowConfidenceTransactions: [],
+    });
+
+    const req = makeUploadRequest("statement.pdf", "fake empty pdf");
+
+    const res = await POST(req);
+
+    expect(res.status).toBe(400);
+    const data = await res.json();
+    expect(data.error).toBe("no transactions found in file");
+  });
+
+  it("deduplicates low-confidence PDF transactions against existing", async () => {
+    // Use a referenceId so dedup layer 1 catches this as an exact skip
+    mockFindMany.mockResolvedValue([
+      {
+        referenceId: "REF123",
+        fingerprint: "some_fp",
+        date: new Date("2024-01-17"),
+        amount: 99.99,
+        description: "Unknown Charge",
+      },
+    ]);
+
+    mockParsePDF.mockResolvedValue({
+      transactions: [
+        {
+          date: new Date("2024-01-15"),
+          description: "Coffee Shop",
+          amount: 4.5,
+          type: "debit" as const,
+          referenceId: null,
+        },
+      ],
+      lowConfidenceTransactions: [
+        {
+          date: new Date("2024-01-17"),
+          description: "Unknown Charge",
+          amount: 99.99,
+          type: "debit" as const,
+          referenceId: "REF123",
+        },
+      ],
+    });
+
+    const req = makeUploadRequest("statement.pdf", "fake pdf content");
+
+    const res = await POST(req);
+
+    expect(res.status).toBe(201);
+    const data = await res.json();
+    expect(data.transactionsFound).toBe(2);
+    expect(data.transactionsImported).toBe(1);
+    // Low-confidence transaction was an exact duplicate by referenceId, so it's skipped
+    expect(data.duplicatesSkipped).toBe(1);
+    // No low-confidence items flagged since the one low-conf was a dupe
+    expect(data.duplicatesFlagged).toBe(0);
   });
 });

@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/auth/getCurrentUser";
 import { logError } from "@/lib/logging";
 import { parseCSV } from "@/lib/import/csvParser";
 import { parseOFX } from "@/lib/import/ofxParser";
+import { parsePDF } from "@/lib/import/pdfParser";
 import {
   deduplicateTransactions,
   generateFingerprint,
@@ -17,6 +18,7 @@ const FORMAT_MAP: Record<string, ImportFormat> = {
   ".csv": "csv",
   ".ofx": "ofx",
   ".qfx": "ofx",
+  ".pdf": "pdf",
 };
 
 function getFileExtension(fileName: string): string {
@@ -25,7 +27,7 @@ function getFileExtension(fileName: string): string {
   return fileName.slice(lastDot).toLowerCase();
 }
 
-function parseFile(content: string, format: ImportFormat): ParsedTransaction[] {
+function parseTextFile(content: string, format: ImportFormat): ParsedTransaction[] {
   switch (format) {
     case "csv":
       return parseCSV(content);
@@ -45,7 +47,7 @@ interface ImportSummary {
   duplicatesFlagged: number;
   flagged: Array<{
     transaction: ParsedTransaction;
-    matchedExisting: ExistingTransaction;
+    matchedExisting: ExistingTransaction | null;
     reason: string;
   }>;
   importLogId: string;
@@ -85,19 +87,31 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json(
         {
           error:
-            "unsupported file format. Supported formats: CSV (.csv), OFX (.ofx, .qfx)",
+            "unsupported file format. Supported formats: PDF (.pdf), CSV (.csv), OFX (.ofx, .qfx)",
         },
         { status: 400 }
       );
     }
 
-    // Read file content as text
-    const content = await blob.text();
-
     // Parse transactions from file
-    const parsed = parseFile(content, format);
+    let parsed: ParsedTransaction[];
+    let lowConfidenceTransactions: ParsedTransaction[] = [];
 
-    if (parsed.length === 0) {
+    if (format === "pdf") {
+      const arrayBuffer = await blob.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+      const pdfResult = await parsePDF(buffer);
+      parsed = pdfResult.transactions;
+      lowConfidenceTransactions = pdfResult.lowConfidenceTransactions;
+    } else {
+      const content = await blob.text();
+      parsed = parseTextFile(content, format);
+    }
+
+    // Combine high and low confidence for total count
+    const allParsed = [...parsed, ...lowConfidenceTransactions];
+
+    if (allParsed.length === 0) {
       return NextResponse.json(
         { error: "no transactions found in file" },
         { status: 400 }
@@ -124,12 +138,23 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       description: t.description,
     }));
 
-    // Run deduplication
+    // Run deduplication on high-confidence transactions
     const dedupResult = deduplicateTransactions(parsed, existing);
 
-    // Save new transactions and create import log in a single transaction
+    // Also dedup low-confidence transactions (they may also be duplicates)
+    const lowConfDedup = lowConfidenceTransactions.length > 0
+      ? deduplicateTransactions(lowConfidenceTransactions, existing)
+      : { newTransactions: [], skipped: [], flagged: [] };
+
+    // Low-confidence new transactions are flagged for user review instead of auto-imported
+    const lowConfFlagged = lowConfDedup.newTransactions.map((txn) => ({
+      transaction: txn,
+      matchedExisting: null,
+      reason: "low confidence — AI was uncertain about this transaction's data",
+    }));
+
+    // Save new (high-confidence) transactions and create import log
     const importLog = await prisma.$transaction(async (tx) => {
-      // Create all new transactions
       if (dedupResult.newTransactions.length > 0) {
         await tx.transaction.createMany({
           data: dedupResult.newTransactions.map((txn) => ({
@@ -145,34 +170,51 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         });
       }
 
-      // Create import log
+      const totalFlagged =
+        dedupResult.flagged.length +
+        lowConfFlagged.length +
+        lowConfDedup.flagged.length;
+
       const log = await tx.importLog.create({
         data: {
           userId: user.id,
           fileName,
           format,
-          transactionsFound: parsed.length,
+          transactionsFound: allParsed.length,
           transactionsImported: dedupResult.newTransactions.length,
-          duplicatesSkipped: dedupResult.skipped.length,
-          duplicatesFlagged: dedupResult.flagged.length,
+          duplicatesSkipped:
+            dedupResult.skipped.length + lowConfDedup.skipped.length,
+          duplicatesFlagged: totalFlagged,
         },
       });
 
       return log;
     });
 
+    // Combine all flagged items: dedup fuzzy matches + low-confidence transactions
+    const allFlagged = [
+      ...dedupResult.flagged.map((f: FlaggedTransaction) => ({
+        transaction: f.transaction,
+        matchedExisting: f.matchedExisting as ExistingTransaction | null,
+        reason: f.reason,
+      })),
+      ...lowConfDedup.flagged.map((f: FlaggedTransaction) => ({
+        transaction: f.transaction,
+        matchedExisting: f.matchedExisting as ExistingTransaction | null,
+        reason: f.reason,
+      })),
+      ...lowConfFlagged,
+    ];
+
     const summary: ImportSummary = {
       fileName,
       format,
-      transactionsFound: parsed.length,
+      transactionsFound: allParsed.length,
       transactionsImported: dedupResult.newTransactions.length,
-      duplicatesSkipped: dedupResult.skipped.length,
-      duplicatesFlagged: dedupResult.flagged.length,
-      flagged: dedupResult.flagged.map((f: FlaggedTransaction) => ({
-        transaction: f.transaction,
-        matchedExisting: f.matchedExisting,
-        reason: f.reason,
-      })),
+      duplicatesSkipped:
+        dedupResult.skipped.length + lowConfDedup.skipped.length,
+      duplicatesFlagged: allFlagged.length,
+      flagged: allFlagged,
       importLogId: importLog.id,
     };
 

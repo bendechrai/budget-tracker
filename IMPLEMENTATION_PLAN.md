@@ -523,15 +523,13 @@
   - Acceptance: Extracts text from PDF. Sends to AI (Opus 4.6) to parse into transaction objects. Returns transactions with confidence indicators for unusual formats. Handles multi-page statements.
   - Tests: Unit test with sample PDF data (mocked AI response)
 
-## Backlog
-
-### Spec 05 (continued) — PDF Statement Import
-
-- [ ] **Update import upload route to support PDF format**
+- [x] **Update import upload route to support PDF format**
   - Files: `web/app/api/import/upload/route.ts` (update)
   - Spec: `specs/05-bank-statement-import.md`
   - Acceptance: Accepts PDF uploads alongside CSV/OFX. Routes to PDF parser. Low-confidence transactions are flagged for user review. Import summary includes confidence info.
   - Tests: Test PDF upload flow with mocked parser
+
+## Backlog
 
 ### Spec 11 — Obligation Amount Escalation
 
