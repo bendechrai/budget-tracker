@@ -362,17 +362,15 @@
   - Acceptance: Allows user to set a fund balance directly. Creates a ContributionRecord of type manual_adjustment. Triggers recalculation.
   - Tests: Test manual adjustment updates balance and creates record
 
-## In Progress
-
-## Backlog
-
-### Spec 07 — Sinking Fund Engine
-
-- [ ] **Add engine timeline projection utility**
+- [x] **Add engine timeline projection utility**
   - Files: `web/lib/engine/timeline.ts`
   - Spec: `specs/07-sinking-fund-engine.md`, `specs/08-dashboard.md`
   - Acceptance: Projects fund balance over a configurable 6–12 month window. Returns data points with dates, projected balance, expense markers at obligation due dates, contribution markers, and crunch points (where balance dips near or below zero). Accepts optional overrides for what-if scenarios.
   - Tests: Unit tests: projection shows correct balance curve, expense markers at correct dates, crunch points detected
+
+## In Progress
+
+## Backlog
 
 ### Spec 08 — Dashboard
 
