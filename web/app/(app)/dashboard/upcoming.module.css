@@ -1,0 +1,161 @@
+.section {
+  margin-top: 24px;
+}
+
+.heading {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--foreground);
+  margin-bottom: 16px;
+}
+
+.loading {
+  color: #666;
+  font-size: 14px;
+}
+
+.error {
+  color: #e53e3e;
+  font-size: 14px;
+  padding: 10px 12px;
+  background: #fff5f5;
+  border: 1px solid #fed7d7;
+  border-radius: 8px;
+}
+
+.empty {
+  color: #666;
+  font-size: 14px;
+}
+
+.dateGroup {
+  margin-bottom: 16px;
+}
+
+.dateLabel {
+  font-size: 13px;
+  font-weight: 500;
+  color: #999;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+
+.list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background: var(--background);
+}
+
+.itemMain {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.itemName {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--foreground);
+}
+
+.itemAmount {
+  font-size: 14px;
+  color: #666;
+}
+
+.fundStatus {
+  font-size: 12px;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.fully-funded {
+  color: #276749;
+  background: #f0fff4;
+}
+
+.partially-funded {
+  color: #975a16;
+  background: #fffff0;
+}
+
+.unfunded {
+  color: #c53030;
+  background: #fff5f5;
+}
+
+@media (prefers-color-scheme: dark) {
+  .loading {
+    color: #999;
+  }
+
+  .error {
+    color: #fc8181;
+    background: #1a0000;
+    border-color: #4a1515;
+  }
+
+  .empty {
+    color: #999;
+  }
+
+  .dateLabel {
+    color: #666;
+  }
+
+  .item {
+    border-color: #333;
+  }
+
+  .itemAmount {
+    color: #999;
+  }
+
+  .fully-funded {
+    color: #9ae6b4;
+    background: #1a2e1a;
+  }
+
+  .partially-funded {
+    color: #fbd38d;
+    background: #2e2a1a;
+  }
+
+  .unfunded {
+    color: #fc8181;
+    background: #2e1a1a;
+  }
+}
+
+@media (max-width: 480px) {
+  .item {
+    padding: 10px 12px;
+  }
+
+  .itemName {
+    font-size: 13px;
+  }
+
+  .itemAmount {
+    font-size: 13px;
+  }
+
+  .fundStatus {
+    font-size: 11px;
+  }
+}

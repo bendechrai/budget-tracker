@@ -6,6 +6,7 @@ import styles from "./dashboard.module.css";
 import { logError } from "@/lib/logging";
 import HealthBar from "./HealthBar";
 import TimelineChart from "./TimelineChart";
+import UpcomingObligations from "./UpcomingObligations";
 
 interface EngineSnapshot {
   id: string;
@@ -150,6 +151,10 @@ export default function DashboardPage() {
 
         {!loading && !error && !isEmptyState && (
           <TimelineChart />
+        )}
+
+        {!loading && !error && !isEmptyState && (
+          <UpcomingObligations />
         )}
       </div>
     </div>

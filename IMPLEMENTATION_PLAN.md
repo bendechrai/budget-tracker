@@ -398,17 +398,17 @@
   - Acceptance: Line chart projecting fund balance 6–12 months. X axis: time, Y axis: balance. Expense markers at due dates. Crunch points highlighted in red. Adjustable time range. Supports what-if overlay (solid=actual, dashed=scenario).
   - Tests: Component test: renders chart, markers at correct positions
 
+- [x] **Add upcoming obligations component**
+  - Files: `web/app/(app)/dashboard/UpcomingObligations.tsx`, `web/app/(app)/dashboard/upcoming.module.css`
+  - Spec: `specs/08-dashboard.md`
+  - Acceptance: Lists obligations due in next 30 days. Each shows name, amount, date, fund status (fully/partially/unfunded). Sorted by due date. Same-day obligations grouped.
+  - Tests: Component test: renders sorted list, groups same-day items, shows fund status
+
 ## In Progress
 
 ## Backlog
 
 ### Spec 08 — Dashboard
-
-- [ ] **Add upcoming obligations component**
-  - Files: `web/app/(app)/dashboard/UpcomingObligations.tsx`, `web/app/(app)/dashboard/upcoming.module.css`
-  - Spec: `specs/08-dashboard.md`
-  - Acceptance: Lists obligations due in next 30 days. Each shows name, amount, date, fund status (fully/partially/unfunded). Sorted by due date. Same-day obligations grouped.
-  - Tests: Component test: renders sorted list, groups same-day items, shows fund status
 
 - [ ] **Add smart nudge cards on dashboard**
   - Files: `web/app/(app)/dashboard/NudgeCards.tsx`, `web/app/(app)/dashboard/nudge.module.css`
