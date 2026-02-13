@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import styles from "./dashboard.module.css";
 import { logError } from "@/lib/logging";
+import HealthBar from "./HealthBar";
 
 interface EngineSnapshot {
   id: string;
@@ -137,6 +138,13 @@ export default function DashboardPage() {
               Due by {formatDate(snapshot.nextActionDate)}
             </p>
           </div>
+        )}
+
+        {!loading && !error && !isEmptyState && snapshot && (
+          <HealthBar
+            totalFunded={snapshot.totalFunded}
+            totalRequired={snapshot.totalRequired}
+          />
         )}
       </div>
     </div>

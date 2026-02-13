@@ -386,17 +386,17 @@
   - Acceptance: Hero card displays next action from EngineSnapshot: amount and deadline. Shows celebration state when fully funded. Shows prompts when no data exists. Updates when contributions are marked done.
   - Tests: Component test: renders next action, celebration state, empty state
 
+- [x] **Add health bar component**
+  - Files: `web/app/(app)/dashboard/HealthBar.tsx`, `web/app/(app)/dashboard/health-bar.module.css`
+  - Spec: `specs/08-dashboard.md`
+  - Acceptance: Progress bar showing total funded vs. total required. Color coded: green (≥90%), amber (60-89%), red (<60%). Shows absolute numbers. Expandable to per-group breakdown.
+  - Tests: Component test: correct color at thresholds, shows numbers, expands to groups
+
 ## In Progress
 
 ## Backlog
 
 ### Spec 08 — Dashboard
-
-- [ ] **Add health bar component**
-  - Files: `web/app/(app)/dashboard/HealthBar.tsx`, `web/app/(app)/dashboard/health-bar.module.css`
-  - Spec: `specs/08-dashboard.md`
-  - Acceptance: Progress bar showing total funded vs. total required. Color coded: green (≥90%), amber (60-89%), red (<60%). Shows absolute numbers. Expandable to per-group breakdown.
-  - Tests: Component test: correct color at thresholds, shows numbers, expands to groups
 
 - [ ] **Add timeline chart component**
   - Files: `web/app/(app)/dashboard/TimelineChart.tsx`, `web/app/(app)/dashboard/timeline.module.css`, `web/package.json` (add chart library)

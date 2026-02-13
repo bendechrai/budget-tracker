@@ -713,6 +713,7 @@ describe("GET /api/obligations", () => {
       include: {
         customEntries: true,
         fundGroup: true,
+        fundBalance: true,
       },
       orderBy: {
         nextDueDate: "asc",
@@ -755,6 +756,7 @@ describe("GET /api/obligations", () => {
       include: {
         customEntries: true,
         fundGroup: true,
+        fundBalance: true,
       },
       orderBy: {
         nextDueDate: "asc",
@@ -841,6 +843,7 @@ describe("GET /api/obligations", () => {
       include: {
         customEntries: true,
         fundGroup: true,
+        fundBalance: true,
       },
       orderBy: {
         nextDueDate: "asc",

@@ -61,6 +61,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       include: {
         customEntries: true,
         fundGroup: true,
+        fundBalance: true,
       },
       orderBy: {
         nextDueDate: "asc",
