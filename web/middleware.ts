@@ -5,7 +5,7 @@ import { jwtVerify } from "jose";
 const SESSION_COOKIE_NAME = "session";
 
 const PUBLIC_EXACT_PATHS = ["/", "/login", "/signup"];
-const PUBLIC_PREFIX_PATHS = ["/api/auth/"];
+const PUBLIC_PREFIX_PATHS = ["/api/auth/", "/reset-password"];
 
 function isPublicPath(pathname: string): boolean {
   if (PUBLIC_EXACT_PATHS.includes(pathname)) {

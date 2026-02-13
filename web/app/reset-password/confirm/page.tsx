@@ -1,28 +1,29 @@
 "use client";
 
 import { Suspense, useState, FormEvent } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import styles from "./login.module.css";
+import styles from "../reset-password.module.css";
 
-function LoginForm() {
-  const router = useRouter();
+function ResetConfirmForm() {
   const searchParams = useSearchParams();
-  const [email, setEmail] = useState("");
+  const token = searchParams.get("token") || "";
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError("");
+    setSuccess("");
     setSubmitting(true);
 
     try {
-      const res = await fetch("/api/auth/login", {
+      const res = await fetch("/api/auth/reset-confirm", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ token, password }),
       });
 
       if (!res.ok) {
@@ -32,19 +33,37 @@ function LoginForm() {
         return;
       }
 
-      const redirect = searchParams.get("redirect") || "/dashboard";
-      router.push(redirect);
+      setSuccess("Your password has been reset. You can now log in.");
+      setSubmitting(false);
     } catch {
       setError("something went wrong, please try again");
       setSubmitting(false);
     }
   }
 
+  if (!token) {
+    return (
+      <div className={styles.page}>
+        <div className={styles.container}>
+          <h1 className={styles.title}>Invalid link</h1>
+          <p className={styles.subtitle}>
+            This password reset link is invalid or has expired.
+          </p>
+          <p className={styles.footer}>
+            <Link href="/reset-password" className={styles.link}>
+              Request a new reset link
+            </Link>
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={styles.page}>
       <div className={styles.container}>
-        <h1 className={styles.title}>Welcome back</h1>
-        <p className={styles.subtitle}>Log in to your sinking fund</p>
+        <h1 className={styles.title}>Set new password</h1>
+        <p className={styles.subtitle}>Enter your new password below</p>
 
         <form className={styles.form} onSubmit={handleSubmit}>
           {error && (
@@ -53,24 +72,15 @@ function LoginForm() {
             </div>
           )}
 
-          <div className={styles.field}>
-            <label className={styles.label} htmlFor="email">
-              Email
-            </label>
-            <input
-              id="email"
-              className={styles.input}
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              autoComplete="email"
-            />
-          </div>
+          {success && (
+            <div className={styles.success} role="status">
+              {success}
+            </div>
+          )}
 
           <div className={styles.field}>
             <label className={styles.label} htmlFor="password">
-              Password
+              New password
             </label>
             <input
               id="password"
@@ -79,28 +89,23 @@ function LoginForm() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              autoComplete="current-password"
+              minLength={8}
+              autoComplete="new-password"
             />
           </div>
 
           <button
             className={styles.button}
             type="submit"
-            disabled={submitting}
+            disabled={submitting || !!success}
           >
-            {submitting ? "Logging in..." : "Log in"}
+            {submitting ? "Resetting..." : "Reset password"}
           </button>
         </form>
 
         <p className={styles.footer}>
-          <Link href="/reset-password" className={styles.link}>
-            Forgot password?
-          </Link>
-        </p>
-        <p className={styles.footer}>
-          Don&apos;t have an account?{" "}
-          <Link href="/signup" className={styles.link}>
-            Sign up
+          <Link href="/login" className={styles.link}>
+            Back to login
           </Link>
         </p>
       </div>
@@ -108,10 +113,10 @@ function LoginForm() {
   );
 }
 
-export default function LoginPage() {
+export default function ResetConfirmPage() {
   return (
     <Suspense>
-      <LoginForm />
+      <ResetConfirmForm />
     </Suspense>
   );
 }

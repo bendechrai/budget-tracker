@@ -475,6 +475,12 @@
 
 ## Completed (continued)
 
+- [x] **Add password reset UI pages**
+  - Files: `web/app/reset-password/page.tsx`, `web/app/reset-password/confirm/page.tsx`
+  - Spec: `specs/01-auth.md`
+  - Acceptance: Request page: email input, submit sends reset request. Confirm page: new password input (accessed via token link). Shows success/error messages.
+  - Tests: Component test: both pages render and submit correctly
+
 - [x] **Add password reset confirm route (`POST /api/auth/reset-confirm`)**
   - Files: `web/app/api/auth/reset-confirm/route.ts`
   - Spec: `specs/01-auth.md`
@@ -512,14 +518,6 @@
   - Tests: Component test: upload works, suggestions display, skip navigates to fund setup
 
 ## Backlog
-
-### Spec 01 (continued) — Password Reset
-
-- [ ] **Add password reset UI pages**
-  - Files: `web/app/reset-password/page.tsx`, `web/app/reset-password/confirm/page.tsx`
-  - Spec: `specs/01-auth.md`
-  - Acceptance: Request page: email input, submit sends reset request. Confirm page: new password input (accessed via token link). Shows success/error messages.
-  - Tests: Component test: both pages render and submit correctly
 
 ### Spec 05 (continued) — PDF Statement Import
 

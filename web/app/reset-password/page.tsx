@@ -1,28 +1,26 @@
 "use client";
 
-import { Suspense, useState, FormEvent } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useState, FormEvent } from "react";
 import Link from "next/link";
-import styles from "./login.module.css";
+import styles from "./reset-password.module.css";
 
-function LoginForm() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
+export default function ResetPasswordPage() {
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError("");
+    setSuccess("");
     setSubmitting(true);
 
     try {
-      const res = await fetch("/api/auth/login", {
+      const res = await fetch("/api/auth/reset-request", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email }),
       });
 
       if (!res.ok) {
@@ -32,8 +30,9 @@ function LoginForm() {
         return;
       }
 
-      const redirect = searchParams.get("redirect") || "/dashboard";
-      router.push(redirect);
+      const data = (await res.json()) as { message: string };
+      setSuccess(data.message);
+      setSubmitting(false);
     } catch {
       setError("something went wrong, please try again");
       setSubmitting(false);
@@ -43,13 +42,21 @@ function LoginForm() {
   return (
     <div className={styles.page}>
       <div className={styles.container}>
-        <h1 className={styles.title}>Welcome back</h1>
-        <p className={styles.subtitle}>Log in to your sinking fund</p>
+        <h1 className={styles.title}>Reset password</h1>
+        <p className={styles.subtitle}>
+          Enter your email and we&apos;ll send you a reset link
+        </p>
 
         <form className={styles.form} onSubmit={handleSubmit}>
           {error && (
             <div className={styles.error} role="alert">
               {error}
+            </div>
+          )}
+
+          {success && (
+            <div className={styles.success} role="status">
+              {success}
             </div>
           )}
 
@@ -68,50 +75,22 @@ function LoginForm() {
             />
           </div>
 
-          <div className={styles.field}>
-            <label className={styles.label} htmlFor="password">
-              Password
-            </label>
-            <input
-              id="password"
-              className={styles.input}
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              autoComplete="current-password"
-            />
-          </div>
-
           <button
             className={styles.button}
             type="submit"
             disabled={submitting}
           >
-            {submitting ? "Logging in..." : "Log in"}
+            {submitting ? "Sending..." : "Send reset link"}
           </button>
         </form>
 
         <p className={styles.footer}>
-          <Link href="/reset-password" className={styles.link}>
-            Forgot password?
-          </Link>
-        </p>
-        <p className={styles.footer}>
-          Don&apos;t have an account?{" "}
-          <Link href="/signup" className={styles.link}>
-            Sign up
+          Remember your password?{" "}
+          <Link href="/login" className={styles.link}>
+            Log in
           </Link>
         </p>
       </div>
     </div>
-  );
-}
-
-export default function LoginPage() {
-  return (
-    <Suspense>
-      <LoginForm />
-    </Suspense>
   );
 }
