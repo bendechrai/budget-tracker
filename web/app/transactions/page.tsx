@@ -113,7 +113,7 @@ export default function TransactionsPage() {
     <div className={styles.page}>
       <div className={styles.container}>
         <div className={styles.header}>
-          <h1 className={styles.title}>Transactions</h1>
+          <h1 className={styles.title} data-testid="page-title">Transactions</h1>
         </div>
 
         {error && (

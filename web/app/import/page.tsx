@@ -200,7 +200,7 @@ export default function ImportPage() {
     <div className={styles.page}>
       <div className={styles.container}>
         <div className={styles.header}>
-          <h1 className={styles.title}>Import Statements</h1>
+          <h1 className={styles.title} data-testid="page-title">Import Statements</h1>
           <Link href="/import/history" className={styles.historyLink}>
             Import history
           </Link>

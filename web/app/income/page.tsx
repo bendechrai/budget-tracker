@@ -124,7 +124,7 @@ export default function IncomePage() {
     <div className={styles.page}>
       <div className={styles.container}>
         <div className={styles.header}>
-          <h1 className={styles.title}>Income Sources</h1>
+          <h1 className={styles.title} data-testid="page-title">Income Sources</h1>
           {incomeSources.length > 0 && (
             <button
               type="button"

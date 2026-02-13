@@ -7,7 +7,7 @@ import styles from "./layout.module.css";
 export default function AppLayout({ children }: { children: ReactNode }) {
   return (
     <div className={styles.container}>
-      <header className={styles.header}>
+      <header className={styles.header} data-testid="app-header">
         <div className={styles.navWrapper}>
           <Nav />
         </div>

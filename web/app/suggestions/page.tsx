@@ -199,7 +199,7 @@ export default function SuggestionsPage() {
     <div className={styles.page}>
       <div className={styles.container}>
         <div className={styles.header}>
-          <h1 className={styles.title}>Suggestions</h1>
+          <h1 className={styles.title} data-testid="page-title">Suggestions</h1>
         </div>
 
         {error && (

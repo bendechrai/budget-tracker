@@ -196,7 +196,7 @@ export default function DashboardPage() {
   return (
     <div className={styles.page}>
       <div className={styles.container}>
-        <h1 className={styles.title}>Dashboard</h1>
+        <h1 className={styles.title} data-testid="page-title">Dashboard</h1>
 
         <ScenarioBanner />
 

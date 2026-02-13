@@ -43,7 +43,7 @@ export default function Nav() {
   ];
 
   return (
-    <nav className={styles.nav} aria-label="Main navigation">
+    <nav className={styles.nav} aria-label="Main navigation" data-testid="nav">
       <ul className={styles.navList}>
         {links.map((link) => {
           const isActive = pathname === link.href || pathname.startsWith(link.href + "/");

@@ -619,15 +619,15 @@
   - Acceptance: Global setup seeds a test user via Prisma (with onboardingComplete=true and sample data: at least one income source, one obligation). Logs in via the `/api/auth/login` endpoint and saves `storageState` to a file. Global teardown cleans up the test user and associated data. All subsequent test files reuse the saved session.
   - Tests: Running `npm run test:e2e` completes global setup without error; storageState file is created
 
-## In Progress
-
-## Backlog
-
-- [ ] **Add layout persistence e2e test**
+- [x] **Add layout persistence e2e test**
   - Files: `web/e2e/layout.spec.ts`
   - Spec: `specs/12-ui-testing.md`
   - Acceptance: Test visits every authenticated route (`/dashboard`, `/income`, `/obligations`, `/transactions`, `/suggestions`, `/import`) and verifies: nav component is visible, AI bar pill is visible, page-specific content renders (not blank). Uses `data-testid` selectors.
   - Tests: All six routes pass layout assertions
+
+## In Progress
+
+## Backlog
 
 - [ ] **Add navigation e2e test**
   - Files: `web/e2e/navigation.spec.ts`
