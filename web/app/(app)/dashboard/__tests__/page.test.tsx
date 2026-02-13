@@ -27,21 +27,23 @@ vi.mock("@/lib/logging", () => ({
   logError: vi.fn(),
 }));
 
+const mockWhatIf = {
+  isActive: false,
+  changeSummary: "",
+  overrides: {
+    toggledOffIds: new Set<string>(),
+    amountOverrides: new Map<string, number>(),
+    hypotheticals: [] as unknown[],
+  },
+  resetAll: vi.fn(),
+  toggleObligation: vi.fn(),
+  overrideAmount: vi.fn(),
+  addHypothetical: vi.fn(),
+  removeHypothetical: vi.fn(),
+};
+
 vi.mock("@/app/contexts/WhatIfContext", () => ({
-  useWhatIf: () => ({
-    isActive: false,
-    changeSummary: "",
-    overrides: {
-      toggledOffIds: new Set<string>(),
-      amountOverrides: new Map<string, number>(),
-      hypotheticals: [],
-    },
-    resetAll: vi.fn(),
-    toggleObligation: vi.fn(),
-    overrideAmount: vi.fn(),
-    addHypothetical: vi.fn(),
-    removeHypothetical: vi.fn(),
-  }),
+  useWhatIf: () => mockWhatIf,
 }));
 
 // Mock recharts to avoid SVG rendering issues in tests
@@ -106,10 +108,35 @@ const mockEmptySnapshot = {
   calculatedAt: "2025-02-01T00:00:00.000Z",
 };
 
+const mockScenarioResponse = {
+  snapshot: {
+    totalRequired: 2100,
+    totalFunded: 2100,
+    nextActionAmount: 0,
+    nextActionDate: "2025-03-01T00:00:00.000Z",
+    nextActionDescription: "You're fully covered!",
+  },
+  timeline: {
+    ...mockTimelineData,
+    dataPoints: mockTimelineData.dataPoints.map((dp) => ({
+      ...dp,
+      projectedBalance: dp.projectedBalance + 500,
+    })),
+  },
+};
+
 describe("DashboardPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     global.fetch = vi.fn();
+    // Reset to inactive what-if by default
+    mockWhatIf.isActive = false;
+    mockWhatIf.changeSummary = "";
+    mockWhatIf.overrides = {
+      toggledOffIds: new Set<string>(),
+      amountOverrides: new Map<string, number>(),
+      hypotheticals: [],
+    };
   });
 
   afterEach(() => {
@@ -305,5 +332,87 @@ describe("DashboardPage", () => {
     // In empty state, there should be no grid layout sections
     const aside = container.querySelector("aside");
     expect(aside).toBeNull();
+  });
+
+  it("shows scenario indicator on hero card when what-if is active", async () => {
+    mockWhatIf.isActive = true;
+    mockWhatIf.changeSummary = "1 expense toggled off";
+    mockWhatIf.overrides = {
+      toggledOffIds: new Set(["ob1"]),
+      amountOverrides: new Map<string, number>(),
+      hypotheticals: [],
+    };
+
+    vi.mocked(global.fetch).mockImplementation((url) => {
+      if (typeof url === "string" && url.includes("/api/obligations")) {
+        return Promise.resolve(
+          mockFetchResponse([{ id: "ob1" }, { id: "ob2" }])
+        );
+      }
+      if (typeof url === "string" && url.includes("/api/engine/scenario")) {
+        return Promise.resolve(mockFetchResponse(mockScenarioResponse));
+      }
+      if (typeof url === "string" && url.includes("/api/engine/timeline")) {
+        return Promise.resolve(mockFetchResponse(mockTimelineData));
+      }
+      return Promise.resolve(mockFetchResponse(mockSnapshot));
+    });
+
+    render(<DashboardPage />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("scenario-indicator")).toBeDefined();
+    });
+
+    expect(screen.getByTestId("scenario-indicator").textContent).toBe(
+      "What-if scenario"
+    );
+  });
+
+  it("displays scenario snapshot data in hero card when what-if is active", async () => {
+    mockWhatIf.isActive = true;
+    mockWhatIf.changeSummary = "1 expense toggled off";
+    mockWhatIf.overrides = {
+      toggledOffIds: new Set(["ob1"]),
+      amountOverrides: new Map<string, number>(),
+      hypotheticals: [],
+    };
+
+    const scenarioWithNextAction = {
+      snapshot: {
+        totalRequired: 2100,
+        totalFunded: 1000,
+        nextActionAmount: 200,
+        nextActionDate: "2025-03-15T00:00:00.000Z",
+        nextActionDescription: "Set aside $200.00 for Insurance by 2025-03-15",
+      },
+      timeline: mockTimelineData,
+    };
+
+    vi.mocked(global.fetch).mockImplementation((url) => {
+      if (typeof url === "string" && url.includes("/api/obligations")) {
+        return Promise.resolve(
+          mockFetchResponse([{ id: "ob1" }, { id: "ob2" }])
+        );
+      }
+      if (typeof url === "string" && url.includes("/api/engine/scenario")) {
+        return Promise.resolve(mockFetchResponse(scenarioWithNextAction));
+      }
+      if (typeof url === "string" && url.includes("/api/engine/timeline")) {
+        return Promise.resolve(mockFetchResponse(mockTimelineData));
+      }
+      return Promise.resolve(mockFetchResponse(mockSnapshot));
+    });
+
+    render(<DashboardPage />);
+
+    await waitFor(() => {
+      // Should show scenario amount, not actual amount
+      expect(screen.getByText("$200.00")).toBeDefined();
+    });
+
+    expect(
+      screen.getByText("Set aside $200.00 for Insurance by 2025-03-15")
+    ).toBeDefined();
   });
 });

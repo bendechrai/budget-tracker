@@ -22,6 +22,8 @@ interface ObligationWithBalance {
 interface HealthBarProps {
   totalFunded: number;
   totalRequired: number;
+  scenarioTotalFunded?: number;
+  scenarioTotalRequired?: number;
 }
 
 function getColor(percentage: number): "green" | "amber" | "red" {
@@ -34,12 +36,23 @@ function formatCurrency(amount: number): string {
   return `$${amount.toFixed(2)}`;
 }
 
-export default function HealthBar({ totalFunded, totalRequired }: HealthBarProps) {
+export default function HealthBar({
+  totalFunded,
+  totalRequired,
+  scenarioTotalFunded,
+  scenarioTotalRequired,
+}: HealthBarProps) {
   const [expanded, setExpanded] = useState(false);
   const [groups, setGroups] = useState<GroupBreakdown[]>([]);
   const [loadingGroups, setLoadingGroups] = useState(false);
 
-  const percentage = totalRequired > 0 ? (totalFunded / totalRequired) * 100 : 0;
+  const hasScenario =
+    scenarioTotalFunded !== undefined && scenarioTotalRequired !== undefined;
+
+  const displayFunded = hasScenario ? scenarioTotalFunded : totalFunded;
+  const displayRequired = hasScenario ? scenarioTotalRequired : totalRequired;
+
+  const percentage = displayRequired > 0 ? (displayFunded / displayRequired) * 100 : 0;
   const clampedPercentage = Math.min(percentage, 100);
   const color = getColor(percentage);
 
@@ -94,9 +107,11 @@ export default function HealthBar({ totalFunded, totalRequired }: HealthBarProps
         type="button"
       >
         <div className={styles.labels}>
-          <span className={styles.labelText}>Fund health</span>
+          <span className={styles.labelText}>
+            Fund health{hasScenario ? " (scenario)" : ""}
+          </span>
           <span className={styles.amounts}>
-            {formatCurrency(totalFunded)} of {formatCurrency(totalRequired)} set aside
+            {formatCurrency(displayFunded)} of {formatCurrency(displayRequired)} set aside
           </span>
         </div>
         <span className={styles.expandIcon} aria-hidden="true">

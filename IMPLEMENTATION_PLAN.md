@@ -481,13 +481,13 @@
   - Acceptance: Appears at top of dashboard when what-if changes are active. Shows summary of changes ("2 expenses toggled off, 1 amount changed"). Reset button clears all. Apply button with confirmation dialog makes changes permanent (pauses toggled-off, updates amounts, saves hypotheticals).
   - Tests: Component test: shows summary, reset clears context, apply triggers confirmation
 
-## Backlog
-
-- [ ] **Update dashboard to support what-if overlay**
-  - Files: `web/app/(app)/dashboard/page.tsx` (update), `web/app/(app)/dashboard/TimelineChart.tsx` (update), `web/app/(app)/dashboard/HealthBar.tsx` (update)
+- [x] **Update dashboard to support what-if overlay**
+  - Files: `web/app/(app)/dashboard/page.tsx` (update), `web/app/(app)/dashboard/HealthBar.tsx` (update), `web/app/api/engine/scenario/route.ts` (new), `web/app/(app)/dashboard/dashboard.module.css` (update)
   - Spec: `specs/10-what-if.md`
   - Acceptance: When what-if changes are active: timeline shows solid (actual) and dashed (scenario) lines. Hero card shows scenario next action with visual indicator. Health bar shows scenario status. All update live as toggles/tweaks change.
   - Tests: Component test: chart renders both lines, hero shows scenario indicator
+
+## Backlog
 
 - [ ] **Add what-if support to AI bar NL parser**
   - Files: `web/lib/ai/nlParser.ts` (update), `web/app/components/AIBar.tsx` (update)

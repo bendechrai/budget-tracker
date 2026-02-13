@@ -195,4 +195,44 @@ describe("HealthBar", () => {
     const progressBar = screen.getByRole("progressbar");
     expect(progressBar.getAttribute("aria-valuenow")).toBe("59");
   });
+
+  it("displays scenario values when scenario props are provided", () => {
+    render(
+      <HealthBar
+        totalFunded={3200}
+        totalRequired={4100}
+        scenarioTotalFunded={2000}
+        scenarioTotalRequired={2100}
+      />
+    );
+
+    // Should show scenario amounts, not actual
+    expect(
+      screen.getByText("$2000.00 of $2100.00 set aside")
+    ).toBeDefined();
+
+    // Scenario percentage: 2000/2100 = ~95%
+    const progressBar = screen.getByRole("progressbar");
+    expect(progressBar.getAttribute("aria-valuenow")).toBe("95");
+    expect(progressBar.getAttribute("aria-label")).toBe("95% funded");
+  });
+
+  it("shows scenario label when scenario props are provided", () => {
+    render(
+      <HealthBar
+        totalFunded={3200}
+        totalRequired={4100}
+        scenarioTotalFunded={2000}
+        scenarioTotalRequired={2100}
+      />
+    );
+
+    expect(screen.getByText("Fund health (scenario)")).toBeDefined();
+  });
+
+  it("shows normal label when no scenario props", () => {
+    render(<HealthBar totalFunded={3200} totalRequired={4100} />);
+
+    expect(screen.getByText("Fund health")).toBeDefined();
+  });
 });
