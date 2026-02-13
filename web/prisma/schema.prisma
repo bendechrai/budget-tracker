@@ -110,6 +110,7 @@ model Obligation {
   linkedSuggestions Suggestion[]
   fundBalance      FundBalance?
   contributions    ContributionRecord[]
+  escalations      Escalation[]
 
   @@index([userId])
   @@index([fundGroupId])
@@ -223,6 +224,12 @@ model SuggestionTransaction {
   @@index([transactionId])
 }
 
+enum EscalationChangeType {
+  absolute
+  percentage
+  fixed_increase
+}
+
 enum ContributionType {
   contribution
   manual_adjustment
@@ -287,4 +294,20 @@ model PasswordResetToken {
 
   @@index([userId])
   @@index([token])
+}
+
+model Escalation {
+  id             String               @id @default(cuid())
+  obligationId   String
+  changeType     EscalationChangeType
+  value          Decimal
+  effectiveDate  DateTime
+  intervalMonths Int?
+  isApplied      Boolean              @default(false)
+  appliedAt      DateTime?
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+  obligation     Obligation           @relation(fields: [obligationId], references: [id], onDelete: Cascade)
+
+  @@index([obligationId])
 }

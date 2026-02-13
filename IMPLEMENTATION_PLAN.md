@@ -471,6 +471,12 @@
   - Acceptance: Each obligation has a what-if toggle switch. Toggling off marks it as excluded in the what-if context. Amount fields are editable for temporary overrides. "Add hypothetical" button creates a temporary obligation.
   - Tests: Component test: toggle updates context, amount override updates context
 
+- [x] **Add `Escalation` model with Prisma migration**
+  - Files: `web/prisma/schema.prisma`, new migration
+  - Spec: `specs/11-escalation.md`
+  - Acceptance: `Escalation` model with fields: id, obligationId, changeType (enum: absolute, percentage, fixed_increase), value (Decimal), effectiveDate (DateTime), intervalMonths (Int, nullable — null means one-off), isApplied (Boolean, default false), appliedAt (DateTime, nullable), createdAt, updatedAt. Relation to Obligation (cascade delete). Unique partial index on obligationId where intervalMonths is not null (at most one recurring rule per obligation). Migration runs cleanly.
+  - Tests: Migration applies; Prisma generate succeeds
+
 ## In Progress
 
 ## Completed (continued)
@@ -532,12 +538,6 @@
 ## Backlog
 
 ### Spec 11 — Obligation Amount Escalation
-
-- [ ] **Add `Escalation` model with Prisma migration**
-  - Files: `web/prisma/schema.prisma`, new migration
-  - Spec: `specs/11-escalation.md`
-  - Acceptance: `Escalation` model with fields: id, obligationId, changeType (enum: absolute, percentage, fixed_increase), value (Decimal), effectiveDate (DateTime), intervalMonths (Int, nullable — null means one-off), isApplied (Boolean, default false), appliedAt (DateTime, nullable), createdAt, updatedAt. Relation to Obligation (cascade delete). Unique partial index on obligationId where intervalMonths is not null (at most one recurring rule per obligation). Migration runs cleanly.
-  - Tests: Migration applies; Prisma generate succeeds
 
 - [ ] **Add `POST /api/escalations` route**
   - Files: `web/app/api/escalations/route.ts`
