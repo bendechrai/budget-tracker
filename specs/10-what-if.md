@@ -41,7 +41,7 @@ flowchart TD
 - Any obligation can be toggled off via a switch/toggle control on the obligations list or detail view
 - Any obligation amount can be temporarily overridden by entering a different number
 - User can add a hypothetical obligation (exists only in the scenario, not persisted)
-- What-if can also be triggered from the floating AI bar:
+- What-if can also be triggered from the floating AI bar (parsed by Claude API per spec 09 — the LLM returns a `what_if` intent with structured changes):
   - "What if I cancel gym?" → toggles gym obligation off
   - "What if Netflix goes up to $30?" → overrides Netflix amount
   - "What if I add a $2,000 holiday in December?" → adds a hypothetical one-off obligation

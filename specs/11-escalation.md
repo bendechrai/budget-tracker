@@ -79,7 +79,7 @@ flowchart TD
 
 ## NL Examples
 
-These fit the AI interaction layer design from spec 09 — all go through the same NL parser and always show a preview before saving:
+These fit the AI interaction layer design from spec 09 — all go through the same Claude API intent parser (not regex) and always show a preview before saving. The LLM returns an `escalation` intent type with structured fields (`obligationName`, `changeType`, `value`, `effectiveDate`, `intervalMonths`):
 
 - "My rent goes up to $2,200 in July" (one-off absolute)
 - "Insurance goes up 8% at renewal in March" (one-off percentage)
