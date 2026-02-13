@@ -350,17 +350,17 @@
   - Acceptance: Triggers engine recalculation for the authenticated user. Creates new EngineSnapshot. Returns the snapshot.
   - Tests: Test recalculation produces correct snapshot
 
+- [x] **Add `POST /api/contributions` route (mark contribution done)**
+  - Files: `web/app/api/contributions/route.ts`
+  - Spec: `specs/07-sinking-fund-engine.md`
+  - Acceptance: Records a contribution or manual adjustment for an obligation. Updates the FundBalance. Triggers engine recalculation. Returns updated fund balance.
+  - Tests: Test contribution updates balance, manual adjustment works, triggers recalculation
+
 ## In Progress
 
 ## Backlog
 
 ### Spec 07 — Sinking Fund Engine
-
-- [ ] **Add `POST /api/contributions` route (mark contribution done)**
-  - Files: `web/app/api/contributions/route.ts`
-  - Spec: `specs/07-sinking-fund-engine.md`
-  - Acceptance: Records a contribution or manual adjustment for an obligation. Updates the FundBalance. Triggers engine recalculation. Returns updated fund balance.
-  - Tests: Test contribution updates balance, manual adjustment works, triggers recalculation
 
 - [ ] **Add `PUT /api/fund-balances/[obligationId]` route (manual balance adjustment)**
   - Files: `web/app/api/fund-balances/[obligationId]/route.ts`
