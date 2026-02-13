@@ -475,6 +475,12 @@
 
 ## Completed (continued)
 
+- [x] **Add password reset confirm route (`POST /api/auth/reset-confirm`)**
+  - Files: `web/app/api/auth/reset-confirm/route.ts`
+  - Spec: `specs/01-auth.md`
+  - Acceptance: Accepts token + new password. Validates token (not expired, not used). Updates password hash. Invalidates token. Returns 200.
+  - Tests: Test valid reset (200), expired token (400), already-used token (400)
+
 - [x] **Add password reset request route (`POST /api/auth/reset-request`)**
   - Files: `web/app/api/auth/reset-request/route.ts`, `web/prisma/schema.prisma`, new migration
   - Spec: `specs/01-auth.md`
@@ -508,12 +514,6 @@
 ## Backlog
 
 ### Spec 01 (continued) — Password Reset
-
-- [ ] **Add password reset confirm route (`POST /api/auth/reset-confirm`)**
-  - Files: `web/app/api/auth/reset-confirm/route.ts`
-  - Spec: `specs/01-auth.md`
-  - Acceptance: Accepts token + new password. Validates token (not expired, not used). Updates password hash. Invalidates token. Returns 200.
-  - Tests: Test valid reset (200), expired token (400), already-used token (400)
 
 - [ ] **Add password reset UI pages**
   - Files: `web/app/reset-password/page.tsx`, `web/app/reset-password/confirm/page.tsx`
