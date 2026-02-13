@@ -441,17 +441,17 @@
   - Acceptance: Renders as collapsed pill/icon in bottom-right. Expands to show text input. Draggable to any screen position. Persists across page navigation (in layout). Sends input to parse API. Shows responses/previews inline.
   - Tests: Component test: renders collapsed, expands on click, submits input
 
+- [x] **Add sparkle button component**
+  - Files: `web/app/components/SparkleButton.tsx`, `web/app/components/sparkle.module.css`
+  - Spec: `specs/09-ai-interaction.md`
+  - Acceptance: ✨ button that opens a modal/popover. Shows item summary at top. Contextual preset action buttons (income presets: change amount, frequency, pause, delete; obligation presets: + change due date). Free text input at bottom. Preset buttons generate structured intents directly. Free text goes through NL parser.
+  - Tests: Component test: renders button, opens modal, shows presets, submits free text
+
 ## In Progress
 
 ## Backlog
 
 ### Spec 09 — AI Interaction Layer
-
-- [ ] **Add sparkle button component**
-  - Files: `web/app/components/SparkleButton.tsx`, `web/app/components/sparkle.module.css`
-  - Spec: `specs/09-ai-interaction.md`
-  - Acceptance: ✨ button that opens a modal/popover. Shows item summary at top. Contextual preset action buttons (income presets: change amount, frequency, pause, delete; obligation presets: + change due date). Free text input at bottom. Preset buttons generate structured intents directly. Free text goes through NL parser.
-  - Tests: Component test: renders button, opens modal, shows presets, submits free text
 
 - [ ] **Add preview/confirmation component for AI actions**
   - Files: `web/app/components/AIPreview.tsx`, `web/app/components/ai-preview.module.css`
