@@ -639,13 +639,15 @@
 
 ## In Progress
 
-## Backlog
+## Completed (continued 2)
 
-- [ ] **Add AI bar structural e2e test**
+- [x] **Add AI bar structural e2e test**
   - Files: `web/e2e/ai-bar.spec.ts`
   - Spec: `specs/12-ui-testing.md`
   - Acceptance: AI bar pill is visible. Clicking it expands the input field. Typing and submitting shows a response area. After navigating to another page, the AI bar is still present (persists across navigation).
   - Tests: Expand/collapse, input submission, and cross-navigation persistence assertions pass
+
+## Backlog
 
 - [ ] **Add sparkle button e2e test**
   - Files: `web/e2e/sparkle.spec.ts`
