@@ -62,7 +62,7 @@ describe("AIBar", () => {
     expect(screen.getByTestId("ai-bar-pill")).toBeDefined();
   });
 
-  it("submits input to parse API and shows response", async () => {
+  it("opens AIPreview for create intent instead of showing text response", async () => {
     const user = userEvent.setup();
     vi.mocked(global.fetch).mockResolvedValueOnce(
       mockFetchResponse({
@@ -87,9 +87,13 @@ describe("AIBar", () => {
     await user.click(screen.getByTestId("ai-bar-submit"));
 
     await waitFor(() => {
-      const response = screen.getByTestId("ai-bar-response");
-      expect(response.textContent).toBe('Parsed: Create obligation "Netflix"');
+      expect(screen.getByTestId("ai-preview-overlay")).toBeDefined();
+      expect(screen.getByTestId("ai-preview-create")).toBeDefined();
+      expect(screen.getByTestId("preview-field-name").textContent).toBe("Netflix");
     });
+
+    // Should NOT show inline text response
+    expect(screen.queryByTestId("ai-bar-response")).toBeNull();
 
     expect(global.fetch).toHaveBeenCalledWith("/api/ai/parse", {
       method: "POST",
@@ -98,7 +102,149 @@ describe("AIBar", () => {
     });
   });
 
-  it("submits input on Enter key", async () => {
+  it("opens AIPreview for edit intent", async () => {
+    const user = userEvent.setup();
+    vi.mocked(global.fetch).mockResolvedValueOnce(
+      mockFetchResponse({
+        intent: {
+          type: "edit",
+          targetType: "expense",
+          targetName: "Netflix",
+          confidence: "high",
+          changes: { amount: 30 },
+        },
+      })
+    );
+
+    renderWithProvider(<AIBar />);
+
+    await user.click(screen.getByTestId("ai-bar-pill"));
+    await user.type(screen.getByTestId("ai-bar-input"), "Change Netflix to $30");
+    await user.click(screen.getByTestId("ai-bar-submit"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("ai-preview-overlay")).toBeDefined();
+      expect(screen.getByTestId("ai-preview-edit")).toBeDefined();
+    });
+
+    expect(screen.queryByTestId("ai-bar-response")).toBeNull();
+  });
+
+  it("opens AIPreview for delete intent", async () => {
+    const user = userEvent.setup();
+    vi.mocked(global.fetch).mockResolvedValueOnce(
+      mockFetchResponse({
+        intent: {
+          type: "delete",
+          targetType: "expense",
+          targetName: "Netflix",
+          confidence: "high",
+        },
+      })
+    );
+
+    renderWithProvider(<AIBar />);
+
+    await user.click(screen.getByTestId("ai-bar-pill"));
+    await user.type(screen.getByTestId("ai-bar-input"), "Delete Netflix");
+    await user.click(screen.getByTestId("ai-bar-submit"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("ai-preview-overlay")).toBeDefined();
+      expect(screen.getByTestId("ai-preview-delete")).toBeDefined();
+    });
+
+    expect(screen.queryByTestId("ai-bar-response")).toBeNull();
+  });
+
+  it("dismisses AIPreview on cancel", async () => {
+    const user = userEvent.setup();
+    vi.mocked(global.fetch).mockResolvedValueOnce(
+      mockFetchResponse({
+        intent: {
+          type: "create",
+          targetType: "income",
+          confidence: "high",
+          incomeFields: {
+            name: "Salary",
+            expectedAmount: 3200,
+            frequency: "monthly",
+          },
+        },
+      })
+    );
+
+    renderWithProvider(<AIBar />);
+
+    await user.click(screen.getByTestId("ai-bar-pill"));
+    await user.type(screen.getByTestId("ai-bar-input"), "Add salary $3200 monthly");
+    await user.click(screen.getByTestId("ai-bar-submit"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("ai-preview-overlay")).toBeDefined();
+    });
+
+    await user.click(screen.getByTestId("ai-preview-cancel"));
+
+    await waitFor(() => {
+      expect(screen.queryByTestId("ai-preview-overlay")).toBeNull();
+    });
+  });
+
+  it("closes AIPreview and shows success message on confirm", async () => {
+    const user = userEvent.setup();
+
+    // First call: parse API
+    vi.mocked(global.fetch).mockResolvedValueOnce(
+      mockFetchResponse({
+        intent: {
+          type: "create",
+          targetType: "income",
+          confidence: "high",
+          incomeFields: {
+            name: "Salary",
+            expectedAmount: 3200,
+            frequency: "monthly",
+          },
+        },
+      })
+    );
+
+    renderWithProvider(<AIBar />);
+
+    await user.click(screen.getByTestId("ai-bar-pill"));
+    await user.type(screen.getByTestId("ai-bar-input"), "Add salary $3200 monthly");
+    await user.click(screen.getByTestId("ai-bar-submit"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("ai-preview-overlay")).toBeDefined();
+    });
+
+    // Mock the create API and engine recalculate calls for confirm
+    vi.mocked(global.fetch).mockImplementation(async (url) => {
+      if (url === "/api/income-sources") {
+        return mockFetchResponse({ id: "inc-1", name: "Salary" }, 201);
+      }
+      if (url === "/api/engine/recalculate") {
+        return mockFetchResponse({ id: "snap-1" });
+      }
+      return mockFetchResponse({}, 404);
+    });
+
+    await user.click(screen.getByTestId("ai-preview-confirm"));
+
+    await waitFor(() => {
+      expect(screen.queryByTestId("ai-preview-overlay")).toBeNull();
+    });
+
+    // Should show success message in the AI bar response area
+    await waitFor(() => {
+      const response = screen.getByTestId("ai-bar-response");
+      expect(response.textContent).toBe("Action completed successfully");
+    });
+  });
+
+  it("handles query intent inline without opening AIPreview", async () => {
     const user = userEvent.setup();
     vi.mocked(global.fetch).mockResolvedValueOnce(
       mockFetchResponse({
@@ -121,6 +267,9 @@ describe("AIBar", () => {
       const response = screen.getByTestId("ai-bar-response");
       expect(response.textContent).toBe("Your biggest expense is rent at $1,500");
     });
+
+    // AIPreview should NOT be shown for query intents
+    expect(screen.queryByTestId("ai-preview-overlay")).toBeNull();
   });
 
   it("shows error response on API failure", async () => {

@@ -687,7 +687,7 @@
   - Acceptance: All old regex-based tests removed. New tests mock `@anthropic-ai/sdk` and verify: each intent type (create income, create obligation, edit, delete, query, what-if, escalation, clarification), the "Add an income of $1000 a month" failure case now produces a sensible name, missing API key returns structured error, API failure returns user-friendly error. All existing component tests for AIBar/AIPreview/SparkleButton still pass.
   - Tests: All new parser tests pass; all existing component tests pass
 
-- [ ] **Wire AIBar to open AIPreview for create/edit/delete intents**
+- [x] **Wire AIBar to open AIPreview for create/edit/delete intents**
   - Files: `web/app/components/AIBar.tsx`
   - Spec: `specs/09a-nl-to-claude-api.md`
   - Acceptance: When parse API returns a create, edit, or delete intent, AIBar opens the existing AIPreview component with the parsed intent data. Query and what-if intents continue to be handled inline. AIPreview executes the action on confirm and triggers engine recalculation. Cancel dismisses the preview. Loading indicator shown while parse API call is in flight.

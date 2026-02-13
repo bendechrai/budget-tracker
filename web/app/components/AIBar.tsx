@@ -3,9 +3,10 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import styles from "./ai-bar.module.css";
 import { logError } from "@/lib/logging";
-import type { ParseResult, WhatIfIntent } from "@/lib/ai/types";
+import type { ParseResult, WhatIfIntent, CreateIntent, EditIntent, DeleteIntent } from "@/lib/ai/types";
 import { useWhatIf } from "@/app/contexts/WhatIfContext";
 import type { HypotheticalObligation } from "@/app/contexts/WhatIfContext";
+import AIPreview from "./AIPreview";
 
 interface Position {
   x: number;
@@ -143,6 +144,7 @@ export default function AIBar() {
   const [loading, setLoading] = useState(false);
   const [response, setResponse] = useState<{ text: string; isError: boolean } | null>(null);
   const [position, setPosition] = useState<Position | null>(null);
+  const [previewIntent, setPreviewIntent] = useState<CreateIntent | EditIntent | DeleteIntent | null>(null);
 
   const whatIf = useWhatIf();
 
@@ -186,6 +188,13 @@ export default function AIBar() {
       }
 
       const data = (await res.json()) as AIResponse;
+
+      // For create/edit/delete intents, open AIPreview
+      if (data.intent.type === "create" || data.intent.type === "edit" || data.intent.type === "delete") {
+        setPreviewIntent(data.intent);
+        setInput("");
+        return;
+      }
 
       // Apply what-if changes to context
       if (data.intent.type === "whatif") {
@@ -271,6 +280,15 @@ export default function AIBar() {
       }
     : undefined;
 
+  const handlePreviewDone = useCallback(() => {
+    setPreviewIntent(null);
+    setResponse({ text: "Action completed successfully", isError: false });
+  }, []);
+
+  const handlePreviewCancel = useCallback(() => {
+    setPreviewIntent(null);
+  }, []);
+
   return (
     <div
       ref={wrapperRef}
@@ -278,6 +296,13 @@ export default function AIBar() {
       style={wrapperStyle}
       data-testid="ai-bar"
     >
+      {previewIntent && (
+        <AIPreview
+          intent={previewIntent}
+          onDone={handlePreviewDone}
+          onCancel={handlePreviewCancel}
+        />
+      )}
       {!expanded ? (
         <button
           className={styles.pill}
