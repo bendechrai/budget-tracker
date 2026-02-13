@@ -465,7 +465,7 @@
 
 ### Spec 10 — What-If Modeling
 
-- [ ] **Add what-if state management (React context)**
+- [x] **Add what-if state management (React context)**
   - Files: `web/app/contexts/WhatIfContext.tsx`
   - Spec: `specs/10-what-if.md`
   - Acceptance: React context holds what-if overrides: toggled-off obligation IDs, amount overrides, hypothetical obligations. Provides functions to toggle, override amount, add hypothetical, reset all, and apply. Client-side only, does not persist on refresh.
