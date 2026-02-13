@@ -422,17 +422,18 @@
   - Acceptance: Parses natural language into structured intents: create (income/obligation with all fields), edit (target + changes), delete (target), query (question). Handles complex inputs like the Melbourne council tax example. Returns parsed intent with confidence.
   - Tests: Unit tests: parse "Netflix $22.99 monthly" → create expense, parse "change gym to $60" → edit, parse "delete Spotify" → delete, parse "what's my biggest expense" → query
 
+- [x] **Add `POST /api/ai/parse` route**
+  - Files: `web/app/api/ai/parse/route.ts`
+  - Spec: `specs/09-ai-interaction.md`
+  - Acceptance: Receives raw text input, returns parsed intent with preview data. For queries, returns the answer directly. For ambiguous input, returns clarification prompt. Logs interaction in AIInteractionLog.
+  - Tests: Test parse returns correct intent type, ambiguous input returns clarification
+  - Note: AIInteractionLog logging deferred to next task (model does not exist yet).
+
 ## In Progress
 
 ## Backlog
 
 ### Spec 09 — AI Interaction Layer
-
-- [ ] **Add `POST /api/ai/parse` route**
-  - Files: `web/app/api/ai/parse/route.ts`
-  - Spec: `specs/09-ai-interaction.md`
-  - Acceptance: Receives raw text input, returns parsed intent with preview data. For queries, returns the answer directly. For ambiguous input, returns clarification prompt. Logs interaction in AIInteractionLog.
-  - Tests: Test parse returns correct intent type, ambiguous input returns clarification
 
 - [ ] **Add `AIInteractionLog` model with Prisma migration**
   - Files: `web/prisma/schema.prisma`, new migration
