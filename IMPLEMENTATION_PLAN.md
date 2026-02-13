@@ -475,6 +475,12 @@
 
 ## Completed (continued)
 
+- [x] **Add password reset request route (`POST /api/auth/reset-request`)**
+  - Files: `web/app/api/auth/reset-request/route.ts`, `web/prisma/schema.prisma`, new migration
+  - Spec: `specs/01-auth.md`
+  - Acceptance: Accepts email, generates a time-limited reset token, stores it. In development, logs the reset link to console (no email service required initially). Returns 200 regardless of whether email exists (prevents enumeration).
+  - Tests: Test token generation for existing user, 200 for nonexistent email
+
 - [x] **Add what-if support to AI bar NL parser**
   - Files: `web/lib/ai/nlParser.ts` (update), `web/lib/ai/types.ts` (update), `web/app/components/AIBar.tsx` (update), `web/app/api/ai/parse/route.ts` (update)
   - Spec: `specs/10-what-if.md`
@@ -502,12 +508,6 @@
 ## Backlog
 
 ### Spec 01 (continued) — Password Reset
-
-- [ ] **Add password reset request route (`POST /api/auth/reset-request`)**
-  - Files: `web/app/api/auth/reset-request/route.ts`
-  - Spec: `specs/01-auth.md`
-  - Acceptance: Accepts email, generates a time-limited reset token, stores it. In development, logs the reset link to console (no email service required initially). Returns 200 regardless of whether email exists (prevents enumeration).
-  - Tests: Test token generation for existing user, 200 for nonexistent email
 
 - [ ] **Add password reset confirm route (`POST /api/auth/reset-confirm`)**
   - Files: `web/app/api/auth/reset-confirm/route.ts`

@@ -35,6 +35,7 @@ model User {
   suggestions             Suggestion[]
   engineSnapshots         EngineSnapshot[]
   aiInteractionLogs       AIInteractionLog[]
+  passwordResetTokens     PasswordResetToken[]
 }
 
 enum IncomeFrequency {
@@ -273,4 +274,17 @@ model AIInteractionLog {
   user         User     @relation(fields: [userId], references: [id])
 
   @@index([userId])
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
 }
