@@ -7,6 +7,22 @@ vi.mock("@/lib/logging", () => ({
   logError: vi.fn(),
 }));
 
+vi.mock("@/app/obligations/EscalationForm", () => ({
+  default: ({ obligationId, obligationName, onSaved, onCancel }: {
+    obligationId: string;
+    obligationName: string;
+    onSaved: () => void;
+    onCancel: () => void;
+  }) => (
+    <div data-testid="mock-escalation-form">
+      <span data-testid="escalation-form-obligation-id">{obligationId}</span>
+      <span data-testid="escalation-form-obligation-name">{obligationName}</span>
+      <button data-testid="escalation-form-save" onClick={onSaved}>Save</button>
+      <button data-testid="escalation-form-cancel" onClick={onCancel}>Cancel</button>
+    </div>
+  ),
+}));
+
 function mockFetchResponse(data: unknown, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
@@ -84,13 +100,14 @@ describe("SparkleButton", () => {
     expect(screen.queryByTestId("sparkle-preset-dueDate")).toBeNull();
   });
 
-  it("shows obligation presets including due date for obligation items", async () => {
+  it("shows obligation presets including due date and escalation for obligation items", async () => {
     const user = userEvent.setup();
     render(<SparkleButton item={obligationItem} />);
 
     await user.click(screen.getByTestId("sparkle-button-ob-1"));
 
     expect(screen.getByTestId("sparkle-preset-amount")).toBeDefined();
+    expect(screen.getByTestId("sparkle-preset-escalation")).toBeDefined();
     expect(screen.getByTestId("sparkle-preset-frequency")).toBeDefined();
     expect(screen.getByTestId("sparkle-preset-dueDate")).toBeDefined();
     expect(screen.getByTestId("sparkle-preset-pause")).toBeDefined();
@@ -289,5 +306,83 @@ describe("SparkleButton", () => {
 
     const response = screen.getByTestId("sparkle-response");
     expect(response.textContent).toBe("Delete: Netflix");
+  });
+
+  it("opens escalation form when 'Add price change' preset is clicked", async () => {
+    const user = userEvent.setup();
+    render(<SparkleButton item={obligationItem} />);
+
+    await user.click(screen.getByTestId("sparkle-button-ob-1"));
+    await user.click(screen.getByTestId("sparkle-preset-escalation"));
+
+    expect(screen.getByTestId("sparkle-escalation-form")).toBeDefined();
+    expect(screen.getByTestId("mock-escalation-form")).toBeDefined();
+    expect(screen.getByTestId("escalation-form-obligation-id")?.textContent).toBe("ob-1");
+    expect(screen.getByTestId("escalation-form-obligation-name")?.textContent).toBe("Netflix");
+  });
+
+  it("hides 'Add price change' preset for one-off obligations", async () => {
+    const user = userEvent.setup();
+    const oneOffItem = {
+      ...obligationItem,
+      id: "ob-2",
+      obligationType: "one_off",
+    };
+    render(<SparkleButton item={oneOffItem} />);
+
+    await user.click(screen.getByTestId("sparkle-button-ob-2"));
+
+    expect(screen.queryByTestId("sparkle-preset-escalation")).toBeNull();
+    expect(screen.getByTestId("sparkle-preset-amount")).toBeDefined();
+    expect(screen.getByTestId("sparkle-preset-delete")).toBeDefined();
+  });
+
+  it("returns to presets when back button is clicked from escalation form", async () => {
+    const user = userEvent.setup();
+    render(<SparkleButton item={obligationItem} />);
+
+    await user.click(screen.getByTestId("sparkle-button-ob-1"));
+    await user.click(screen.getByTestId("sparkle-preset-escalation"));
+
+    expect(screen.getByTestId("sparkle-escalation-form")).toBeDefined();
+
+    await user.click(screen.getByTestId("sparkle-close"));
+
+    expect(screen.queryByTestId("sparkle-escalation-form")).toBeNull();
+    expect(screen.getByTestId("sparkle-presets")).toBeDefined();
+  });
+
+  it("calls onAction and closes modal when escalation form is saved", async () => {
+    const user = userEvent.setup();
+    const onAction = vi.fn();
+    render(<SparkleButton item={obligationItem} onAction={onAction} />);
+
+    await user.click(screen.getByTestId("sparkle-button-ob-1"));
+    await user.click(screen.getByTestId("sparkle-preset-escalation"));
+    await user.click(screen.getByTestId("escalation-form-save"));
+
+    expect(onAction).toHaveBeenCalledWith({
+      type: "edit",
+      targetType: "expense",
+      targetName: "Netflix",
+      confidence: "high",
+      changes: {},
+    });
+    expect(screen.queryByTestId("sparkle-modal-ob-1")).toBeNull();
+  });
+
+  it("returns to presets when escalation form cancel is clicked", async () => {
+    const user = userEvent.setup();
+    render(<SparkleButton item={obligationItem} />);
+
+    await user.click(screen.getByTestId("sparkle-button-ob-1"));
+    await user.click(screen.getByTestId("sparkle-preset-escalation"));
+
+    expect(screen.getByTestId("sparkle-escalation-form")).toBeDefined();
+
+    await user.click(screen.getByTestId("escalation-form-cancel"));
+
+    expect(screen.queryByTestId("sparkle-escalation-form")).toBeNull();
+    expect(screen.getByTestId("sparkle-presets")).toBeDefined();
   });
 });

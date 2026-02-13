@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import styles from "./sparkle.module.css";
 import { logError } from "@/lib/logging";
 import type { ParseResult } from "@/lib/ai/types";
+import EscalationForm from "@/app/obligations/EscalationForm";
 
 type ItemType = "income" | "obligation";
 
@@ -13,6 +14,7 @@ interface SparkleItem {
   amount: number;
   frequency?: string | null;
   type: ItemType;
+  obligationType?: string | null;
 }
 
 interface SparkleButtonProps {
@@ -29,6 +31,7 @@ const INCOME_PRESETS = [
 
 const OBLIGATION_PRESETS = [
   { label: "Change amount", field: "amount" },
+  { label: "Add price change", field: "escalation" },
   { label: "Change frequency", field: "frequency" },
   { label: "Change due date", field: "dueDate" },
   { label: "Pause", field: "pause" },
@@ -109,10 +112,15 @@ export default function SparkleButton({ item, onAction }: SparkleButtonProps) {
   const [freeText, setFreeText] = useState("");
   const [loading, setLoading] = useState(false);
   const [response, setResponse] = useState<{ text: string; isError: boolean } | null>(null);
+  const [showEscalationForm, setShowEscalationForm] = useState(false);
   const modalRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const presets = item.type === "income" ? INCOME_PRESETS : OBLIGATION_PRESETS;
+  const allPresets = item.type === "income" ? INCOME_PRESETS : OBLIGATION_PRESETS;
+  // Hide "Add price change" for one-off obligations
+  const presets = item.obligationType === "one_off"
+    ? allPresets.filter((p) => p.field !== "escalation")
+    : allPresets;
 
   const handleOpen = useCallback(() => {
     setOpen(true);
@@ -125,6 +133,7 @@ export default function SparkleButton({ item, onAction }: SparkleButtonProps) {
     setFreeText("");
     setResponse(null);
     setLoading(false);
+    setShowEscalationForm(false);
   }, []);
 
   useEffect(() => {
@@ -147,6 +156,10 @@ export default function SparkleButton({ item, onAction }: SparkleButtonProps) {
   }, [open, handleClose]);
 
   function handlePresetClick(field: string) {
+    if (field === "escalation") {
+      setShowEscalationForm(true);
+      return;
+    }
     const intent = buildPresetIntent(item, field);
     setResponse({ text: formatIntent(intent), isError: false });
     if (onAction) {
@@ -214,79 +227,106 @@ export default function SparkleButton({ item, onAction }: SparkleButtonProps) {
         <div className={styles.overlay}>
           <div
             ref={modalRef}
-            className={styles.modal}
+            className={showEscalationForm ? styles.modalWide : styles.modal}
             role="dialog"
             aria-label={`AI actions for ${item.name}`}
             data-testid={`sparkle-modal-${item.id}`}
           >
             <div className={styles.modalHeader}>
-              <span className={styles.modalTitle}>AI Actions</span>
+              <span className={styles.modalTitle}>
+                {showEscalationForm ? "Add Price Change" : "AI Actions"}
+              </span>
               <button
                 type="button"
                 className={styles.closeButton}
-                onClick={handleClose}
-                aria-label="Close"
+                onClick={showEscalationForm ? () => setShowEscalationForm(false) : handleClose}
+                aria-label={showEscalationForm ? "Back" : "Close"}
                 data-testid="sparkle-close"
               >
-                ×
+                {showEscalationForm ? "←" : "×"}
               </button>
             </div>
 
-            <div className={styles.summary} data-testid="sparkle-summary">
-              <span className={styles.summaryName}>{item.name}</span>
-              <span className={styles.summaryDetail}>
-                ${item.amount.toFixed(2)} / {frequencyLabel}
-              </span>
-            </div>
-
-            <div className={styles.presets} data-testid="sparkle-presets">
-              {presets.map((preset) => (
-                <button
-                  key={preset.field}
-                  type="button"
-                  className={styles.presetButton}
-                  onClick={() => handlePresetClick(preset.field)}
-                  data-testid={`sparkle-preset-${preset.field}`}
-                >
-                  {preset.label}
-                </button>
-              ))}
-            </div>
-
-            {response && (
-              <div
-                className={response.isError ? styles.responseError : styles.responseSuccess}
-                data-testid="sparkle-response"
-                aria-live="polite"
-              >
-                {response.text}
+            {showEscalationForm ? (
+              <div className={styles.escalationContainer} data-testid="sparkle-escalation-form">
+                <EscalationForm
+                  obligationId={item.id}
+                  obligationName={item.name}
+                  currentAmount={item.amount}
+                  onSaved={() => {
+                    handleClose();
+                    if (onAction) {
+                      onAction({
+                        type: "edit",
+                        targetType: "expense",
+                        targetName: item.name,
+                        confidence: "high",
+                        changes: {},
+                      });
+                    }
+                  }}
+                  onCancel={() => setShowEscalationForm(false)}
+                />
               </div>
-            )}
+            ) : (
+              <>
+                <div className={styles.summary} data-testid="sparkle-summary">
+                  <span className={styles.summaryName}>{item.name}</span>
+                  <span className={styles.summaryDetail}>
+                    ${item.amount.toFixed(2)} / {frequencyLabel}
+                  </span>
+                </div>
 
-            <div className={styles.freeTextArea}>
-              <input
-                ref={inputRef}
-                type="text"
-                className={styles.freeTextInput}
-                value={freeText}
-                onChange={(e) => setFreeText(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="Describe what you'd like to change"
-                disabled={loading}
-                aria-label="Free text input"
-                data-testid="sparkle-free-text"
-              />
-              <button
-                type="button"
-                className={styles.submitButton}
-                onClick={() => void handleFreeTextSubmit()}
-                disabled={loading || !freeText.trim()}
-                aria-label="Submit"
-                data-testid="sparkle-submit"
-              >
-                →
-              </button>
-            </div>
+                <div className={styles.presets} data-testid="sparkle-presets">
+                  {presets.map((preset) => (
+                    <button
+                      key={preset.field}
+                      type="button"
+                      className={styles.presetButton}
+                      onClick={() => handlePresetClick(preset.field)}
+                      data-testid={`sparkle-preset-${preset.field}`}
+                    >
+                      {preset.label}
+                    </button>
+                  ))}
+                </div>
+
+                {response && (
+                  <div
+                    className={response.isError ? styles.responseError : styles.responseSuccess}
+                    data-testid="sparkle-response"
+                    aria-live="polite"
+                  >
+                    {response.text}
+                  </div>
+                )}
+
+                <div className={styles.freeTextArea}>
+                  <input
+                    ref={inputRef}
+                    type="text"
+                    className={styles.freeTextInput}
+                    value={freeText}
+                    onChange={(e) => setFreeText(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    placeholder="Describe what you'd like to change"
+                    disabled={loading}
+                    aria-label="Free text input"
+                    data-testid="sparkle-free-text"
+                  />
+                  <button
+                    type="button"
+                    className={styles.submitButton}
+                    onClick={() => void handleFreeTextSubmit()}
+                    disabled={loading || !freeText.trim()}
+                    aria-label="Submit"
+                    data-testid="sparkle-submit"
+                  >
+                    →
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}

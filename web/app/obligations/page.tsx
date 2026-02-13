@@ -480,6 +480,7 @@ export default function ObligationsPage() {
                             amount: ob.amount,
                             frequency: ob.frequency,
                             type: "obligation",
+                            obligationType: ob.type,
                           }}
                           onAction={() => void fetchObligations()}
                         />

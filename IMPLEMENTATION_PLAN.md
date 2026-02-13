@@ -583,13 +583,13 @@
   - Acceptance: Each obligation shows upcoming escalation rules as a timeline of changes. Applied rules shown as history. Delete button on each rule. "Add price change" action available. Escalation section hidden for one-off obligations.
   - Tests: Component test: renders escalation timeline, delete calls API, hidden for one-off type
 
-## In Progress
-
-- [ ] **Add "Add price change" preset to sparkle button for obligations**
-  - Files: `web/app/components/SparkleButton.tsx` (update)
+- [x] **Add "Add price change" preset to sparkle button for obligations**
+  - Files: `web/app/components/SparkleButton.tsx` (update), `web/app/components/sparkle.module.css` (update), `web/app/obligations/page.tsx` (update)
   - Spec: `specs/11-escalation.md`
   - Acceptance: Obligation sparkle button gains "Add price change" preset alongside existing presets. Tapping it opens the EscalationForm. Existing "Change amount" preset remains for immediate changes.
   - Tests: Component test: "Add price change" preset appears for obligations, opens escalation form
+
+## In Progress
 
 - [ ] **Add escalation NL parsing support**
   - Files: `web/lib/ai/nlParser.ts` (update)
