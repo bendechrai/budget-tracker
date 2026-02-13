@@ -517,6 +517,12 @@
   - Acceptance: When what-if changes are active: timeline shows solid (actual) and dashed (scenario) lines. Hero card shows scenario next action with visual indicator. Health bar shows scenario status. All update live as toggles/tweaks change.
   - Tests: Component test: chart renders both lines, hero shows scenario indicator
 
+- [x] **Add `POST /api/escalations` route**
+  - Files: `web/app/api/escalations/route.ts`
+  - Spec: `specs/11-escalation.md`
+  - Acceptance: Creates an escalation rule for an obligation owned by the authenticated user. Validates: absolute changeType requires intervalMonths=null; obligation must not be one-off type. If a recurring rule already exists for the obligation, replaces it. If one-off rule has effectiveDate in the past, applies immediately (updates obligation amount, sets isApplied=true). Warns if value >50% increase. Returns 201.
+  - Tests: Test create one-off absolute (201), recurring percentage (201), reject absolute+recurring (400), reject for one-off obligation (400), past-date one-off auto-applies, replacing existing recurring rule, unauthenticated (401)
+
 - [x] **Add onboarding statement upload step page**
   - Files: `web/app/onboarding/upload/page.tsx`, `web/app/onboarding/upload/upload.module.css`
   - Spec: `specs/02-onboarding.md`
@@ -538,12 +544,6 @@
 ## Backlog
 
 ### Spec 11 — Obligation Amount Escalation
-
-- [ ] **Add `POST /api/escalations` route**
-  - Files: `web/app/api/escalations/route.ts`
-  - Spec: `specs/11-escalation.md`
-  - Acceptance: Creates an escalation rule for an obligation owned by the authenticated user. Validates: absolute changeType requires intervalMonths=null; obligation must not be one-off type. If a recurring rule already exists for the obligation, replaces it. If one-off rule has effectiveDate in the past, applies immediately (updates obligation amount, sets isApplied=true). Warns if value >50% increase. Returns 201.
-  - Tests: Test create one-off absolute (201), recurring percentage (201), reject absolute+recurring (400), reject for one-off obligation (400), past-date one-off auto-applies, replacing existing recurring rule, unauthenticated (401)
 
 - [ ] **Add `GET /api/escalations` route**
   - Files: `web/app/api/escalations/route.ts`
