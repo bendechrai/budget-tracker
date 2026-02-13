@@ -9,6 +9,7 @@ vi.mock("@/lib/auth/getCurrentUser", () => ({
 const mockObligationFindUnique = vi.fn();
 const mockEscalationCreate = vi.fn();
 const mockEscalationDeleteMany = vi.fn();
+const mockEscalationFindMany = vi.fn();
 const mockObligationUpdate = vi.fn();
 const mockTransaction = vi.fn();
 
@@ -21,6 +22,7 @@ vi.mock("@/lib/prisma", () => ({
     escalation: {
       create: (...args: unknown[]) => mockEscalationCreate(...args),
       deleteMany: (...args: unknown[]) => mockEscalationDeleteMany(...args),
+      findMany: (...args: unknown[]) => mockEscalationFindMany(...args),
     },
     $transaction: (...args: unknown[]) => mockTransaction(...args),
   },
@@ -30,7 +32,7 @@ vi.mock("@/lib/logging", () => ({
   logError: vi.fn(),
 }));
 
-import { POST } from "../route";
+import { POST, GET } from "../route";
 
 const mockUser = { id: "user-1", email: "test@example.com" };
 
@@ -534,5 +536,148 @@ describe("POST /api/escalations", () => {
     expect(res.status).toBe(201);
     const data = await res.json();
     expect(data.warning).toBeUndefined();
+  });
+});
+
+describe("GET /api/escalations", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockGetCurrentUser.mockResolvedValue(mockUser);
+    mockObligationFindUnique.mockResolvedValue(baseObligation);
+  });
+
+  function makeGetRequest(params: Record<string, string>): NextRequest {
+    const url = new URL("http://localhost/api/escalations");
+    for (const [key, value] of Object.entries(params)) {
+      url.searchParams.set(key, value);
+    }
+    return new NextRequest(url, { method: "GET" });
+  }
+
+  it("returns escalation rules for user's obligation", async () => {
+    const escalations = [
+      {
+        id: "esc-1",
+        obligationId: "obl-1",
+        changeType: "absolute",
+        value: 2200,
+        effectiveDate: new Date("2026-07-01"),
+        intervalMonths: null,
+        isApplied: false,
+        appliedAt: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        id: "esc-2",
+        obligationId: "obl-1",
+        changeType: "percentage",
+        value: 3,
+        effectiveDate: new Date("2027-07-01"),
+        intervalMonths: 12,
+        isApplied: false,
+        appliedAt: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    ];
+    mockEscalationFindMany.mockResolvedValue(escalations);
+
+    const res = await GET(makeGetRequest({ obligationId: "obl-1" }));
+
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data).toHaveLength(2);
+    expect(data[0].id).toBe("esc-1");
+    expect(data[1].id).toBe("esc-2");
+    expect(mockEscalationFindMany).toHaveBeenCalledWith({
+      where: { obligationId: "obl-1" },
+      orderBy: { effectiveDate: "asc" },
+    });
+  });
+
+  it("includes applied rules for history", async () => {
+    const escalations = [
+      {
+        id: "esc-applied",
+        obligationId: "obl-1",
+        changeType: "absolute",
+        value: 2200,
+        effectiveDate: new Date("2025-01-01"),
+        intervalMonths: null,
+        isApplied: true,
+        appliedAt: new Date("2025-01-01"),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        id: "esc-pending",
+        obligationId: "obl-1",
+        changeType: "percentage",
+        value: 5,
+        effectiveDate: new Date("2026-07-01"),
+        intervalMonths: null,
+        isApplied: false,
+        appliedAt: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    ];
+    mockEscalationFindMany.mockResolvedValue(escalations);
+
+    const res = await GET(makeGetRequest({ obligationId: "obl-1" }));
+
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data).toHaveLength(2);
+    expect(data[0].isApplied).toBe(true);
+    expect(data[1].isApplied).toBe(false);
+  });
+
+  it("returns 401 when unauthenticated", async () => {
+    mockGetCurrentUser.mockResolvedValue(null);
+
+    const res = await GET(makeGetRequest({ obligationId: "obl-1" }));
+
+    expect(res.status).toBe(401);
+  });
+
+  it("returns 400 when obligationId is missing", async () => {
+    const res = await GET(
+      new NextRequest("http://localhost/api/escalations", { method: "GET" })
+    );
+
+    expect(res.status).toBe(400);
+    const data = await res.json();
+    expect(data.error).toContain("obligationId");
+  });
+
+  it("returns 404 for another user's obligation", async () => {
+    mockObligationFindUnique.mockResolvedValue({
+      ...baseObligation,
+      userId: "other-user",
+    });
+
+    const res = await GET(makeGetRequest({ obligationId: "obl-1" }));
+
+    expect(res.status).toBe(404);
+  });
+
+  it("returns 404 for nonexistent obligation", async () => {
+    mockObligationFindUnique.mockResolvedValue(null);
+
+    const res = await GET(makeGetRequest({ obligationId: "nonexistent" }));
+
+    expect(res.status).toBe(404);
+  });
+
+  it("returns empty array when no escalation rules exist", async () => {
+    mockEscalationFindMany.mockResolvedValue([]);
+
+    const res = await GET(makeGetRequest({ obligationId: "obl-1" }));
+
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data).toEqual([]);
   });
 });

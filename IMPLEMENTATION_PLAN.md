@@ -523,6 +523,12 @@
   - Acceptance: Creates an escalation rule for an obligation owned by the authenticated user. Validates: absolute changeType requires intervalMonths=null; obligation must not be one-off type. If a recurring rule already exists for the obligation, replaces it. If one-off rule has effectiveDate in the past, applies immediately (updates obligation amount, sets isApplied=true). Warns if value >50% increase. Returns 201.
   - Tests: Test create one-off absolute (201), recurring percentage (201), reject absolute+recurring (400), reject for one-off obligation (400), past-date one-off auto-applies, replacing existing recurring rule, unauthenticated (401)
 
+- [x] **Add `GET /api/escalations` route**
+  - Files: `web/app/api/escalations/route.ts`
+  - Spec: `specs/11-escalation.md`
+  - Acceptance: Returns all escalation rules for a given obligationId (query param), scoped to the authenticated user. Includes both applied and unapplied rules, ordered by effectiveDate.
+  - Tests: Test returns rules for user's obligation only, includes applied rules for history
+
 - [x] **Add onboarding statement upload step page**
   - Files: `web/app/onboarding/upload/page.tsx`, `web/app/onboarding/upload/upload.module.css`
   - Spec: `specs/02-onboarding.md`
@@ -541,15 +547,7 @@
   - Acceptance: Accepts PDF uploads alongside CSV/OFX. Routes to PDF parser. Low-confidence transactions are flagged for user review. Import summary includes confidence info.
   - Tests: Test PDF upload flow with mocked parser
 
-## Backlog
-
-### Spec 11 — Obligation Amount Escalation
-
-- [ ] **Add `GET /api/escalations` route**
-  - Files: `web/app/api/escalations/route.ts`
-  - Spec: `specs/11-escalation.md`
-  - Acceptance: Returns all escalation rules for a given obligationId (query param), scoped to the authenticated user. Includes both applied and unapplied rules, ordered by effectiveDate.
-  - Tests: Test returns rules for user's obligation only, includes applied rules for history
+## In Progress
 
 - [ ] **Add `DELETE /api/escalations/[id]` route**
   - Files: `web/app/api/escalations/[id]/route.ts`
