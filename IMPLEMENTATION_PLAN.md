@@ -392,17 +392,17 @@
   - Acceptance: Progress bar showing total funded vs. total required. Color coded: green (≥90%), amber (60-89%), red (<60%). Shows absolute numbers. Expandable to per-group breakdown.
   - Tests: Component test: correct color at thresholds, shows numbers, expands to groups
 
+- [x] **Add timeline chart component**
+  - Files: `web/app/(app)/dashboard/TimelineChart.tsx`, `web/app/(app)/dashboard/timeline.module.css`, `web/package.json` (add recharts), `web/app/api/engine/timeline/route.ts`, `web/app/(app)/dashboard/page.tsx` (update)
+  - Spec: `specs/08-dashboard.md`
+  - Acceptance: Line chart projecting fund balance 6–12 months. X axis: time, Y axis: balance. Expense markers at due dates. Crunch points highlighted in red. Adjustable time range. Supports what-if overlay (solid=actual, dashed=scenario).
+  - Tests: Component test: renders chart, markers at correct positions
+
 ## In Progress
 
 ## Backlog
 
 ### Spec 08 — Dashboard
-
-- [ ] **Add timeline chart component**
-  - Files: `web/app/(app)/dashboard/TimelineChart.tsx`, `web/app/(app)/dashboard/timeline.module.css`, `web/package.json` (add chart library)
-  - Spec: `specs/08-dashboard.md`
-  - Acceptance: Line chart projecting fund balance 6–12 months. X axis: time, Y axis: balance. Expense markers at due dates. Crunch points highlighted in red. Adjustable time range. Supports what-if overlay (solid=actual, dashed=scenario).
-  - Tests: Component test: renders chart, markers at correct positions
 
 - [ ] **Add upcoming obligations component**
   - Files: `web/app/(app)/dashboard/UpcomingObligations.tsx`, `web/app/(app)/dashboard/upcoming.module.css`

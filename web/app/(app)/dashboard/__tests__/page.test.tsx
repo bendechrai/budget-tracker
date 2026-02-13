@@ -27,12 +27,37 @@ vi.mock("@/lib/logging", () => ({
   logError: vi.fn(),
 }));
 
+// Mock recharts to avoid SVG rendering issues in tests
+vi.mock("recharts", () => ({
+  ResponsiveContainer: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  LineChart: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  Line: () => <div />,
+  XAxis: () => <div />,
+  YAxis: () => <div />,
+  CartesianGrid: () => <div />,
+  Tooltip: () => <div />,
+  ReferenceDot: () => <div />,
+  ReferenceLine: () => <div />,
+}));
+
 function mockFetchResponse(data: unknown, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
     headers: { "Content-Type": "application/json" },
   });
 }
+
+const mockTimelineData = {
+  dataPoints: [
+    { date: "2025-01-01T00:00:00.000Z", projectedBalance: 1000 },
+    { date: "2025-06-01T00:00:00.000Z", projectedBalance: 800 },
+  ],
+  expenseMarkers: [],
+  contributionMarkers: [],
+  crunchPoints: [],
+  startDate: "2025-01-01T00:00:00.000Z",
+  endDate: "2025-07-01T00:00:00.000Z",
+};
 
 const mockSnapshot = {
   id: "snap1",
@@ -87,6 +112,9 @@ describe("DashboardPage", () => {
           mockFetchResponse([{ id: "ob1" }])
         );
       }
+      if (typeof url === "string" && url.includes("/api/engine/timeline")) {
+        return Promise.resolve(mockFetchResponse(mockTimelineData));
+      }
       return Promise.resolve(mockFetchResponse(mockSnapshot));
     });
 
@@ -110,6 +138,9 @@ describe("DashboardPage", () => {
           mockFetchResponse([{ id: "ob1" }])
         );
       }
+      if (typeof url === "string" && url.includes("/api/engine/timeline")) {
+        return Promise.resolve(mockFetchResponse(mockTimelineData));
+      }
       return Promise.resolve(mockFetchResponse(mockFullyFundedSnapshot));
     });
 
@@ -128,6 +159,9 @@ describe("DashboardPage", () => {
     vi.mocked(global.fetch).mockImplementation((url) => {
       if (typeof url === "string" && url.includes("/api/obligations")) {
         return Promise.resolve(mockFetchResponse([]));
+      }
+      if (typeof url === "string" && url.includes("/api/engine/timeline")) {
+        return Promise.resolve(mockFetchResponse(mockTimelineData));
       }
       return Promise.resolve(mockFetchResponse(mockEmptySnapshot));
     });
@@ -162,6 +196,9 @@ describe("DashboardPage", () => {
       if (typeof url === "string" && url.includes("/api/obligations")) {
         return Promise.resolve(mockFetchResponse([]));
       }
+      if (typeof url === "string" && url.includes("/api/engine/timeline")) {
+        return Promise.resolve(mockFetchResponse(mockTimelineData));
+      }
       return Promise.resolve(
         mockFetchResponse({ error: "internal server error" }, 500)
       );
@@ -180,6 +217,9 @@ describe("DashboardPage", () => {
     vi.mocked(global.fetch).mockImplementation((url) => {
       if (typeof url === "string" && url.includes("/api/obligations")) {
         return Promise.resolve(mockFetchResponse([]));
+      }
+      if (typeof url === "string" && url.includes("/api/engine/timeline")) {
+        return Promise.resolve(mockFetchResponse(mockTimelineData));
       }
       return Promise.resolve(mockFetchResponse(mockEmptySnapshot));
     });

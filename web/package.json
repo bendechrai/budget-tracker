@@ -27,7 +27,8 @@
     "pg": "^8.18.0",
     "prisma": "^7.4.0",
     "react": "19.2.3",
-    "react-dom": "19.2.3"
+    "react-dom": "19.2.3",
+    "recharts": "^3.7.0"
   },
   "devDependencies": {
     "@testing-library/dom": "^10.4.1",

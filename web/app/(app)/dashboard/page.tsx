@@ -5,6 +5,7 @@ import Link from "next/link";
 import styles from "./dashboard.module.css";
 import { logError } from "@/lib/logging";
 import HealthBar from "./HealthBar";
+import TimelineChart from "./TimelineChart";
 
 interface EngineSnapshot {
   id: string;
@@ -145,6 +146,10 @@ export default function DashboardPage() {
             totalFunded={snapshot.totalFunded}
             totalRequired={snapshot.totalRequired}
           />
+        )}
+
+        {!loading && !error && !isEmptyState && (
+          <TimelineChart />
         )}
       </div>
     </div>
