@@ -493,15 +493,13 @@
   - Acceptance: When what-if changes are active: timeline shows solid (actual) and dashed (scenario) lines. Hero card shows scenario next action with visual indicator. Health bar shows scenario status. All update live as toggles/tweaks change.
   - Tests: Component test: chart renders both lines, hero shows scenario indicator
 
-## Backlog
-
-### Spec 02 (continued) — Onboarding Statement Upload Path
-
-- [ ] **Add onboarding statement upload step page**
-  - Files: `web/app/onboarding/upload/page.tsx`
+- [x] **Add onboarding statement upload step page**
+  - Files: `web/app/onboarding/upload/page.tsx`, `web/app/onboarding/upload/upload.module.css`
   - Spec: `specs/02-onboarding.md`
   - Acceptance: User can upload bank statements (reuses import infrastructure). After parsing, shows detected patterns as suggestions. User can accept/tweak/dismiss each. Navigates to fund setup when done. Can skip.
   - Tests: Component test: upload works, suggestions display, skip navigates to fund setup
+
+## Backlog
 
 ### Spec 01 (continued) — Password Reset
 
