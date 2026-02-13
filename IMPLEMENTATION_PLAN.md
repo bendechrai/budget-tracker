@@ -553,13 +553,13 @@
   - Acceptance: Deletes an escalation rule. Only allows deleting own records (via obligation ownership). Returns 200.
   - Tests: Test delete (200), ownership check (403/404)
 
-## In Progress
-
-- [ ] **Add escalation projection utility**
+- [x] **Add escalation projection utility**
   - Files: `web/lib/engine/escalation.ts`
   - Spec: `specs/11-escalation.md`
   - Acceptance: Given an obligation's current amount and its escalation rules, projects future amounts at each due date over a configurable window. Applies one-off rules at their effective dates (absolute sets amount, percentage/fixed_increase modify it). Applies recurring rules at each interval. One-off takes precedence over recurring on the same date. Returns array of {date, amount} pairs.
   - Tests: Unit tests: one-off absolute projection, one-off percentage, one-off fixed increase, recurring percentage over multiple intervals, recurring fixed increase, combined one-off + recurring, one-off precedence on same date
+
+## In Progress
 
 - [ ] **Integrate escalation into sinking fund engine calculations**
   - Files: `web/lib/engine/calculate.ts` (update)
