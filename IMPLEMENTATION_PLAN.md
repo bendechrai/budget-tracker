@@ -465,23 +465,17 @@
   - Acceptance: Engine calculation function accepts optional what-if overrides parameter. Excludes toggled-off obligations. Uses overridden amounts. Includes hypothetical obligations. Returns separate scenario projection alongside actual.
   - Tests: Unit test: calculation with toggled-off obligation, with amount override, with hypothetical
 
+- [x] **Add what-if toggle controls on obligations list**
+  - Files: `web/app/obligations/page.tsx` (update), `web/app/obligations/HypotheticalForm.tsx`, `web/app/obligations/obligations.module.css` (update), `web/app/layout.tsx` (update), `web/app/Providers.tsx`
+  - Spec: `specs/10-what-if.md`
+  - Acceptance: Each obligation has a what-if toggle switch. Toggling off marks it as excluded in the what-if context. Amount fields are editable for temporary overrides. "Add hypothetical" button creates a temporary obligation.
+  - Tests: Component test: toggle updates context, amount override updates context
+
 ## In Progress
 
 ## Backlog
 
 ### Spec 10 — What-If Modeling
-
-- [x] **Add what-if state management (React context)**
-  - Files: `web/app/contexts/WhatIfContext.tsx`
-  - Spec: `specs/10-what-if.md`
-  - Acceptance: React context holds what-if overrides: toggled-off obligation IDs, amount overrides, hypothetical obligations. Provides functions to toggle, override amount, add hypothetical, reset all, and apply. Client-side only, does not persist on refresh.
-  - Tests: Unit test: toggle obligation, override amount, add hypothetical, reset clears all
-
-- [ ] **Add what-if toggle controls on obligations list**
-  - Files: `web/app/obligations/page.tsx` (update)
-  - Spec: `specs/10-what-if.md`
-  - Acceptance: Each obligation has a what-if toggle switch. Toggling off marks it as excluded in the what-if context. Amount fields are editable for temporary overrides. "Add hypothetical" button creates a temporary obligation.
-  - Tests: Component test: toggle updates context, amount override updates context
 
 - [ ] **Add scenario banner component**
   - Files: `web/app/components/ScenarioBanner.tsx`, `web/app/components/scenario-banner.module.css`

@@ -252,6 +252,129 @@
   color: #999;
 }
 
+.listItemToggledOff {
+  opacity: 0.4;
+  border-style: dashed;
+}
+
+.whatIfBadge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 500;
+  color: #805ad5;
+  background: #faf5ff;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-left: 8px;
+}
+
+.whatIfToggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.whatIfToggleLabel {
+  color: #666;
+  font-size: 12px;
+}
+
+.amountOverrideInput {
+  width: 80px;
+  padding: 4px 6px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 13px;
+  color: var(--foreground);
+  background: transparent;
+}
+
+.amountOverrideInput:focus {
+  outline: none;
+  border-color: #805ad5;
+}
+
+.hypotheticalSection {
+  margin-bottom: 24px;
+}
+
+.listItemHypothetical {
+  border-color: #805ad5;
+  border-style: dashed;
+  background: #faf5ff;
+}
+
+.hypotheticalActions {
+  margin-bottom: 24px;
+}
+
+.addHypotheticalButton {
+  padding: 8px 16px;
+  border: 1px dashed #805ad5;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  background: transparent;
+  color: #805ad5;
+  transition: background-color 0.2s;
+}
+
+.addHypotheticalButton:hover {
+  background: #faf5ff;
+}
+
+.hypotheticalForm {
+  padding: 16px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.hypotheticalFormTitle {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--foreground);
+  margin: 0;
+}
+
+.hypotheticalFormField {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.hypotheticalFormField label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #666;
+}
+
+.hypotheticalFormField input,
+.hypotheticalFormField select {
+  padding: 8px 10px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  color: var(--foreground);
+  background: transparent;
+}
+
+.hypotheticalFormField input:focus,
+.hypotheticalFormField select:focus {
+  outline: none;
+  border-color: #805ad5;
+}
+
+.hypotheticalFormActions {
+  display: flex;
+  gap: 8px;
+}
+
 .listItemArchived {
   opacity: 0.6;
 }
@@ -268,6 +391,55 @@
 }
 
 @media (prefers-color-scheme: dark) {
+  .whatIfBadge {
+    color: #b794f4;
+    background: #2d1f4e;
+  }
+
+  .whatIfToggleLabel {
+    color: #999;
+  }
+
+  .amountOverrideInput {
+    border-color: #333;
+  }
+
+  .amountOverrideInput:focus {
+    border-color: #b794f4;
+  }
+
+  .listItemHypothetical {
+    border-color: #805ad5;
+    background: #1a0f2e;
+  }
+
+  .addHypotheticalButton {
+    border-color: #805ad5;
+    color: #b794f4;
+  }
+
+  .addHypotheticalButton:hover {
+    background: #1a0f2e;
+  }
+
+  .hypotheticalForm {
+    border-color: #333;
+  }
+
+  .hypotheticalFormField label {
+    color: #999;
+  }
+
+  .hypotheticalFormField input,
+  .hypotheticalFormField select {
+    border-color: #333;
+  }
+
+  .hypotheticalFormField input:focus,
+  .hypotheticalFormField select:focus {
+    border-color: #b794f4;
+  }
+
   .error {
     color: #fc8181;
     background: #1a0000;

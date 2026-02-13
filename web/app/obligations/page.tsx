@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import styles from "./obligations.module.css";
 import { logError } from "@/lib/logging";
 import SparkleButton from "@/app/components/SparkleButton";
+import { useWhatIf } from "@/app/contexts/WhatIfContext";
+import HypotheticalForm from "./HypotheticalForm";
 
 interface FundGroup {
   id: string;
@@ -145,6 +147,8 @@ export default function ObligationsPage() {
   const [archivedObligations, setArchivedObligations] = useState<Obligation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [showHypotheticalForm, setShowHypotheticalForm] = useState(false);
+  const { overrides, toggleObligation, overrideAmount, addHypothetical, removeHypothetical } = useWhatIf();
 
   const archiveObligation = useCallback(async (ob: Obligation) => {
     try {
@@ -305,12 +309,16 @@ export default function ObligationsPage() {
               )}
               <ul className={styles.list}>
                 {group.obligations.map((ob) => {
+                  const isToggledOff = overrides.toggledOffIds.has(ob.id);
+                  const amountOverride = overrides.amountOverrides.get(ob.id);
                   const pastDue = !ob.isPaused && isPastDue(ob.nextDueDate);
                   const classNames = [styles.listItem];
                   if (ob.isPaused) classNames.push(styles.listItemPaused);
                   if (pastDue) classNames.push(styles.listItemPastDue);
+                  if (isToggledOff) classNames.push(styles.listItemToggledOff);
 
                   const freq = formatFrequency(ob.frequency, ob.frequencyDays);
+                  const displayAmount = amountOverride ?? ob.amount;
 
                   return (
                     <li key={ob.id} className={classNames.join(" ")}>
@@ -328,9 +336,19 @@ export default function ObligationsPage() {
                               Past due
                             </span>
                           )}
+                          {isToggledOff && (
+                            <span className={styles.whatIfBadge}>
+                              What-if: off
+                            </span>
+                          )}
+                          {amountOverride !== undefined && (
+                            <span className={styles.whatIfBadge}>
+                              What-if: ${amountOverride.toFixed(2)}
+                            </span>
+                          )}
                         </span>
                         <span className={styles.listItemDetail}>
-                          ${ob.amount.toFixed(2)}
+                          ${displayAmount.toFixed(2)}
                           {freq && <> / {freq}</>}
                           {" · Due: "}
                           {formatDate(ob.nextDueDate)}
@@ -340,6 +358,31 @@ export default function ObligationsPage() {
                         </span>
                       </div>
                       <div className={styles.listItemActions}>
+                        <label className={styles.whatIfToggle} data-testid={`whatif-toggle-${ob.id}`}>
+                          <input
+                            type="checkbox"
+                            checked={!isToggledOff}
+                            onChange={() => toggleObligation(ob.id)}
+                            aria-label={`What-if toggle for ${ob.name}`}
+                          />
+                          <span className={styles.whatIfToggleLabel}>What-if</span>
+                        </label>
+                        <input
+                          type="number"
+                          className={styles.amountOverrideInput}
+                          placeholder={ob.amount.toFixed(2)}
+                          value={amountOverride !== undefined ? amountOverride : ""}
+                          onChange={(e) => {
+                            const val = parseFloat(e.target.value);
+                            if (!isNaN(val) && val >= 0) {
+                              overrideAmount(ob.id, val);
+                            }
+                          }}
+                          aria-label={`Amount override for ${ob.name}`}
+                          data-testid={`amount-override-${ob.id}`}
+                          step="0.01"
+                          min="0"
+                        />
                         <SparkleButton
                           item={{
                             id: ob.id,
@@ -380,6 +423,65 @@ export default function ObligationsPage() {
               </ul>
             </div>
           ))}
+
+        {!loading && overrides.hypotheticals.length > 0 && (
+          <div className={styles.hypotheticalSection}>
+            <h2 className={styles.groupTitle}>Hypothetical obligations</h2>
+            <ul className={styles.list}>
+              {overrides.hypotheticals.map((hypo) => {
+                const freq = formatFrequency(hypo.frequency, hypo.frequencyDays);
+                return (
+                  <li key={hypo.id} className={`${styles.listItem} ${styles.listItemHypothetical}`}>
+                    <div className={styles.listItemInfo}>
+                      <span className={styles.listItemName}>
+                        {hypo.name}
+                        <span className={styles.whatIfBadge}>Hypothetical</span>
+                      </span>
+                      <span className={styles.listItemDetail}>
+                        ${hypo.amount.toFixed(2)}
+                        {freq && <> / {freq}</>}
+                        {" · Due: "}
+                        {formatDate(hypo.nextDueDate.toISOString())}
+                      </span>
+                    </div>
+                    <div className={styles.listItemActions}>
+                      <button
+                        type="button"
+                        className={styles.deleteButton}
+                        onClick={() => removeHypothetical(hypo.id)}
+                        aria-label={`Remove ${hypo.name}`}
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        )}
+
+        {!loading && obligations.length > 0 && (
+          <div className={styles.hypotheticalActions}>
+            {!showHypotheticalForm ? (
+              <button
+                type="button"
+                className={styles.addHypotheticalButton}
+                onClick={() => setShowHypotheticalForm(true)}
+              >
+                Add hypothetical obligation
+              </button>
+            ) : (
+              <HypotheticalForm
+                onAdd={(hypo) => {
+                  addHypothetical(hypo);
+                  setShowHypotheticalForm(false);
+                }}
+                onCancel={() => setShowHypotheticalForm(false)}
+              />
+            )}
+          </div>
+        )}
 
         {!loading && hasAnyObligations && (
           <div className={styles.archiveSection}>

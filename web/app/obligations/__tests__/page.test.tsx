@@ -13,6 +13,43 @@ vi.mock("@/lib/logging", () => ({
   logError: vi.fn(),
 }));
 
+const mockToggleObligation = vi.fn();
+const mockOverrideAmount = vi.fn();
+const mockAddHypothetical = vi.fn();
+const mockRemoveHypothetical = vi.fn();
+const mockResetAll = vi.fn();
+
+const defaultOverrides = {
+  toggledOffIds: new Set<string>(),
+  amountOverrides: new Map<string, number>(),
+  hypotheticals: [] as Array<{
+    id: string;
+    name: string;
+    type: string;
+    amount: number;
+    frequency: string | null;
+    frequencyDays: number | null;
+    nextDueDate: Date;
+    endDate: Date | null;
+    fundGroupId: string | null;
+  }>,
+};
+
+let currentOverrides = { ...defaultOverrides };
+
+vi.mock("@/app/contexts/WhatIfContext", () => ({
+  useWhatIf: () => ({
+    overrides: currentOverrides,
+    isActive: currentOverrides.toggledOffIds.size > 0 || currentOverrides.amountOverrides.size > 0 || currentOverrides.hypotheticals.length > 0,
+    toggleObligation: mockToggleObligation,
+    overrideAmount: mockOverrideAmount,
+    addHypothetical: mockAddHypothetical,
+    removeHypothetical: mockRemoveHypothetical,
+    resetAll: mockResetAll,
+    changeSummary: "",
+  }),
+}));
+
 const mockObligations = [
   {
     id: "1",
@@ -107,6 +144,11 @@ describe("ObligationsPage", () => {
     vi.clearAllMocks();
     global.fetch = vi.fn();
     window.confirm = vi.fn();
+    currentOverrides = {
+      toggledOffIds: new Set<string>(),
+      amountOverrides: new Map<string, number>(),
+      hypotheticals: [],
+    };
   });
 
   afterEach(() => {
@@ -719,5 +761,199 @@ describe("ObligationsPage", () => {
     expect(screen.getByRole("heading", { name: "Archived" })).toBeDefined();
     // Should not show empty state since there are archived obligations
     expect(screen.queryByText("No obligations yet")).toBeNull();
+  });
+
+  // What-if toggle tests
+
+  it("renders what-if toggle for each obligation", async () => {
+    mockFetchResponses(mockObligations);
+
+    render(<ObligationsPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Netflix")).toBeDefined();
+    });
+
+    expect(screen.getByTestId("whatif-toggle-1")).toBeDefined();
+    expect(screen.getByTestId("whatif-toggle-2")).toBeDefined();
+    expect(screen.getByTestId("whatif-toggle-3")).toBeDefined();
+  });
+
+  it("calls toggleObligation when what-if toggle is clicked", async () => {
+    const user = userEvent.setup();
+    mockFetchResponses(mockObligations);
+
+    render(<ObligationsPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Netflix")).toBeDefined();
+    });
+
+    const toggle = screen.getByRole("checkbox", { name: "What-if toggle for Netflix" });
+    await user.click(toggle);
+
+    expect(mockToggleObligation).toHaveBeenCalledWith("1");
+  });
+
+  it("shows what-if:off badge when obligation is toggled off", async () => {
+    currentOverrides = {
+      toggledOffIds: new Set(["1"]),
+      amountOverrides: new Map(),
+      hypotheticals: [],
+    };
+
+    mockFetchResponses(mockObligations);
+
+    render(<ObligationsPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Netflix")).toBeDefined();
+    });
+
+    expect(screen.getByText("What-if: off")).toBeDefined();
+  });
+
+  it("renders amount override input for each obligation", async () => {
+    mockFetchResponses(mockObligations);
+
+    render(<ObligationsPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Netflix")).toBeDefined();
+    });
+
+    expect(screen.getByTestId("amount-override-1")).toBeDefined();
+    expect(screen.getByTestId("amount-override-2")).toBeDefined();
+    expect(screen.getByTestId("amount-override-3")).toBeDefined();
+  });
+
+  it("calls overrideAmount when amount override input changes", async () => {
+    mockFetchResponses([mockObligations[0]]);
+
+    render(<ObligationsPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Netflix")).toBeDefined();
+    });
+
+    const input = screen.getByTestId("amount-override-1") as HTMLInputElement;
+    // Use fireEvent.change for controlled input with mocked state
+    const { fireEvent } = await import("@testing-library/react");
+    fireEvent.change(input, { target: { value: "30" } });
+
+    expect(mockOverrideAmount).toHaveBeenCalledWith("1", 30);
+  });
+
+  it("shows what-if amount badge when amount is overridden", async () => {
+    currentOverrides = {
+      toggledOffIds: new Set(),
+      amountOverrides: new Map([["1", 30]]),
+      hypotheticals: [],
+    };
+
+    mockFetchResponses(mockObligations);
+
+    render(<ObligationsPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Netflix")).toBeDefined();
+    });
+
+    expect(screen.getByText("What-if: $30.00")).toBeDefined();
+    // The displayed amount in the detail line should reflect the overridden amount
+    const allAmounts = screen.getAllByText(/\$30\.00/);
+    expect(allAmounts.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("shows Add hypothetical button when obligations exist", async () => {
+    mockFetchResponses(mockObligations);
+
+    render(<ObligationsPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Netflix")).toBeDefined();
+    });
+
+    expect(screen.getByRole("button", { name: "Add hypothetical obligation" })).toBeDefined();
+  });
+
+  it("shows hypothetical form when Add hypothetical is clicked", async () => {
+    const user = userEvent.setup();
+    mockFetchResponses(mockObligations);
+
+    render(<ObligationsPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Netflix")).toBeDefined();
+    });
+
+    await user.click(screen.getByRole("button", { name: "Add hypothetical obligation" }));
+
+    expect(screen.getByTestId("hypothetical-form")).toBeDefined();
+  });
+
+  it("displays hypothetical obligations from context", async () => {
+    currentOverrides = {
+      toggledOffIds: new Set(),
+      amountOverrides: new Map(),
+      hypotheticals: [
+        {
+          id: "hypo-1",
+          name: "Holiday Fund",
+          type: "one_off",
+          amount: 2000,
+          frequency: null,
+          frequencyDays: null,
+          nextDueDate: new Date("2026-12-01"),
+          endDate: null,
+          fundGroupId: null,
+        },
+      ],
+    };
+
+    mockFetchResponses(mockObligations);
+
+    render(<ObligationsPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Netflix")).toBeDefined();
+    });
+
+    expect(screen.getByText("Holiday Fund")).toBeDefined();
+    expect(screen.getByText("Hypothetical")).toBeDefined();
+    expect(screen.getByText(/\$2,?000\.00/)).toBeDefined();
+  });
+
+  it("calls removeHypothetical when remove button is clicked", async () => {
+    const user = userEvent.setup();
+    currentOverrides = {
+      toggledOffIds: new Set(),
+      amountOverrides: new Map(),
+      hypotheticals: [
+        {
+          id: "hypo-1",
+          name: "Holiday Fund",
+          type: "one_off",
+          amount: 2000,
+          frequency: null,
+          frequencyDays: null,
+          nextDueDate: new Date("2026-12-01"),
+          endDate: null,
+          fundGroupId: null,
+        },
+      ],
+    };
+
+    mockFetchResponses(mockObligations);
+
+    render(<ObligationsPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Holiday Fund")).toBeDefined();
+    });
+
+    await user.click(screen.getByRole("button", { name: "Remove Holiday Fund" }));
+
+    expect(mockRemoveHypothetical).toHaveBeenCalledWith("hypo-1");
   });
 });
