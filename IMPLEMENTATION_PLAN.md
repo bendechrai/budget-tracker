@@ -613,15 +613,15 @@
   - Acceptance: `@playwright/test` is a dev dependency. `playwright.config.ts` exists with baseURL `http://localhost:3000`, Chromium project, `storageState` support, and reasonable timeouts. `npm run test:e2e` script runs Playwright. Dockerfile installs Chromium via `npx playwright install --with-deps chromium`. `npx playwright test` exits cleanly (no tests yet).
   - Tests: `npm run test:e2e` executes without configuration errors
 
-## In Progress
-
-## Backlog
-
-- [ ] **Add Playwright global setup with auth session**
+- [x] **Add Playwright global setup with auth session**
   - Files: `web/e2e/global-setup.ts`, `web/e2e/global-teardown.ts`, `web/playwright.config.ts` (update)
   - Spec: `specs/12-ui-testing.md`
   - Acceptance: Global setup seeds a test user via Prisma (with onboardingComplete=true and sample data: at least one income source, one obligation). Logs in via the `/api/auth/login` endpoint and saves `storageState` to a file. Global teardown cleans up the test user and associated data. All subsequent test files reuse the saved session.
   - Tests: Running `npm run test:e2e` completes global setup without error; storageState file is created
+
+## In Progress
+
+## Backlog
 
 - [ ] **Add layout persistence e2e test**
   - Files: `web/e2e/layout.spec.ts`

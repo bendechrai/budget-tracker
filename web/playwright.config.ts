@@ -8,6 +8,8 @@ export default defineConfig({
   workers: 1,
   reporter: "list",
   timeout: 15_000,
+  globalSetup: "./e2e/global-setup.ts",
+  globalTeardown: "./e2e/global-teardown.ts",
   use: {
     baseURL: "http://localhost:3000",
     trace: "off",
