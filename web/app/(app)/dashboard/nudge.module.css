@@ -1,0 +1,102 @@
+.nudgeSection {
+  margin-top: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.nudgeCard {
+  padding: 14px 16px;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  background: var(--background);
+}
+
+.nudgeContent {
+  flex: 1;
+  min-width: 0;
+}
+
+.nudgeText {
+  font-size: 14px;
+  color: var(--foreground);
+  margin-bottom: 8px;
+  line-height: 1.4;
+}
+
+.nudgeAmount {
+  font-weight: 600;
+}
+
+.nudgeMeta {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 12px;
+  color: #666;
+}
+
+.nudgeLink {
+  font-size: 12px;
+  color: var(--foreground);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.nudgeLink:hover {
+  opacity: 0.7;
+}
+
+.dismissButton {
+  border: none;
+  background: transparent;
+  color: #999;
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+  padding: 2px 4px;
+  border-radius: 4px;
+  flex-shrink: 0;
+  transition: color 0.2s;
+}
+
+.dismissButton:hover {
+  color: var(--foreground);
+}
+
+.dismissButton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+@media (prefers-color-scheme: dark) {
+  .nudgeCard {
+    border-color: #333;
+  }
+
+  .nudgeMeta {
+    color: #999;
+  }
+
+  .dismissButton {
+    color: #666;
+  }
+
+  .dismissButton:hover {
+    color: var(--foreground);
+  }
+}
+
+@media (max-width: 480px) {
+  .nudgeSection {
+    margin-top: 16px;
+  }
+
+  .nudgeCard {
+    padding: 12px;
+  }
+}

@@ -404,17 +404,17 @@
   - Acceptance: Lists obligations due in next 30 days. Each shows name, amount, date, fund status (fully/partially/unfunded). Sorted by due date. Same-day obligations grouped.
   - Tests: Component test: renders sorted list, groups same-day items, shows fund status
 
+- [x] **Add smart nudge cards on dashboard**
+  - Files: `web/app/(app)/dashboard/NudgeCards.tsx`, `web/app/(app)/dashboard/nudge.module.css`
+  - Spec: `specs/08-dashboard.md`, `specs/06-pattern-detection.md`
+  - Acceptance: Displays high-confidence suggestions as dismissible cards. Links to suggestions feed. Example: "We noticed a new $14.99 monthly charge from Spotify."
+  - Tests: Component test: renders nudge cards for high-confidence suggestions, dismiss works
+
 ## In Progress
 
 ## Backlog
 
 ### Spec 08 — Dashboard
-
-- [ ] **Add smart nudge cards on dashboard**
-  - Files: `web/app/(app)/dashboard/NudgeCards.tsx`, `web/app/(app)/dashboard/nudge.module.css`
-  - Spec: `specs/08-dashboard.md`, `specs/06-pattern-detection.md`
-  - Acceptance: Displays high-confidence suggestions as dismissible cards. Links to suggestions feed. Example: "We noticed a new $14.99 monthly charge from Spotify."
-  - Tests: Component test: renders nudge cards for high-confidence suggestions, dismiss works
 
 - [ ] **Add responsive dashboard layout**
   - Files: `web/app/(app)/dashboard/dashboard.module.css` (update)

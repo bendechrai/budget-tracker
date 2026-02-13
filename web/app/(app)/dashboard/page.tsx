@@ -7,6 +7,7 @@ import { logError } from "@/lib/logging";
 import HealthBar from "./HealthBar";
 import TimelineChart from "./TimelineChart";
 import UpcomingObligations from "./UpcomingObligations";
+import NudgeCards from "./NudgeCards";
 
 interface EngineSnapshot {
   id: string;
@@ -147,6 +148,10 @@ export default function DashboardPage() {
             totalFunded={snapshot.totalFunded}
             totalRequired={snapshot.totalRequired}
           />
+        )}
+
+        {!loading && !error && !isEmptyState && (
+          <NudgeCards />
         )}
 
         {!loading && !error && !isEmptyState && (
