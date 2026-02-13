@@ -17,6 +17,9 @@ docker-compose.yml
 # Prisma generated client
 web/app/generated/
 
+# Claude Code local settings
+.claude/settings.local.json
+
 # IDE
 .vscode/
 .idea/
