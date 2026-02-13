@@ -387,17 +387,7 @@ if [ "$MODE" = "stop" ]; then
   exit 0
 fi
 
-if [ "$MODE" = "status" ]; then
-  if ! command -v claude &>/dev/null; then
-    echo "Error: 'claude' CLI is not installed. Install it to use status mode."
-    echo "See: https://docs.anthropic.com/en/docs/claude-code"
-    exit 1
-  fi
-  status_data=$(gather_status)
-  PROGRESS_STEP=8
-  progress "Synthesizing report..."
-  response=$(echo "$status_data" | claude -p \
-    "You are Ralph's status reporter. Synthesize this data into a project status report.
+STATUS_PROMPT="You are Ralph's status reporter. Synthesize this data into a project status report.
 
 Use this format:
 
@@ -435,8 +425,30 @@ Reverts, failures, uncommitted changes. Or just \"No issues\" if clean.
 N test files, N test cases — N source files, N CSS modules, N Prisma migrations
 
 ---
-Keep it concise. No filler. Use the exact section structure above. The progress bar should use block chars (█ and ░) scaled to 40 chars wide." \
-    --output-format text)
+Keep it concise. No filler. Use the exact section structure above. The progress bar should use block chars (█ and ░) scaled to 40 chars wide."
+
+if [ "$MODE" = "status" ]; then
+  status_data=$(gather_status)
+
+  if [[ -n "${CLAUDECODE:-}" ]]; then
+    # Inside Claude Code — output raw data + prompt for the calling session to synthesize
+    progress_done
+    echo "$status_data"
+    echo ""
+    echo "---"
+    echo "Synthesize the above data using this format:"
+    echo "$STATUS_PROMPT"
+    exit 0
+  fi
+
+  if ! command -v claude &>/dev/null; then
+    echo "Error: 'claude' CLI is not installed. Install it to use status mode."
+    echo "See: https://docs.anthropic.com/en/docs/claude-code"
+    exit 1
+  fi
+  PROGRESS_STEP=8
+  progress "Synthesizing report..."
+  response=$(echo "$status_data" | claude -p "$STATUS_PROMPT" --output-format text)
   progress_done
   echo "$response"
   exit 0
@@ -461,6 +473,24 @@ fi
 # Clear any stale stop file from a previous run
 rm -f .ralph-stop
 
-op run --env-file=.env -- docker compose --profile ralph run --rm --build \
-  -e RALPH_MODE="$MODE" \
-  ralph
+# Check if all op:// secrets from .env are already in the environment
+needs_op=false
+while IFS= read -r line; do
+  [[ "$line" =~ ^[[:space:]]*# ]] && continue
+  [[ -z "$line" ]] && continue
+  if [[ "$line" == *"op://"* ]]; then
+    var_name="${line%%=*}"
+    if [[ -z "${!var_name:-}" ]]; then
+      needs_op=true
+      break
+    fi
+  fi
+done < .env
+
+DOCKER_CMD=(docker compose --profile ralph run --rm --build -e RALPH_MODE="$MODE" ralph)
+
+if $needs_op; then
+  op run --env-file=.env -- "${DOCKER_CMD[@]}"
+else
+  "${DOCKER_CMD[@]}"
+fi

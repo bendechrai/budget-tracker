@@ -416,17 +416,17 @@
   - Acceptance: Desktop: hero + health bar side by side at top, timeline full width below, upcoming in sidebar. Mobile: single column stack. CSS Modules media queries.
   - Tests: Component test: renders without error at different viewport sizes (or snapshot test)
 
+- [x] **Add NL parser service**
+  - Files: `web/lib/ai/nlParser.ts`, `web/lib/ai/types.ts`
+  - Spec: `specs/09-ai-interaction.md`
+  - Acceptance: Parses natural language into structured intents: create (income/obligation with all fields), edit (target + changes), delete (target), query (question). Handles complex inputs like the Melbourne council tax example. Returns parsed intent with confidence.
+  - Tests: Unit tests: parse "Netflix $22.99 monthly" → create expense, parse "change gym to $60" → edit, parse "delete Spotify" → delete, parse "what's my biggest expense" → query
+
 ## In Progress
 
 ## Backlog
 
 ### Spec 09 — AI Interaction Layer
-
-- [ ] **Add NL parser service**
-  - Files: `web/lib/ai/nlParser.ts`, `web/lib/ai/types.ts`
-  - Spec: `specs/09-ai-interaction.md`
-  - Acceptance: Parses natural language into structured intents: create (income/obligation with all fields), edit (target + changes), delete (target), query (question). Handles complex inputs like the Melbourne council tax example. Returns parsed intent with confidence.
-  - Tests: Unit tests: parse "Netflix $22.99 monthly" → create expense, parse "change gym to $60" → edit, parse "delete Spotify" → delete, parse "what's my biggest expense" → query
 
 - [ ] **Add `POST /api/ai/parse` route**
   - Files: `web/app/api/ai/parse/route.ts`
