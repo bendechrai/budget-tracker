@@ -447,17 +447,17 @@
   - Acceptance: ✨ button that opens a modal/popover. Shows item summary at top. Contextual preset action buttons (income presets: change amount, frequency, pause, delete; obligation presets: + change due date). Free text input at bottom. Preset buttons generate structured intents directly. Free text goes through NL parser.
   - Tests: Component test: renders button, opens modal, shows presets, submits free text
 
+- [x] **Add preview/confirmation component for AI actions**
+  - Files: `web/app/components/AIPreview.tsx`, `web/app/components/ai-preview.module.css`
+  - Spec: `specs/09-ai-interaction.md`
+  - Acceptance: Shows parsed intent as a preview (create: full form preview, edit: diff view, delete: confirmation). User can confirm, tweak, or cancel. On confirm, executes the action via the appropriate API.
+  - Tests: Component test: renders preview, confirm executes action, cancel dismisses
+
 ## In Progress
 
 ## Backlog
 
 ### Spec 09 — AI Interaction Layer
-
-- [ ] **Add preview/confirmation component for AI actions**
-  - Files: `web/app/components/AIPreview.tsx`, `web/app/components/ai-preview.module.css`
-  - Spec: `specs/09-ai-interaction.md`
-  - Acceptance: Shows parsed intent as a preview (create: full form preview, edit: diff view, delete: confirmation). User can confirm, tweak, or cancel. On confirm, executes the action via the appropriate API.
-  - Tests: Component test: renders preview, confirm executes action, cancel dismisses
 
 - [ ] **Integrate AI bar and sparkle button into app layout and list pages**
   - Files: `web/app/(app)/layout.tsx` (update), `web/app/income/page.tsx` (update), `web/app/obligations/page.tsx` (update)

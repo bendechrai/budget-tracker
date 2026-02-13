@@ -1,0 +1,323 @@
+/* Overlay */
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1002;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(0, 0, 0, 0.3);
+}
+
+/* Modal */
+.modal {
+  width: 24rem;
+  max-height: 32rem;
+  background-color: #fff;
+  border: 1px solid #e5e5e5;
+  border-radius: 0.75rem;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+@media (prefers-color-scheme: dark) {
+  .modal {
+    background-color: #1a1a1a;
+    border-color: #333;
+  }
+}
+
+.modalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.625rem 0.75rem;
+  border-bottom: 1px solid #e5e5e5;
+}
+
+@media (prefers-color-scheme: dark) {
+  .modalHeader {
+    border-bottom-color: #333;
+  }
+}
+
+.modalTitle {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+.closeButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border: none;
+  background: none;
+  color: #666;
+  font-size: 1rem;
+  cursor: pointer;
+  border-radius: 0.25rem;
+}
+
+.closeButton:hover {
+  background-color: #f0f0f0;
+  color: var(--foreground);
+}
+
+@media (prefers-color-scheme: dark) {
+  .closeButton:hover {
+    background-color: #333;
+  }
+}
+
+/* Content area */
+.content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0.75rem;
+}
+
+/* Section label */
+.sectionLabel {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #666;
+  margin-bottom: 0.5rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  .sectionLabel {
+    color: #999;
+  }
+}
+
+/* Field rows for create/edit previews */
+.fieldRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 0.375rem 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.fieldRow:last-child {
+  border-bottom: none;
+}
+
+@media (prefers-color-scheme: dark) {
+  .fieldRow {
+    border-bottom-color: #2a2a2a;
+  }
+}
+
+.fieldLabel {
+  font-size: 0.75rem;
+  color: #666;
+  flex-shrink: 0;
+}
+
+@media (prefers-color-scheme: dark) {
+  .fieldLabel {
+    color: #999;
+  }
+}
+
+.fieldValue {
+  font-size: 0.8125rem;
+  color: var(--foreground);
+  font-weight: 500;
+  text-align: right;
+}
+
+/* Diff view for edits */
+.diffRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 0.375rem 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.diffRow:last-child {
+  border-bottom: none;
+}
+
+@media (prefers-color-scheme: dark) {
+  .diffRow {
+    border-bottom-color: #2a2a2a;
+  }
+}
+
+.diffLabel {
+  font-size: 0.75rem;
+  color: #666;
+  flex-shrink: 0;
+}
+
+@media (prefers-color-scheme: dark) {
+  .diffLabel {
+    color: #999;
+  }
+}
+
+.diffValues {
+  display: flex;
+  align-items: baseline;
+  gap: 0.375rem;
+  text-align: right;
+}
+
+.diffOld {
+  font-size: 0.75rem;
+  color: #999;
+  text-decoration: line-through;
+}
+
+.diffArrow {
+  font-size: 0.75rem;
+  color: #666;
+}
+
+.diffNew {
+  font-size: 0.8125rem;
+  color: var(--foreground);
+  font-weight: 500;
+}
+
+/* Delete confirmation */
+.deleteMessage {
+  font-size: 0.8125rem;
+  color: var(--foreground);
+  line-height: 1.5;
+  padding: 0.5rem 0;
+}
+
+.deleteItemName {
+  font-weight: 600;
+}
+
+/* Action buttons */
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 0.75rem;
+  border-top: 1px solid #e5e5e5;
+}
+
+@media (prefers-color-scheme: dark) {
+  .actions {
+    border-top-color: #333;
+  }
+}
+
+.confirmButton {
+  flex: 1;
+  padding: 0.5rem 0.75rem;
+  border: none;
+  border-radius: 0.5rem;
+  background-color: #1a1a1a;
+  color: #fff;
+  font-size: 0.8125rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.confirmButton:hover {
+  background-color: #333;
+}
+
+.confirmButton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+@media (prefers-color-scheme: dark) {
+  .confirmButton {
+    background-color: #e5e5e5;
+    color: #1a1a1a;
+  }
+
+  .confirmButton:hover {
+    background-color: #ccc;
+  }
+}
+
+.deleteConfirmButton {
+  flex: 1;
+  padding: 0.5rem 0.75rem;
+  border: none;
+  border-radius: 0.5rem;
+  background-color: #e53935;
+  color: #fff;
+  font-size: 0.8125rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.deleteConfirmButton:hover {
+  background-color: #c62828;
+}
+
+.deleteConfirmButton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.cancelButton {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 0.5rem;
+  background: transparent;
+  color: var(--foreground);
+  font-size: 0.8125rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.cancelButton:hover {
+  border-color: var(--foreground);
+}
+
+@media (prefers-color-scheme: dark) {
+  .cancelButton {
+    border-color: #444;
+  }
+
+  .cancelButton:hover {
+    border-color: var(--foreground);
+  }
+}
+
+/* Status message */
+.statusMessage {
+  font-size: 0.8125rem;
+  padding: 0.5rem 0;
+  line-height: 1.5;
+}
+
+.statusSuccess {
+  composes: statusMessage;
+  color: #2e7d32;
+}
+
+.statusError {
+  composes: statusMessage;
+  color: #e53935;
+}
+
+@media (max-width: 480px) {
+  .modal {
+    width: calc(100vw - 2rem);
+    max-width: 24rem;
+  }
+}
