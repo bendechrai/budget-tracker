@@ -7,6 +7,7 @@ import {
   type ObligationInput,
   type WhatIfOverrides,
 } from "../calculate";
+import type { EscalationRule } from "../escalation";
 
 function makeObligation(
   overrides: Partial<ObligationInput> = {}
@@ -926,6 +927,232 @@ describe("calculateWithWhatIf", () => {
         (c) => c.obligationId === "obl-3"
       );
       expect(netflixInScenario!.amountNeeded).toBe(30);
+    });
+  });
+});
+
+describe("escalation integration", () => {
+  const NOW = new Date("2025-03-01");
+
+  function makeEscalationRule(
+    overrides: Partial<EscalationRule> = {},
+  ): EscalationRule {
+    return {
+      id: "esc-1",
+      changeType: "percentage",
+      value: 10,
+      effectiveDate: new Date("2025-03-15"),
+      intervalMonths: null,
+      isApplied: false,
+      ...overrides,
+    };
+  }
+
+  describe("contributions ramp up before an increase", () => {
+    it("uses escalated amount for amountNeeded when obligation has escalation rules", () => {
+      // Rent is $1000, but escalation rule sets it to $1200 on March 15
+      // Due date is April 1, which is after the escalation
+      const result = calculateContributions({
+        obligations: [
+          makeObligation({
+            id: "obl-1",
+            name: "Rent",
+            amount: 1000,
+            nextDueDate: new Date("2025-04-01"),
+            escalationRules: [
+              makeEscalationRule({
+                changeType: "absolute",
+                value: 1200,
+                effectiveDate: new Date("2025-03-15"),
+              }),
+            ],
+          }),
+        ],
+        fundBalances: [],
+        maxContributionPerCycle: null,
+        contributionCycleDays: 30,
+        now: NOW,
+      });
+
+      const c = result.contributions[0];
+      // Should use escalated amount ($1200) not base amount ($1000)
+      expect(c.amountNeeded).toBe(1200);
+      expect(c.remaining).toBe(1200);
+    });
+
+    it("uses current amount when due date is before escalation", () => {
+      // Rent is $1000, escalation to $1200 on May 1
+      // Due date is April 1, before the escalation takes effect
+      const result = calculateContributions({
+        obligations: [
+          makeObligation({
+            id: "obl-1",
+            name: "Rent",
+            amount: 1000,
+            nextDueDate: new Date("2025-04-01"),
+            escalationRules: [
+              makeEscalationRule({
+                changeType: "absolute",
+                value: 1200,
+                effectiveDate: new Date("2025-05-01"),
+              }),
+            ],
+          }),
+        ],
+        fundBalances: [],
+        maxContributionPerCycle: null,
+        contributionCycleDays: 30,
+        now: NOW,
+      });
+
+      const c = result.contributions[0];
+      // Should use current amount since due date is before escalation
+      expect(c.amountNeeded).toBe(1000);
+    });
+
+    it("ramps up contributions with percentage escalation", () => {
+      // Rent $2000, 5% increase effective March 15, due April 1
+      const result = calculateContributions({
+        obligations: [
+          makeObligation({
+            id: "obl-1",
+            name: "Rent",
+            amount: 2000,
+            nextDueDate: new Date("2025-04-01"),
+            escalationRules: [
+              makeEscalationRule({
+                changeType: "percentage",
+                value: 5,
+                effectiveDate: new Date("2025-03-15"),
+              }),
+            ],
+          }),
+        ],
+        fundBalances: [],
+        maxContributionPerCycle: null,
+        contributionCycleDays: 30,
+        now: NOW,
+      });
+
+      const c = result.contributions[0];
+      // 2000 * 1.05 = 2100
+      expect(c.amountNeeded).toBe(2100);
+    });
+  });
+
+  describe("shortfall detected for post-increase amount", () => {
+    it("generates shortfall warning using escalated amount", () => {
+      // Rent $1000, escalation to $1500 on March 15, due April 1
+      // Max capacity $800 — was enough for $1000 but not for $1500
+      const result = calculateContributions({
+        obligations: [
+          makeObligation({
+            id: "obl-1",
+            name: "Rent",
+            amount: 1000,
+            nextDueDate: new Date("2025-04-01"),
+            escalationRules: [
+              makeEscalationRule({
+                changeType: "absolute",
+                value: 1500,
+                effectiveDate: new Date("2025-03-15"),
+              }),
+            ],
+          }),
+        ],
+        fundBalances: [],
+        maxContributionPerCycle: 800,
+        contributionCycleDays: 30,
+        now: NOW,
+      });
+
+      // Shortfall should be based on $1500 (escalated) not $1000
+      expect(result.capacityExceeded).toBe(true);
+      expect(result.shortfallWarnings).toHaveLength(1);
+      expect(result.shortfallWarnings[0].amountNeeded).toBe(1500);
+    });
+  });
+
+  describe("crunch point uses escalated amount", () => {
+    it("uses escalated amount for contribution calculation when capacity is limited", () => {
+      // Two obligations, one with escalation that pushes total over capacity
+      const result = calculateContributions({
+        obligations: [
+          makeObligation({
+            id: "obl-1",
+            name: "Rent",
+            amount: 1000,
+            nextDueDate: new Date("2025-04-01"),
+            escalationRules: [
+              makeEscalationRule({
+                changeType: "absolute",
+                value: 1800,
+                effectiveDate: new Date("2025-03-15"),
+              }),
+            ],
+          }),
+          makeObligation({
+            id: "obl-2",
+            name: "Insurance",
+            amount: 500,
+            nextDueDate: new Date("2025-05-30"),
+          }),
+        ],
+        fundBalances: [],
+        maxContributionPerCycle: 1900,
+        contributionCycleDays: 30,
+        now: NOW,
+      });
+
+      // Rent escalated to $1800 in 1 cycle, Insurance $500 in 3 cycles = ~$167/cycle
+      // Total: $1800 + $167 = $1967 > $1900 capacity
+      expect(result.capacityExceeded).toBe(true);
+
+      // Rent gets priority (earlier due date), uses escalated $1800
+      const rent = result.contributions[0];
+      expect(rent.obligationId).toBe("obl-1");
+      expect(rent.amountNeeded).toBe(1800);
+    });
+  });
+
+  describe("obligations without escalation are unaffected", () => {
+    it("uses base amount when no escalation rules are provided", () => {
+      const result = calculateContributions({
+        obligations: [
+          makeObligation({
+            id: "obl-1",
+            name: "Rent",
+            amount: 1000,
+            nextDueDate: new Date("2025-04-01"),
+          }),
+        ],
+        fundBalances: [],
+        maxContributionPerCycle: null,
+        contributionCycleDays: 30,
+        now: NOW,
+      });
+
+      expect(result.contributions[0].amountNeeded).toBe(1000);
+    });
+
+    it("uses base amount when escalation rules array is empty", () => {
+      const result = calculateContributions({
+        obligations: [
+          makeObligation({
+            id: "obl-1",
+            name: "Rent",
+            amount: 1000,
+            nextDueDate: new Date("2025-04-01"),
+            escalationRules: [],
+          }),
+        ],
+        fundBalances: [],
+        maxContributionPerCycle: null,
+        contributionCycleDays: 30,
+        now: NOW,
+      });
+
+      expect(result.contributions[0].amountNeeded).toBe(1000);
     });
   });
 });

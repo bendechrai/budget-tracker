@@ -1,4 +1,5 @@
 import type { IncomeFrequency, ObligationType } from "@/app/generated/prisma/client";
+import { getAmountAtDate, type EscalationRule } from "./escalation";
 
 export interface WhatIfOverrides {
   /** Obligation IDs to exclude from the scenario */
@@ -27,6 +28,7 @@ export interface ObligationInput {
   isActive: boolean;
   fundGroupId: string | null;
   customEntries?: CustomEntryInput[];
+  escalationRules?: EscalationRule[];
 }
 
 export interface CustomEntryInput {
@@ -232,8 +234,22 @@ export function calculateContributions(input: EngineInput): EngineResult {
         continue;
       }
 
-      amountNeeded = obligation.amount;
       nextDueDate = effectiveDueDate;
+
+      // Use escalated amount at the due date if escalation rules exist
+      if (obligation.escalationRules && obligation.escalationRules.length > 0) {
+        amountNeeded = getAmountAtDate(
+          {
+            currentAmount: obligation.amount,
+            rules: obligation.escalationRules,
+            windowStart: now,
+            monthsAhead: 24,
+          },
+          nextDueDate,
+        );
+      } else {
+        amountNeeded = obligation.amount;
+      }
     }
 
     const currentBalance = balanceMap.get(obligation.id) ?? 0;
