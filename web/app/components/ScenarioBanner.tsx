@@ -59,6 +59,25 @@ export default function ScenarioBanner() {
         );
       }
 
+      // Save hypothetical escalation rules as real ones
+      for (const [, rules] of overrides.escalationOverrides) {
+        for (const esc of rules) {
+          promises.push(
+            fetch("/api/escalations", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                obligationId: esc.obligationId,
+                changeType: esc.changeType,
+                value: esc.value,
+                effectiveDate: esc.effectiveDate.toISOString(),
+                intervalMonths: esc.intervalMonths,
+              }),
+            })
+          );
+        }
+      }
+
       await Promise.all(promises);
       resetAll();
       setShowConfirm(false);
@@ -74,6 +93,7 @@ export default function ScenarioBanner() {
   const toggledCount = overrides.toggledOffIds.size;
   const amountCount = overrides.amountOverrides.size;
   const hypotheticalCount = overrides.hypotheticals.length;
+  const escalationCount = overrides.escalationOverrides.size;
 
   if (toggledCount > 0) {
     confirmationLines.push(
@@ -88,6 +108,15 @@ export default function ScenarioBanner() {
   if (hypotheticalCount > 0) {
     confirmationLines.push(
       `Create ${hypotheticalCount} new obligation${hypotheticalCount === 1 ? "" : "s"}`
+    );
+  }
+  if (escalationCount > 0) {
+    let totalRules = 0;
+    for (const [, rules] of overrides.escalationOverrides) {
+      totalRules += rules.length;
+    }
+    confirmationLines.push(
+      `Add ${totalRules} price change rule${totalRules === 1 ? "" : "s"}`
     );
   }
 

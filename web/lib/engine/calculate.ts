@@ -8,6 +8,8 @@ export interface WhatIfOverrides {
   amountOverrides: Record<string, number>;
   /** Hypothetical obligations to include in the scenario */
   hypotheticals: ObligationInput[];
+  /** Map of obligation ID → hypothetical escalation rules to add in the scenario */
+  escalationOverrides?: Record<string, EscalationRule[]>;
 }
 
 export interface WhatIfResult {
@@ -380,15 +382,27 @@ function applyWhatIfOverrides(
 ): EngineInput {
   const toggledOffSet = new Set(overrides.toggledOffIds);
   const amountMap = new Map(Object.entries(overrides.amountOverrides));
+  const escalationMap = overrides.escalationOverrides ?? {};
 
   const filteredObligations = input.obligations
     .filter((o) => !toggledOffSet.has(o.id))
     .map((o) => {
+      let result = o;
       const overriddenAmount = amountMap.get(o.id);
       if (overriddenAmount !== undefined) {
-        return { ...o, amount: overriddenAmount };
+        result = { ...result, amount: overriddenAmount };
       }
-      return o;
+      const hypotheticalEscalations = escalationMap[o.id];
+      if (hypotheticalEscalations && hypotheticalEscalations.length > 0) {
+        result = {
+          ...result,
+          escalationRules: [
+            ...(result.escalationRules ?? []),
+            ...hypotheticalEscalations,
+          ],
+        };
+      }
+      return result;
     });
 
   const scenarioObligations = [

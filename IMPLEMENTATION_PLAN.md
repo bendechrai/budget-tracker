@@ -595,13 +595,13 @@
   - Acceptance: NL parser recognizes escalation intents: "rent goes up to $2,200 in July" → one-off absolute, "rent goes up 3% every July" → recurring percentage, "Netflix going up $3 next month" → one-off fixed increase, "cancel the rent increase" → delete escalation rule. Returns structured escalation intent with change type, value, effective date, and interval.
   - Tests: Unit tests: parse all NL examples from spec 11, including cancel/remove intents
 
-## In Progress
-
-- [ ] **Add what-if support for hypothetical escalation rules**
+- [x] **Add what-if support for hypothetical escalation rules**
   - Files: `web/app/contexts/WhatIfContext.tsx` (update), `web/lib/engine/calculate.ts` (update)
   - Spec: `specs/11-escalation.md`
   - Acceptance: What-if context supports adding hypothetical escalation rules to obligations. "What if rent goes up 5% next year?" adds a temporary escalation rule. Engine calculation with what-if overrides includes hypothetical escalation in projections. Session-only, not persisted.
   - Tests: Unit test: hypothetical escalation appears in what-if projection, does not persist
+
+## In Progress
 
 - [ ] **Add auto-apply logic for one-off escalation rules**
   - Files: `web/lib/engine/applyEscalations.ts`

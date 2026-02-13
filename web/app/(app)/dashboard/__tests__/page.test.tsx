@@ -34,12 +34,15 @@ const mockWhatIf = {
     toggledOffIds: new Set<string>(),
     amountOverrides: new Map<string, number>(),
     hypotheticals: [] as unknown[],
+    escalationOverrides: new Map<string, unknown[]>(),
   },
   resetAll: vi.fn(),
   toggleObligation: vi.fn(),
   overrideAmount: vi.fn(),
   addHypothetical: vi.fn(),
   removeHypothetical: vi.fn(),
+  addEscalationOverride: vi.fn(),
+  removeEscalationOverride: vi.fn(),
 };
 
 vi.mock("@/app/contexts/WhatIfContext", () => ({
@@ -136,6 +139,7 @@ describe("DashboardPage", () => {
       toggledOffIds: new Set<string>(),
       amountOverrides: new Map<string, number>(),
       hypotheticals: [],
+      escalationOverrides: new Map(),
     };
   });
 
@@ -341,6 +345,7 @@ describe("DashboardPage", () => {
       toggledOffIds: new Set(["ob1"]),
       amountOverrides: new Map<string, number>(),
       hypotheticals: [],
+      escalationOverrides: new Map(),
     };
 
     vi.mocked(global.fetch).mockImplementation((url) => {
@@ -376,6 +381,7 @@ describe("DashboardPage", () => {
       toggledOffIds: new Set(["ob1"]),
       amountOverrides: new Map<string, number>(),
       hypotheticals: [],
+      escalationOverrides: new Map(),
     };
 
     const scenarioWithNextAction = {

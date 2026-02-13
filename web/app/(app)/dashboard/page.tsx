@@ -137,6 +137,17 @@ export default function DashboardPage() {
       nextDueDate: h.nextDueDate instanceof Date ? h.nextDueDate.toISOString() : h.nextDueDate,
       endDate: h.endDate instanceof Date ? h.endDate.toISOString() : h.endDate,
     }));
+    const escalationOverrides: Record<string, Array<{ id: string; changeType: string; value: number; effectiveDate: string; intervalMonths: number | null; isApplied: boolean }>> = {};
+    for (const [oblId, rules] of overrides.escalationOverrides) {
+      escalationOverrides[oblId] = rules.map((r) => ({
+        id: r.id,
+        changeType: r.changeType,
+        value: r.value,
+        effectiveDate: r.effectiveDate instanceof Date ? r.effectiveDate.toISOString() : String(r.effectiveDate),
+        intervalMonths: r.intervalMonths,
+        isApplied: false,
+      }));
+    }
 
     void (async () => {
       try {
@@ -147,6 +158,7 @@ export default function DashboardPage() {
             toggledOffIds,
             amountOverrides,
             hypotheticals,
+            escalationOverrides,
           }),
           signal: controller.signal,
         });

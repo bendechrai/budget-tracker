@@ -10,11 +10,22 @@ import type {
   FundBalanceInput,
   WhatIfOverrides,
 } from "@/lib/engine/calculate";
+import type { EscalationRule } from "@/lib/engine/escalation";
+
+interface EscalationRuleBody {
+  id: string;
+  changeType: string;
+  value: number;
+  effectiveDate: string;
+  intervalMonths: number | null;
+  isApplied: boolean;
+}
 
 interface ScenarioRequestBody {
   toggledOffIds?: string[];
   amountOverrides?: Record<string, number>;
   hypotheticals?: ObligationInput[];
+  escalationOverrides?: Record<string, EscalationRuleBody[]>;
   months?: number;
 }
 
@@ -31,6 +42,20 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       Math.min(12, body.months ?? 6)
     );
 
+    const parsedEscalationOverrides: Record<string, EscalationRule[]> = {};
+    if (body.escalationOverrides) {
+      for (const [oblId, rules] of Object.entries(body.escalationOverrides)) {
+        parsedEscalationOverrides[oblId] = rules.map((r) => ({
+          id: r.id,
+          changeType: r.changeType as EscalationRule["changeType"],
+          value: r.value,
+          effectiveDate: new Date(r.effectiveDate),
+          intervalMonths: r.intervalMonths,
+          isApplied: r.isApplied,
+        }));
+      }
+    }
+
     const overrides: WhatIfOverrides = {
       toggledOffIds: body.toggledOffIds ?? [],
       amountOverrides: body.amountOverrides ?? {},
@@ -39,6 +64,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         nextDueDate: new Date(h.nextDueDate),
         endDate: h.endDate ? new Date(h.endDate) : null,
       })),
+      escalationOverrides: parsedEscalationOverrides,
     };
 
     const obligations = await prisma.obligation.findMany({
@@ -99,11 +125,22 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const scenarioObligations = obligationInputs
       .filter((o) => !toggledOffSet.has(o.id))
       .map((o) => {
+        let result = o;
         const overriddenAmount = overrides.amountOverrides[o.id];
         if (overriddenAmount !== undefined) {
-          return { ...o, amount: overriddenAmount };
+          result = { ...result, amount: overriddenAmount };
         }
-        return o;
+        const hypotheticalEscalations = overrides.escalationOverrides?.[o.id];
+        if (hypotheticalEscalations && hypotheticalEscalations.length > 0) {
+          result = {
+            ...result,
+            escalationRules: [
+              ...(result.escalationRules ?? []),
+              ...hypotheticalEscalations,
+            ],
+          };
+        }
+        return result;
       });
 
     const allScenarioObligations = [

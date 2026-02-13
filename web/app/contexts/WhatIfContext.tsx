@@ -8,7 +8,7 @@ import {
   useMemo,
   type ReactNode,
 } from "react";
-import type { ObligationType, IncomeFrequency } from "@/app/generated/prisma/client";
+import type { ObligationType, IncomeFrequency, EscalationChangeType } from "@/app/generated/prisma/client";
 
 export interface HypotheticalObligation {
   id: string;
@@ -22,10 +22,20 @@ export interface HypotheticalObligation {
   fundGroupId: string | null;
 }
 
+export interface HypotheticalEscalation {
+  id: string;
+  obligationId: string;
+  changeType: EscalationChangeType;
+  value: number;
+  effectiveDate: Date;
+  intervalMonths: number | null;
+}
+
 export interface WhatIfOverrides {
   toggledOffIds: Set<string>;
   amountOverrides: Map<string, number>;
   hypotheticals: HypotheticalObligation[];
+  escalationOverrides: Map<string, HypotheticalEscalation[]>;
 }
 
 interface WhatIfContextValue {
@@ -35,6 +45,8 @@ interface WhatIfContextValue {
   overrideAmount: (id: string, amount: number) => void;
   addHypothetical: (obligation: HypotheticalObligation) => void;
   removeHypothetical: (id: string) => void;
+  addEscalationOverride: (escalation: HypotheticalEscalation) => void;
+  removeEscalationOverride: (obligationId: string, escalationId: string) => void;
   resetAll: () => void;
   changeSummary: string;
 }
@@ -44,6 +56,7 @@ function createEmptyOverrides(): WhatIfOverrides {
     toggledOffIds: new Set<string>(),
     amountOverrides: new Map<string, number>(),
     hypotheticals: [],
+    escalationOverrides: new Map<string, HypotheticalEscalation[]>(),
   };
 }
 
@@ -56,7 +69,8 @@ export function WhatIfProvider({ children }: { children: ReactNode }) {
     return (
       overrides.toggledOffIds.size > 0 ||
       overrides.amountOverrides.size > 0 ||
-      overrides.hypotheticals.length > 0
+      overrides.hypotheticals.length > 0 ||
+      overrides.escalationOverrides.size > 0
     );
   }, [overrides]);
 
@@ -100,6 +114,35 @@ export function WhatIfProvider({ children }: { children: ReactNode }) {
     }));
   }, []);
 
+  const addEscalationOverride = useCallback((escalation: HypotheticalEscalation) => {
+    setOverrides((prev) => {
+      const next = new Map(prev.escalationOverrides);
+      const existing = next.get(escalation.obligationId) ?? [];
+      next.set(escalation.obligationId, [...existing, escalation]);
+      return {
+        ...prev,
+        escalationOverrides: next,
+      };
+    });
+  }, []);
+
+  const removeEscalationOverride = useCallback((obligationId: string, escalationId: string) => {
+    setOverrides((prev) => {
+      const next = new Map(prev.escalationOverrides);
+      const existing = next.get(obligationId) ?? [];
+      const filtered = existing.filter((e) => e.id !== escalationId);
+      if (filtered.length === 0) {
+        next.delete(obligationId);
+      } else {
+        next.set(obligationId, filtered);
+      }
+      return {
+        ...prev,
+        escalationOverrides: next,
+      };
+    });
+  }, []);
+
   const resetAll = useCallback(() => {
     setOverrides(createEmptyOverrides());
   }, []);
@@ -109,6 +152,7 @@ export function WhatIfProvider({ children }: { children: ReactNode }) {
     const toggledCount = overrides.toggledOffIds.size;
     const amountCount = overrides.amountOverrides.size;
     const hypotheticalCount = overrides.hypotheticals.length;
+    const escalationCount = overrides.escalationOverrides.size;
 
     if (toggledCount > 0) {
       parts.push(
@@ -125,6 +169,11 @@ export function WhatIfProvider({ children }: { children: ReactNode }) {
         `${hypotheticalCount} hypothetical${hypotheticalCount === 1 ? "" : "s"} added`
       );
     }
+    if (escalationCount > 0) {
+      parts.push(
+        `${escalationCount} price change${escalationCount === 1 ? "" : "s"} added`
+      );
+    }
 
     return parts.join(", ");
   }, [overrides]);
@@ -137,6 +186,8 @@ export function WhatIfProvider({ children }: { children: ReactNode }) {
       overrideAmount,
       addHypothetical,
       removeHypothetical,
+      addEscalationOverride,
+      removeEscalationOverride,
       resetAll,
       changeSummary,
     }),
@@ -147,6 +198,8 @@ export function WhatIfProvider({ children }: { children: ReactNode }) {
       overrideAmount,
       addHypothetical,
       removeHypothetical,
+      addEscalationOverride,
+      removeEscalationOverride,
       resetAll,
       changeSummary,
     ]

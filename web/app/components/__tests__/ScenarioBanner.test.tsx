@@ -11,20 +11,32 @@ const mockResetAll = vi.fn();
 
 let mockIsActive = false;
 let mockChangeSummary = "";
+interface MockHypothetical {
+  id: string;
+  name: string;
+  type: string;
+  amount: number;
+  frequency: string | null;
+  frequencyDays: number | null;
+  nextDueDate: Date;
+  endDate: Date | null;
+  fundGroupId: string | null;
+}
+
+interface MockEscalation {
+  id: string;
+  obligationId: string;
+  changeType: string;
+  value: number;
+  effectiveDate: Date;
+  intervalMonths: number | null;
+}
+
 let mockOverrides = {
   toggledOffIds: new Set<string>(),
   amountOverrides: new Map<string, number>(),
-  hypotheticals: [] as Array<{
-    id: string;
-    name: string;
-    type: string;
-    amount: number;
-    frequency: string | null;
-    frequencyDays: number | null;
-    nextDueDate: Date;
-    endDate: Date | null;
-    fundGroupId: string | null;
-  }>,
+  hypotheticals: [] as MockHypothetical[],
+  escalationOverrides: new Map<string, MockEscalation[]>(),
 };
 
 vi.mock("@/app/contexts/WhatIfContext", () => ({
@@ -37,6 +49,8 @@ vi.mock("@/app/contexts/WhatIfContext", () => ({
     overrideAmount: vi.fn(),
     addHypothetical: vi.fn(),
     removeHypothetical: vi.fn(),
+    addEscalationOverride: vi.fn(),
+    removeEscalationOverride: vi.fn(),
   }),
 }));
 
@@ -52,6 +66,7 @@ describe("ScenarioBanner", () => {
       toggledOffIds: new Set<string>(),
       amountOverrides: new Map<string, number>(),
       hypotheticals: [],
+      escalationOverrides: new Map(),
     };
   });
 
@@ -101,6 +116,7 @@ describe("ScenarioBanner", () => {
       toggledOffIds: new Set(["ob1"]),
       amountOverrides: new Map(),
       hypotheticals: [],
+      escalationOverrides: new Map(),
     };
     render(<ScenarioBanner />);
 
@@ -130,6 +146,7 @@ describe("ScenarioBanner", () => {
           fundGroupId: null,
         },
       ],
+      escalationOverrides: new Map(),
     };
     render(<ScenarioBanner />);
 
@@ -147,6 +164,7 @@ describe("ScenarioBanner", () => {
       toggledOffIds: new Set(["ob1"]),
       amountOverrides: new Map(),
       hypotheticals: [],
+      escalationOverrides: new Map(),
     };
     render(<ScenarioBanner />);
 
@@ -165,6 +183,7 @@ describe("ScenarioBanner", () => {
       toggledOffIds: new Set(["ob1"]),
       amountOverrides: new Map([["ob2", 75]]),
       hypotheticals: [],
+      escalationOverrides: new Map(),
     };
 
     // Mock window.location.reload
@@ -228,6 +247,7 @@ describe("ScenarioBanner", () => {
           fundGroupId: null,
         },
       ],
+      escalationOverrides: new Map(),
     };
 
     const originalLocation = window.location;

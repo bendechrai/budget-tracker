@@ -931,6 +931,195 @@ describe("calculateWithWhatIf", () => {
   });
 });
 
+describe("what-if escalation overrides", () => {
+  const NOW = new Date("2025-03-01");
+
+  function makeEscalationRule(
+    overrides: Partial<EscalationRule> = {},
+  ): EscalationRule {
+    return {
+      id: "esc-whatif-1",
+      changeType: "percentage",
+      value: 5,
+      effectiveDate: new Date("2025-03-15"),
+      intervalMonths: null,
+      isApplied: false,
+      ...overrides,
+    };
+  }
+
+  it("includes hypothetical escalation in scenario projection", () => {
+    // Rent $1000, add a what-if 10% increase effective March 15
+    // Due date April 1 (after escalation)
+    const result = calculateWithWhatIf(
+      {
+        obligations: [
+          makeObligation({
+            id: "obl-1",
+            name: "Rent",
+            amount: 1000,
+            nextDueDate: new Date("2025-04-01"),
+          }),
+        ],
+        fundBalances: [],
+        maxContributionPerCycle: null,
+        contributionCycleDays: 30,
+        now: NOW,
+      },
+      {
+        toggledOffIds: [],
+        amountOverrides: {},
+        hypotheticals: [],
+        escalationOverrides: {
+          "obl-1": [
+            makeEscalationRule({
+              changeType: "percentage",
+              value: 10,
+              effectiveDate: new Date("2025-03-15"),
+            }),
+          ],
+        },
+      }
+    );
+
+    // Actual: no escalation rules on the obligation, uses base $1000
+    expect(result.actual.contributions[0].amountNeeded).toBe(1000);
+
+    // Scenario: escalation adds 10% → $1100
+    expect(result.scenario.contributions[0].amountNeeded).toBe(1100);
+  });
+
+  it("does not persist hypothetical escalation to actual calculation", () => {
+    const result = calculateWithWhatIf(
+      {
+        obligations: [
+          makeObligation({
+            id: "obl-1",
+            name: "Rent",
+            amount: 1000,
+            nextDueDate: new Date("2025-04-01"),
+          }),
+        ],
+        fundBalances: [],
+        maxContributionPerCycle: null,
+        contributionCycleDays: 30,
+        now: NOW,
+      },
+      {
+        toggledOffIds: [],
+        amountOverrides: {},
+        hypotheticals: [],
+        escalationOverrides: {
+          "obl-1": [
+            makeEscalationRule({
+              changeType: "absolute",
+              value: 2000,
+              effectiveDate: new Date("2025-03-15"),
+            }),
+          ],
+        },
+      }
+    );
+
+    // Actual should still use base amount (no escalation)
+    expect(result.actual.contributions[0].amountNeeded).toBe(1000);
+    expect(result.actual.totalRequired).toBe(1000);
+
+    // Scenario uses the hypothetical escalation
+    expect(result.scenario.contributions[0].amountNeeded).toBe(2000);
+    expect(result.scenario.totalRequired).toBe(2000);
+  });
+
+  it("merges hypothetical escalation with existing escalation rules", () => {
+    // Obligation already has a real escalation rule (absolute to $1200 on March 15)
+    // What-if adds a second escalation (fixed_increase $100 on March 20)
+    const result = calculateWithWhatIf(
+      {
+        obligations: [
+          makeObligation({
+            id: "obl-1",
+            name: "Rent",
+            amount: 1000,
+            nextDueDate: new Date("2025-04-01"),
+            escalationRules: [
+              {
+                id: "esc-real",
+                changeType: "absolute",
+                value: 1200,
+                effectiveDate: new Date("2025-03-15"),
+                intervalMonths: null,
+                isApplied: false,
+              },
+            ],
+          }),
+        ],
+        fundBalances: [],
+        maxContributionPerCycle: null,
+        contributionCycleDays: 30,
+        now: NOW,
+      },
+      {
+        toggledOffIds: [],
+        amountOverrides: {},
+        hypotheticals: [],
+        escalationOverrides: {
+          "obl-1": [
+            makeEscalationRule({
+              id: "esc-whatif",
+              changeType: "fixed_increase",
+              value: 100,
+              effectiveDate: new Date("2025-03-20"),
+            }),
+          ],
+        },
+      }
+    );
+
+    // Actual: only real escalation, absolute to $1200
+    expect(result.actual.contributions[0].amountNeeded).toBe(1200);
+
+    // Scenario: real ($1200 absolute on Mar 15) + hypothetical (+$100 on Mar 20)
+    // After March 15: $1200 (absolute), then March 20: $1200 + $100 = $1300
+    expect(result.scenario.contributions[0].amountNeeded).toBe(1300);
+  });
+
+  it("hypothetical escalation on toggled-off obligation is ignored", () => {
+    const result = calculateWithWhatIf(
+      {
+        obligations: [
+          makeObligation({
+            id: "obl-1",
+            name: "Rent",
+            amount: 1000,
+            nextDueDate: new Date("2025-04-01"),
+          }),
+        ],
+        fundBalances: [],
+        maxContributionPerCycle: null,
+        contributionCycleDays: 30,
+        now: NOW,
+      },
+      {
+        toggledOffIds: ["obl-1"],
+        amountOverrides: {},
+        hypotheticals: [],
+        escalationOverrides: {
+          "obl-1": [
+            makeEscalationRule({
+              changeType: "percentage",
+              value: 50,
+              effectiveDate: new Date("2025-03-15"),
+            }),
+          ],
+        },
+      }
+    );
+
+    // Obligation is toggled off in scenario, so no contributions
+    expect(result.scenario.contributions).toHaveLength(0);
+  });
+});
+
 describe("escalation integration", () => {
   const NOW = new Date("2025-03-01");
 
