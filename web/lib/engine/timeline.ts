@@ -4,6 +4,7 @@ import {
   type FundBalanceInput,
   type CustomEntryInput,
 } from "./calculate";
+import { getAmountAtDate } from "./escalation";
 
 export interface TimelineInput {
   obligations: ObligationInput[];
@@ -93,8 +94,35 @@ function addMonths(date: Date, months: number): Date {
 }
 
 /**
+ * Returns the escalated amount for an obligation at a specific date.
+ * If the obligation has no escalation rules or an amountOverride is set,
+ * returns the override or base amount.
+ */
+function getEscalatedAmount(
+  obligation: ObligationInput,
+  date: Date,
+  windowStart: Date,
+  amountOverride?: number,
+): number {
+  if (amountOverride !== undefined) return amountOverride;
+  if (!obligation.escalationRules || obligation.escalationRules.length === 0) {
+    return obligation.amount;
+  }
+  return getAmountAtDate(
+    {
+      currentAmount: obligation.amount,
+      rules: obligation.escalationRules,
+      windowStart,
+      monthsAhead: 24,
+    },
+    date,
+  );
+}
+
+/**
  * Collects all due dates for an obligation within a time window.
- * Returns an array of { date, amount } pairs.
+ * Returns an array of { date, amount } pairs. When escalation rules exist,
+ * each marker uses the escalated amount at that specific date.
  */
 function collectDueDates(
   obligation: ObligationInput,
@@ -103,7 +131,6 @@ function collectDueDates(
   amountOverride?: number,
 ): ExpenseMarker[] {
   const markers: ExpenseMarker[] = [];
-  const amount = amountOverride ?? obligation.amount;
 
   if (obligation.type === "custom") {
     // Custom obligations have explicit entries
@@ -131,7 +158,7 @@ function collectDueDates(
         date: dueDate,
         obligationId: obligation.id,
         obligationName: obligation.name,
-        amount,
+        amount: getEscalatedAmount(obligation, dueDate, windowStart, amountOverride),
       });
     }
     return markers;
@@ -165,7 +192,7 @@ function collectDueDates(
       date: currentDate,
       obligationId: obligation.id,
       obligationName: obligation.name,
-      amount,
+      amount: getEscalatedAmount(obligation, currentDate, windowStart, amountOverride),
     });
 
     const next = getNextDueDateAfter(

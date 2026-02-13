@@ -565,13 +565,13 @@
   - Acceptance: Engine uses escalated future amounts (from escalation projection utility) when calculating per-obligation contributions instead of the current static amount. Ramps up contributions ahead of scheduled increases. Shortfall warnings account for escalated amounts. Crunch point detection uses escalated amounts.
   - Tests: Unit tests: contributions ramp up before an increase, shortfall detected for post-increase amount, crunch point uses escalated amount
 
-## In Progress
-
-- [ ] **Integrate escalation into timeline projection**
+- [x] **Integrate escalation into timeline projection**
   - Files: `web/lib/engine/timeline.ts` (update)
   - Spec: `specs/11-escalation.md`
   - Acceptance: Timeline projection uses escalated amounts for each obligation's future due dates. Expense markers reflect the escalated amount at that point in time. Step changes are visible in the projected balance curve.
   - Tests: Unit tests: timeline shows higher expense markers after escalation date, balance curve reflects stepped amounts
+
+## In Progress
 
 - [ ] **Add escalation form component**
   - Files: `web/app/obligations/EscalationForm.tsx`, `web/app/obligations/escalation-form.module.css`

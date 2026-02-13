@@ -2,6 +2,7 @@
 import { describe, it, expect } from "vitest";
 import { projectTimeline, type TimelineInput } from "../timeline";
 import type { ObligationInput } from "../calculate";
+import type { EscalationRule } from "../escalation";
 
 function makeObligation(
   overrides: Partial<ObligationInput> = {}
@@ -551,6 +552,266 @@ describe("projectTimeline", () => {
 
       // With 30-day cycle over ~2 months, expect 2 contributions
       expect(result.contributionMarkers).toHaveLength(2);
+    });
+  });
+
+  describe("escalation integration", () => {
+    const ESCALATION_NOW = new Date("2025-01-01");
+
+    function makeEscalationRule(
+      overrides: Partial<EscalationRule> = {}
+    ): EscalationRule {
+      return {
+        id: "esc-1",
+        changeType: "absolute",
+        value: 2200,
+        effectiveDate: new Date("2025-04-01"),
+        intervalMonths: null,
+        isApplied: false,
+        ...overrides,
+      };
+    }
+
+    it("shows higher expense markers after escalation date", () => {
+      // Rent is $1000/month, escalates to $1200 absolute on April 1
+      const result = projectTimeline(
+        makeInput({
+          obligations: [
+            makeObligation({
+              id: "obl-rent",
+              name: "Rent",
+              amount: 1000,
+              frequency: "monthly",
+              nextDueDate: new Date("2025-02-01"),
+              escalationRules: [
+                makeEscalationRule({
+                  changeType: "absolute",
+                  value: 1200,
+                  effectiveDate: new Date("2025-04-01"),
+                }),
+              ],
+            }),
+          ],
+          currentFundBalance: 10000,
+          contributionPerCycle: 0,
+          now: ESCALATION_NOW,
+          monthsAhead: 6,
+        })
+      );
+
+      // Find markers before and after the escalation date
+      const beforeEscalation = result.expenseMarkers.filter(
+        (m) => m.date < new Date("2025-04-01T00:00:00.000Z")
+      );
+      const afterEscalation = result.expenseMarkers.filter(
+        (m) => m.date >= new Date("2025-04-01T00:00:00.000Z")
+      );
+
+      expect(beforeEscalation.length).toBeGreaterThan(0);
+      expect(afterEscalation.length).toBeGreaterThan(0);
+
+      // Before escalation: base amount
+      for (const marker of beforeEscalation) {
+        expect(marker.amount).toBe(1000);
+      }
+      // After escalation: escalated amount
+      for (const marker of afterEscalation) {
+        expect(marker.amount).toBe(1200);
+      }
+    });
+
+    it("balance curve reflects stepped amounts from escalation", () => {
+      // Rent is $500/month, escalates to $800 on April 1
+      // Start with $5000, no contributions
+      const result = projectTimeline(
+        makeInput({
+          obligations: [
+            makeObligation({
+              id: "obl-rent",
+              name: "Rent",
+              amount: 500,
+              frequency: "monthly",
+              nextDueDate: new Date("2025-02-01"),
+              escalationRules: [
+                makeEscalationRule({
+                  changeType: "absolute",
+                  value: 800,
+                  effectiveDate: new Date("2025-04-01"),
+                }),
+              ],
+            }),
+          ],
+          currentFundBalance: 5000,
+          contributionPerCycle: 0,
+          now: ESCALATION_NOW,
+          monthsAhead: 6,
+        })
+      );
+
+      // Verify the balance drops more steeply after escalation
+      // Feb: 5000-500=4500, Mar: 4500-500=4000 (next ~30 days)
+      // Apr: 4000-800=3200, May: 3200-800=2400
+      const expenseAmounts = result.expenseMarkers.map((m) => m.amount);
+      const preEsc = expenseAmounts.filter((a) => a === 500);
+      const postEsc = expenseAmounts.filter((a) => a === 800);
+      expect(preEsc.length).toBeGreaterThan(0);
+      expect(postEsc.length).toBeGreaterThan(0);
+
+      // The final balance should be lower than if we used $500 the whole time
+      const lastPoint = result.dataPoints[result.dataPoints.length - 1];
+      const totalExpenses = result.expenseMarkers.reduce((s, m) => s + m.amount, 0);
+      expect(lastPoint.projectedBalance).toBe(5000 - totalExpenses);
+    });
+
+    it("handles recurring percentage escalation across multiple due dates", () => {
+      // Rent is $1000/month, goes up 10% every 3 months starting March 1
+      const result = projectTimeline(
+        makeInput({
+          obligations: [
+            makeObligation({
+              id: "obl-rent",
+              name: "Rent",
+              amount: 1000,
+              frequency: "monthly",
+              nextDueDate: new Date("2025-02-01"),
+              escalationRules: [
+                makeEscalationRule({
+                  changeType: "percentage",
+                  value: 10,
+                  effectiveDate: new Date("2025-03-01"),
+                  intervalMonths: 3,
+                }),
+              ],
+            }),
+          ],
+          currentFundBalance: 50000,
+          contributionPerCycle: 0,
+          now: ESCALATION_NOW,
+          monthsAhead: 8,
+        })
+      );
+
+      // Feb: $1000 (before first escalation)
+      // Mar 1 escalation: 1000 * 1.1 = 1100
+      // Mar-May markers: $1100
+      // Jun 1 escalation: 1100 * 1.1 = 1210
+      // Jun+ markers: $1210
+      const feb = result.expenseMarkers.find(
+        (m) => m.date.getTime() === new Date("2025-02-01T00:00:00.000Z").getTime()
+      );
+      expect(feb?.amount).toBe(1000);
+
+      // After March 1 escalation (but before June 1), amounts should be ~1100
+      const marchToMay = result.expenseMarkers.filter(
+        (m) =>
+          m.date >= new Date("2025-03-01T00:00:00.000Z") &&
+          m.date < new Date("2025-06-01T00:00:00.000Z")
+      );
+      for (const marker of marchToMay) {
+        expect(marker.amount).toBeCloseTo(1100, 0);
+      }
+
+      // After June 1 escalation, amounts should be ~1210
+      const juneOnward = result.expenseMarkers.filter(
+        (m) => m.date >= new Date("2025-06-01T00:00:00.000Z")
+      );
+      expect(juneOnward.length).toBeGreaterThan(0);
+      for (const marker of juneOnward) {
+        expect(marker.amount).toBeCloseTo(1210, 0);
+      }
+    });
+
+    it("escalation does not apply when amountOverride is set", () => {
+      const result = projectTimeline(
+        makeInput({
+          obligations: [
+            makeObligation({
+              id: "obl-rent",
+              name: "Rent",
+              amount: 1000,
+              frequency: "monthly",
+              nextDueDate: new Date("2025-02-01"),
+              escalationRules: [
+                makeEscalationRule({
+                  changeType: "absolute",
+                  value: 1500,
+                  effectiveDate: new Date("2025-03-01"),
+                }),
+              ],
+            }),
+          ],
+          overrides: {
+            amountOverrides: { "obl-rent": 2000 },
+          },
+          now: ESCALATION_NOW,
+          monthsAhead: 4,
+        })
+      );
+
+      // All markers should use the what-if override, not escalation
+      for (const marker of result.expenseMarkers) {
+        expect(marker.amount).toBe(2000);
+      }
+    });
+
+    it("obligation without escalation rules uses base amount", () => {
+      const result = projectTimeline(
+        makeInput({
+          obligations: [
+            makeObligation({
+              id: "obl-rent",
+              name: "Rent",
+              amount: 1000,
+              frequency: "monthly",
+              nextDueDate: new Date("2025-02-01"),
+              // no escalationRules
+            }),
+          ],
+          contributionPerCycle: 0,
+          now: ESCALATION_NOW,
+          monthsAhead: 4,
+        })
+      );
+
+      for (const marker of result.expenseMarkers) {
+        expect(marker.amount).toBe(1000);
+      }
+    });
+
+    it("crunch point detection uses escalated amounts", () => {
+      // Start with $2500, rent is $1000 but jumps to $2000 in April
+      // Without escalation: Feb $1000, Mar ~$1000 → balance stays positive
+      // With escalation: Apr $2000 → balance goes negative
+      const result = projectTimeline(
+        makeInput({
+          obligations: [
+            makeObligation({
+              id: "obl-rent",
+              name: "Rent",
+              amount: 1000,
+              frequency: "monthly",
+              nextDueDate: new Date("2025-02-01"),
+              escalationRules: [
+                makeEscalationRule({
+                  changeType: "absolute",
+                  value: 2000,
+                  effectiveDate: new Date("2025-04-01"),
+                }),
+              ],
+            }),
+          ],
+          currentFundBalance: 2500,
+          contributionPerCycle: 0,
+          now: ESCALATION_NOW,
+          monthsAhead: 6,
+        })
+      );
+
+      // Feb: 2500-1000=1500, Mar: 1500-1000=500, Apr: 500-2000=-1500
+      expect(result.crunchPoints.length).toBeGreaterThanOrEqual(1);
+      const crunch = result.crunchPoints[0];
+      expect(crunch.projectedBalance).toBeLessThan(0);
+      expect(crunch.triggerObligationId).toBe("obl-rent");
     });
   });
 });
