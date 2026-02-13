@@ -664,3 +664,35 @@
   - Spec: `specs/12-ui-testing.md`
   - Acceptance: `PROMPT_build.md` validation step includes `docker compose -f /project/docker-compose.yml exec web npm run test:e2e` after the existing `npm test` step. E2e tests skip gracefully (exit 0) when the dev server is not running.
   - Tests: Ralph validation step list includes e2e command; e2e tests skip without failure when server is unavailable
+
+### Spec 09a — Replace regex NL parser with Claude API
+
+- [ ] **Rewrite `nlParser.ts` to call Claude API (Sonnet) instead of regex**
+  - Files: `web/lib/ai/nlParser.ts`
+  - Spec: `specs/09a-nl-to-claude-api.md`
+  - Acceptance: `parseNaturalLanguage(input, context)` is async and calls Anthropic SDK with model `claude-sonnet-4-5-20250929`. System prompt defines all intent types and JSON schemas. User message includes financial context (income sources, obligations). Returns `ParseResult` matching existing types. No regex pattern matching remains.
+  - Tests: Unit tests with mocked Anthropic SDK: parse "Add an income of $1000 a month" → create income with sensible name; parse "Netflix $22.99 monthly" → create expense; parse "change gym to $60" → edit; parse "delete Spotify" → delete; parse "what's my biggest expense" → query
+
+- [ ] **Update parse API route to load financial context and handle errors**
+  - Files: `web/app/api/ai/parse/route.ts`
+  - Spec: `specs/09a-nl-to-claude-api.md`
+  - Acceptance: Route loads user's income sources and obligations from database before calling parser. Passes `FinancialContext` to async `parseNaturalLanguage()`. Returns structured error when `ANTHROPIC_API_KEY` is not set. Catches Anthropic API errors and returns user-friendly messages. Loading state is not blocked.
+  - Tests: Test missing API key returns specific error type; test API failure returns user-friendly error; test context is loaded and passed
+
+- [ ] **Replace regex parser tests with Claude API mock tests**
+  - Files: `web/lib/ai/__tests__/nlParser.test.ts`
+  - Spec: `specs/09a-nl-to-claude-api.md`
+  - Acceptance: All old regex-based tests removed. New tests mock `@anthropic-ai/sdk` and verify: each intent type (create income, create obligation, edit, delete, query, what-if, escalation, clarification), the "Add an income of $1000 a month" failure case now produces a sensible name, missing API key returns structured error, API failure returns user-friendly error. All existing component tests for AIBar/AIPreview/SparkleButton still pass.
+  - Tests: All new parser tests pass; all existing component tests pass
+
+- [ ] **Wire AIBar to open AIPreview for create/edit/delete intents**
+  - Files: `web/app/components/AIBar.tsx`
+  - Spec: `specs/09a-nl-to-claude-api.md`
+  - Acceptance: When parse API returns a create, edit, or delete intent, AIBar opens the existing AIPreview component with the parsed intent data. Query and what-if intents continue to be handled inline. AIPreview executes the action on confirm and triggers engine recalculation. Cancel dismisses the preview. Loading indicator shown while parse API call is in flight.
+  - Tests: Component test: create intent opens AIPreview; confirm executes action; cancel dismisses; query intent handled inline
+
+- [ ] **Add graceful degradation for missing API key in AIBar**
+  - Files: `web/app/components/AIBar.tsx` (update)
+  - Spec: `specs/09a-nl-to-claude-api.md`
+  - Acceptance: When parse API returns the missing-API-key error type, AIBar displays "AI features require an API key — you can still use the app normally" instead of a generic error. Message is persistent (not dismissed on next input). Rest of app continues to function. SparkleButton preset actions (which generate structured intents directly) still work without API key.
+  - Tests: Component test: missing API key error shows friendly message; app remains usable
