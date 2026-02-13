@@ -413,7 +413,7 @@ Summarize completed work grouped by feature area (auth, onboarding, etc). Then l
 | 1 | MMM dd, HH:MM | ? | ?m | Done |
 | ... | MMM dd, HH:MM | ? | ?h ?m | Done |
 | N | MMM dd, HH:MM | ? | ?h ?m+ | **Running** |
-|   |               |   | <total time > |
+|   |               |   | <total time > |      |
 
 N total build sessions, last N all successful. Note average time per task if calculable.
 
