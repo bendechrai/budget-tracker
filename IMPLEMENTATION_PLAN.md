@@ -653,13 +653,13 @@
   - Acceptance: Sparkle button appears on income and obligation list items. Clicking a sparkle button opens the modal/popover. Modal shows item summary and action buttons.
   - Tests: Sparkle button visibility, modal open, and content assertions pass
 
-## Backlog
-
-- [ ] **Add form smoke e2e tests**
+- [x] **Add form smoke e2e tests**
   - Files: `web/e2e/forms.spec.ts`
   - Spec: `specs/12-ui-testing.md`
   - Acceptance: Income source form at `/income/new` submits successfully (new item appears in list). Obligation form at `/obligations/new` submits successfully. Submitting a form with missing required fields displays validation errors. Tests use the seeded auth session.
   - Tests: Form submission success and validation error assertions pass
+
+## Backlog
 
 - [ ] **Add e2e test runner to Ralph validation loop**
   - Files: `PROMPT_build.md`
