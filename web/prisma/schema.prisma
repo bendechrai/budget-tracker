@@ -34,6 +34,7 @@ model User {
   importLogs              ImportLog[]
   suggestions             Suggestion[]
   engineSnapshots         EngineSnapshot[]
+  aiInteractionLogs       AIInteractionLog[]
 }
 
 enum IncomeFrequency {
@@ -257,6 +258,19 @@ model EngineSnapshot {
   nextActionDate        DateTime
   nextActionDescription String
   user                  User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+}
+
+model AIInteractionLog {
+  id           String   @id @default(cuid())
+  userId       String
+  rawInput     String
+  parsedIntent Json
+  actionTaken  String
+  success      Boolean
+  createdAt    DateTime @default(now())
+  user         User     @relation(fields: [userId], references: [id])
 
   @@index([userId])
 }

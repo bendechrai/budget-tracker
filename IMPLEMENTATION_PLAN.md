@@ -429,17 +429,17 @@
   - Tests: Test parse returns correct intent type, ambiguous input returns clarification
   - Note: AIInteractionLog logging deferred to next task (model does not exist yet).
 
+- [x] **Add `AIInteractionLog` model with Prisma migration**
+  - Files: `web/prisma/schema.prisma`, new migration
+  - Spec: `specs/09-ai-interaction.md`
+  - Acceptance: AIInteractionLog: id, userId, rawInput, parsedIntent (JSON), actionTaken, success (boolean), createdAt. Migration runs cleanly.
+  - Tests: Migration applies; Prisma generate succeeds
+
 ## In Progress
 
 ## Backlog
 
 ### Spec 09 — AI Interaction Layer
-
-- [ ] **Add `AIInteractionLog` model with Prisma migration**
-  - Files: `web/prisma/schema.prisma`, new migration
-  - Spec: `specs/09-ai-interaction.md`
-  - Acceptance: AIInteractionLog: id, userId, rawInput, parsedIntent (JSON), actionTaken, success (boolean), createdAt. Migration runs cleanly.
-  - Tests: Migration applies; Prisma generate succeeds
 
 - [ ] **Add floating AI bar component**
   - Files: `web/app/components/AIBar.tsx`, `web/app/components/ai-bar.module.css`
