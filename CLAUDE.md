@@ -15,6 +15,24 @@ A good spec covers:
 
 Keep specs focused on *what*, not *how*. Ralph figures out the implementation.
 
+### Revising Implemented Specs
+
+When a spec file is modified and that spec already has completed (`[x]`) tasks in `IMPLEMENTATION_PLAN.md`, the existing implementation may no longer match the spec. Ralph's planner cannot reopen completed tasks — they are append-only.
+
+**Required process:** Before committing changes to an implemented spec, create a **rework spec** that scopes the changes Ralph needs to make to the existing codebase.
+
+1. Edit the original spec (e.g. `specs/09-ai-interaction.md`) with the new requirements
+2. Create a rework spec (e.g. `specs/09a-nl-to-claude-api.md`) that:
+   - References the original spec and summarizes what changed
+   - Lists the specific files/components that need rework
+   - Describes what to replace, what to keep, and what to add
+   - Has its own acceptance criteria scoped to the rework
+3. Commit both together
+
+The rework spec is what Ralph's planner picks up as new work. Without it, the spec changes are invisible to Ralph because the original tasks are already marked complete.
+
+**Claude Code must enforce this.** If you (Claude) have edited a spec file during a conversation, check whether that spec has completed tasks before committing. If it does, prompt the user to create the rework spec. Do not commit spec-only changes that would leave Ralph unaware of required rework.
+
 ```markdown
 # Feature Name
 
