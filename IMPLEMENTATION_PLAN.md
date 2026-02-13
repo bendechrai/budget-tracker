@@ -625,15 +625,15 @@
   - Acceptance: Test visits every authenticated route (`/dashboard`, `/income`, `/obligations`, `/transactions`, `/suggestions`, `/import`) and verifies: nav component is visible, AI bar pill is visible, page-specific content renders (not blank). Uses `data-testid` selectors.
   - Tests: All six routes pass layout assertions
 
-## In Progress
-
-## Backlog
-
-- [ ] **Add navigation e2e test**
+- [x] **Add navigation e2e test**
   - Files: `web/e2e/navigation.spec.ts`
   - Spec: `specs/12-ui-testing.md`
   - Acceptance: Clicks each nav link and verifies navigation to the correct page. Header and AI bar remain visible after each navigation. Active nav item is highlighted on the correct page.
   - Tests: Navigation between all six routes works; active state is correct on each page
+
+## In Progress
+
+## Backlog
 
 - [ ] **Add authentication gating e2e test**
   - Files: `web/e2e/auth.spec.ts`
