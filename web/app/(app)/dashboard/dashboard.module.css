@@ -1,0 +1,196 @@
+.page {
+  display: flex;
+  font-family: var(--font-geist-sans);
+  background-color: var(--background);
+  justify-content: center;
+  padding: 40px 24px;
+}
+
+.container {
+  width: 100%;
+  max-width: 700px;
+}
+
+.title {
+  font-size: 28px;
+  font-weight: 600;
+  color: var(--foreground);
+  margin-bottom: 32px;
+}
+
+.heroCard {
+  padding: 32px;
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  background: var(--background);
+}
+
+.heroLabel {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 8px;
+}
+
+.heroAmount {
+  font-size: 36px;
+  font-weight: 700;
+  color: var(--foreground);
+  margin-bottom: 4px;
+}
+
+.heroDescription {
+  font-size: 15px;
+  color: #666;
+  margin-bottom: 16px;
+}
+
+.heroDeadline {
+  font-size: 13px;
+  color: #999;
+}
+
+.heroCelebration {
+  text-align: center;
+}
+
+.celebrationEmoji {
+  font-size: 48px;
+  margin-bottom: 12px;
+}
+
+.celebrationTitle {
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--foreground);
+  margin-bottom: 8px;
+}
+
+.celebrationDescription {
+  font-size: 15px;
+  color: #666;
+}
+
+.emptyState {
+  text-align: center;
+  padding: 60px 20px;
+  border: 1px dashed #ddd;
+  border-radius: 12px;
+}
+
+.emptyTitle {
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--foreground);
+  margin-bottom: 8px;
+}
+
+.emptyDescription {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 24px;
+}
+
+.emptyActions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.emptyLink {
+  padding: 10px 20px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--foreground);
+  text-decoration: none;
+  transition: border-color 0.2s;
+}
+
+.emptyLink:hover {
+  border-color: var(--foreground);
+}
+
+.error {
+  color: #e53e3e;
+  font-size: 14px;
+  padding: 10px 12px;
+  background: #fff5f5;
+  border: 1px solid #fed7d7;
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+.loading {
+  text-align: center;
+  color: #666;
+  font-size: 16px;
+  padding: 40px 0;
+}
+
+@media (prefers-color-scheme: dark) {
+  .heroCard {
+    border-color: #333;
+  }
+
+  .heroLabel {
+    color: #999;
+  }
+
+  .heroDescription {
+    color: #999;
+  }
+
+  .heroDeadline {
+    color: #666;
+  }
+
+  .celebrationDescription {
+    color: #999;
+  }
+
+  .emptyState {
+    border-color: #333;
+  }
+
+  .emptyDescription {
+    color: #999;
+  }
+
+  .emptyLink {
+    border-color: #333;
+  }
+
+  .emptyLink:hover {
+    border-color: var(--foreground);
+  }
+
+  .error {
+    color: #fc8181;
+    background: #1a0000;
+    border-color: #4a1515;
+  }
+
+  .loading {
+    color: #999;
+  }
+}
+
+@media (max-width: 480px) {
+  .page {
+    padding: 24px 16px;
+  }
+
+  .title {
+    font-size: 24px;
+  }
+
+  .heroCard {
+    padding: 24px;
+  }
+
+  .heroAmount {
+    font-size: 28px;
+  }
+}

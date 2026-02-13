@@ -380,17 +380,17 @@
   - Acceptance: Layout wraps authenticated pages. Includes Nav component. Logout button.
   - Tests: Component test: renders nav and children
 
+- [x] **Add dashboard page with hero card**
+  - Files: `web/app/(app)/dashboard/page.tsx`, `web/app/(app)/dashboard/dashboard.module.css`
+  - Spec: `specs/08-dashboard.md`
+  - Acceptance: Hero card displays next action from EngineSnapshot: amount and deadline. Shows celebration state when fully funded. Shows prompts when no data exists. Updates when contributions are marked done.
+  - Tests: Component test: renders next action, celebration state, empty state
+
 ## In Progress
 
 ## Backlog
 
 ### Spec 08 — Dashboard
-
-- [ ] **Add dashboard page with hero card**
-  - Files: `web/app/(app)/dashboard/page.tsx`, `web/app/(app)/dashboard/dashboard.module.css`
-  - Spec: `specs/08-dashboard.md`
-  - Acceptance: Hero card displays next action from EngineSnapshot: amount and deadline. Shows celebration state when fully funded. Shows prompts when no data exists. Updates when contributions are marked done.
-  - Tests: Component test: renders next action, celebration state, empty state
 
 - [ ] **Add health bar component**
   - Files: `web/app/(app)/dashboard/HealthBar.tsx`, `web/app/(app)/dashboard/health-bar.module.css`
