@@ -435,17 +435,17 @@
   - Acceptance: AIInteractionLog: id, userId, rawInput, parsedIntent (JSON), actionTaken, success (boolean), createdAt. Migration runs cleanly.
   - Tests: Migration applies; Prisma generate succeeds
 
+- [x] **Add floating AI bar component**
+  - Files: `web/app/components/AIBar.tsx`, `web/app/components/ai-bar.module.css`
+  - Spec: `specs/09-ai-interaction.md`
+  - Acceptance: Renders as collapsed pill/icon in bottom-right. Expands to show text input. Draggable to any screen position. Persists across page navigation (in layout). Sends input to parse API. Shows responses/previews inline.
+  - Tests: Component test: renders collapsed, expands on click, submits input
+
 ## In Progress
 
 ## Backlog
 
 ### Spec 09 — AI Interaction Layer
-
-- [ ] **Add floating AI bar component**
-  - Files: `web/app/components/AIBar.tsx`, `web/app/components/ai-bar.module.css`
-  - Spec: `specs/09-ai-interaction.md`
-  - Acceptance: Renders as collapsed pill/icon in bottom-right. Expands to show text input. Draggable to any screen position. Persists across page navigation (in layout). Sends input to parse API. Shows responses/previews inline.
-  - Tests: Component test: renders collapsed, expands on click, submits input
 
 - [ ] **Add sparkle button component**
   - Files: `web/app/components/SparkleButton.tsx`, `web/app/components/sparkle.module.css`
