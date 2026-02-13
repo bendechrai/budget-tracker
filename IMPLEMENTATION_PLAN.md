@@ -356,17 +356,17 @@
   - Acceptance: Records a contribution or manual adjustment for an obligation. Updates the FundBalance. Triggers engine recalculation. Returns updated fund balance.
   - Tests: Test contribution updates balance, manual adjustment works, triggers recalculation
 
+- [x] **Add `PUT /api/fund-balances/[obligationId]` route (manual balance adjustment)**
+  - Files: `web/app/api/fund-balances/[obligationId]/route.ts`
+  - Spec: `specs/07-sinking-fund-engine.md`
+  - Acceptance: Allows user to set a fund balance directly. Creates a ContributionRecord of type manual_adjustment. Triggers recalculation.
+  - Tests: Test manual adjustment updates balance and creates record
+
 ## In Progress
 
 ## Backlog
 
 ### Spec 07 — Sinking Fund Engine
-
-- [ ] **Add `PUT /api/fund-balances/[obligationId]` route (manual balance adjustment)**
-  - Files: `web/app/api/fund-balances/[obligationId]/route.ts`
-  - Spec: `specs/07-sinking-fund-engine.md`
-  - Acceptance: Allows user to set a fund balance directly. Creates a ContributionRecord of type manual_adjustment. Triggers recalculation.
-  - Tests: Test manual adjustment updates balance and creates record
 
 - [ ] **Add engine timeline projection utility**
   - Files: `web/lib/engine/timeline.ts`
