@@ -368,17 +368,17 @@
   - Acceptance: Projects fund balance over a configurable 6–12 month window. Returns data points with dates, projected balance, expense markers at obligation due dates, contribution markers, and crunch points (where balance dips near or below zero). Accepts optional overrides for what-if scenarios.
   - Tests: Unit tests: projection shows correct balance curve, expense markers at correct dates, crunch points detected
 
+- [x] **Add main navigation component**
+  - Files: `web/app/components/Nav.tsx`, `web/app/components/nav.module.css`
+  - Spec: `specs/08-dashboard.md`
+  - Acceptance: Navigation bar with links to Dashboard, Income, Obligations, Import, Transactions, Suggestions. Highlights current page. Responsive.
+  - Tests: Component test: renders all links, highlights active link
+
 ## In Progress
 
 ## Backlog
 
 ### Spec 08 — Dashboard
-
-- [ ] **Add main navigation component**
-  - Files: `web/app/components/Nav.tsx`, `web/app/components/nav.module.css`
-  - Spec: `specs/08-dashboard.md`
-  - Acceptance: Navigation bar with links to Dashboard, Income, Obligations, Import, Transactions, Suggestions. Highlights current page. Responsive.
-  - Tests: Component test: renders all links, highlights active link
 
 - [ ] **Add authenticated app layout with navigation**
   - Files: `web/app/(app)/layout.tsx`

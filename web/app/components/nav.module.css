@@ -64,3 +64,14 @@
     color: #999;
   }
 }
+
+@media (max-width: 480px) {
+  .nav {
+    padding: 0 0.5rem;
+  }
+
+  .navLink {
+    padding: 0.625rem 0.5rem;
+    font-size: 0.8125rem;
+  }
+}

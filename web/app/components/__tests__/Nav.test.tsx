@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, waitFor, cleanup } from "@testing-library/react";
 import Nav from "../Nav";
+import { usePathname } from "next/navigation";
 
 vi.mock("@/lib/logging", () => ({
   logError: vi.fn(),
@@ -125,5 +126,37 @@ describe("Nav", () => {
 
     const badge = screen.getByLabelText("3 pending suggestions");
     expect(badge).toBeDefined();
+  });
+
+  it("highlights the active link based on current pathname", async () => {
+    vi.mocked(global.fetch).mockResolvedValueOnce(
+      mockFetchResponse({ suggestions: [], count: 0 })
+    );
+
+    render(<Nav />);
+
+    const dashboardLink = screen.getByText("Dashboard").closest("a");
+    expect(dashboardLink?.getAttribute("aria-current")).toBe("page");
+
+    const incomeLink = screen.getByText("Income").closest("a");
+    expect(incomeLink?.getAttribute("aria-current")).toBeNull();
+
+    const obligationsLink = screen.getByText("Obligations").closest("a");
+    expect(obligationsLink?.getAttribute("aria-current")).toBeNull();
+  });
+
+  it("highlights a different link when pathname changes", async () => {
+    vi.mocked(usePathname).mockReturnValue("/obligations");
+    vi.mocked(global.fetch).mockResolvedValueOnce(
+      mockFetchResponse({ suggestions: [], count: 0 })
+    );
+
+    render(<Nav />);
+
+    const obligationsLink = screen.getByText("Obligations").closest("a");
+    expect(obligationsLink?.getAttribute("aria-current")).toBe("page");
+
+    const dashboardLink = screen.getByText("Dashboard").closest("a");
+    expect(dashboardLink?.getAttribute("aria-current")).toBeNull();
   });
 });
