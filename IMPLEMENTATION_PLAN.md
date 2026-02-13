@@ -374,17 +374,17 @@
   - Acceptance: Navigation bar with links to Dashboard, Income, Obligations, Import, Transactions, Suggestions. Highlights current page. Responsive.
   - Tests: Component test: renders all links, highlights active link
 
+- [x] **Add authenticated app layout with navigation**
+  - Files: `web/app/(app)/layout.tsx`
+  - Spec: `specs/08-dashboard.md`
+  - Acceptance: Layout wraps authenticated pages. Includes Nav component. Logout button.
+  - Tests: Component test: renders nav and children
+
 ## In Progress
 
 ## Backlog
 
 ### Spec 08 — Dashboard
-
-- [ ] **Add authenticated app layout with navigation**
-  - Files: `web/app/(app)/layout.tsx`
-  - Spec: `specs/08-dashboard.md`
-  - Acceptance: Layout wraps authenticated pages. Includes Nav component. Logout button.
-  - Tests: Component test: renders nav and children
 
 - [ ] **Add dashboard page with hero card**
   - Files: `web/app/(app)/dashboard/page.tsx`, `web/app/(app)/dashboard/dashboard.module.css`
