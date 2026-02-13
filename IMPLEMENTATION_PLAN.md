@@ -571,13 +571,13 @@
   - Acceptance: Timeline projection uses escalated amounts for each obligation's future due dates. Expense markers reflect the escalated amount at that point in time. Step changes are visible in the projected balance curve.
   - Tests: Unit tests: timeline shows higher expense markers after escalation date, balance curve reflects stepped amounts
 
-## In Progress
-
-- [ ] **Add escalation form component**
+- [x] **Add escalation form component**
   - Files: `web/app/obligations/EscalationForm.tsx`, `web/app/obligations/escalation-form.module.css`
   - Spec: `specs/11-escalation.md`
   - Acceptance: Mini-form with: change type selector (absolute/percentage/fixed_increase), value input, effective date picker, optional "repeats every N months" toggle. Preview shows timeline of amount changes. Submits to POST /api/escalations. Confirmation prompt for >50% increases. Hidden for one-off obligations.
   - Tests: Component test: renders all fields, preview updates on input, submits valid data, shows confirmation for large increases
+
+## In Progress
 
 - [ ] **Add escalation display to obligations list/detail**
   - Files: `web/app/obligations/page.tsx` (update)

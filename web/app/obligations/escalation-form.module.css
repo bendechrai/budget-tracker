@@ -1,0 +1,253 @@
+.container {
+  padding: 16px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  margin-top: 8px;
+}
+
+.title {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--foreground);
+  margin: 0 0 12px 0;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.error {
+  color: #e53e3e;
+  font-size: 14px;
+  padding: 10px 12px;
+  background: #fff5f5;
+  border: 1px solid #fed7d7;
+  border-radius: 8px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.fieldRow {
+  display: flex;
+  gap: 12px;
+}
+
+.label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #666;
+}
+
+.input {
+  padding: 8px 10px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  color: var(--foreground);
+  background: var(--background);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--foreground);
+}
+
+.recurringToggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.checkboxLabel {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  color: var(--foreground);
+  cursor: pointer;
+}
+
+.intervalField {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.intervalInput {
+  width: 60px;
+  padding: 6px 8px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  color: var(--foreground);
+  background: var(--background);
+}
+
+.intervalInput:focus {
+  outline: none;
+  border-color: var(--foreground);
+}
+
+.intervalSuffix {
+  font-size: 14px;
+  color: #666;
+}
+
+.preview {
+  padding: 12px;
+  background: #f7fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+}
+
+.previewTitle {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--foreground);
+  margin: 0 0 8px 0;
+}
+
+.previewCurrent {
+  font-size: 13px;
+  color: #666;
+  margin-bottom: 6px;
+}
+
+.previewList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.previewItem {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+}
+
+.previewDate {
+  color: #666;
+}
+
+.previewAmount {
+  font-weight: 500;
+  color: var(--foreground);
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.submitButton {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  background: var(--foreground);
+  color: var(--background);
+  transition: opacity 0.2s;
+}
+
+.submitButton:hover {
+  opacity: 0.9;
+}
+
+.submitButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.cancelButton {
+  padding: 8px 16px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  background: transparent;
+  color: var(--foreground);
+  transition: border-color 0.2s;
+}
+
+.cancelButton:hover {
+  border-color: var(--foreground);
+}
+
+@media (prefers-color-scheme: dark) {
+  .container {
+    border-color: #333;
+  }
+
+  .label {
+    color: #999;
+  }
+
+  .input {
+    border-color: #333;
+  }
+
+  .input:focus {
+    border-color: var(--foreground);
+  }
+
+  .intervalInput {
+    border-color: #333;
+  }
+
+  .intervalInput:focus {
+    border-color: var(--foreground);
+  }
+
+  .intervalSuffix {
+    color: #999;
+  }
+
+  .preview {
+    background: #1a1a2e;
+    border-color: #333;
+  }
+
+  .previewCurrent {
+    color: #999;
+  }
+
+  .previewDate {
+    color: #999;
+  }
+
+  .error {
+    color: #fc8181;
+    background: #1a0000;
+    border-color: #4a1515;
+  }
+
+  .cancelButton {
+    border-color: #333;
+  }
+
+  .cancelButton:hover {
+    border-color: var(--foreground);
+  }
+}
+
+@media (max-width: 480px) {
+  .fieldRow {
+    flex-direction: column;
+    gap: 12px;
+  }
+}
