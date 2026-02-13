@@ -601,10 +601,10 @@
   - Acceptance: What-if context supports adding hypothetical escalation rules to obligations. "What if rent goes up 5% next year?" adds a temporary escalation rule. Engine calculation with what-if overrides includes hypothetical escalation in projections. Session-only, not persisted.
   - Tests: Unit test: hypothetical escalation appears in what-if projection, does not persist
 
-## In Progress
-
-- [ ] **Add auto-apply logic for one-off escalation rules**
+- [x] **Add auto-apply logic for one-off escalation rules**
   - Files: `web/lib/engine/applyEscalations.ts`
   - Spec: `specs/11-escalation.md`
   - Acceptance: Utility that checks for unapplied one-off escalation rules whose effectiveDate has passed (and obligation is not paused). Updates the obligation's base amount according to the rule. Marks the rule as applied with appliedAt timestamp. Called during engine recalculation. For paused obligations, defers application until resume.
   - Tests: Unit tests: applies past-date one-off, skips future-date, skips paused obligations, skips already-applied rules, applies deferred rules on resume
+
+## In Progress

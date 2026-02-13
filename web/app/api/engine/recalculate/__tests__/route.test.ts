@@ -33,6 +33,12 @@ vi.mock("@/lib/engine/snapshot", () => ({
     mockCalculateAndSnapshot(...args),
 }));
 
+const mockApplyPendingEscalations = vi.fn();
+vi.mock("@/lib/engine/applyEscalations", () => ({
+  applyPendingEscalations: (...args: unknown[]) =>
+    mockApplyPendingEscalations(...args),
+}));
+
 import { POST } from "../route";
 
 const mockUser = {
@@ -91,6 +97,7 @@ describe("POST /api/engine/recalculate", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockGetCurrentUser.mockResolvedValue(mockUser);
+    mockApplyPendingEscalations.mockResolvedValue({ appliedCount: 0, updatedObligationIds: [] });
     mockObligationFindMany.mockResolvedValue(mockObligations);
     mockFundBalanceFindMany.mockResolvedValue(mockFundBalances);
     mockCalculateAndSnapshot.mockReturnValue({

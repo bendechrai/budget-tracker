@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth/getCurrentUser";
 import { logError } from "@/lib/logging";
 import { calculateAndSnapshot } from "@/lib/engine/snapshot";
+import { applyPendingEscalations } from "@/lib/engine/applyEscalations";
 import type { ObligationInput, FundBalanceInput } from "@/lib/engine/calculate";
 
 export async function POST(): Promise<NextResponse> {
@@ -11,6 +12,9 @@ export async function POST(): Promise<NextResponse> {
     if (!user) {
       return NextResponse.json({ error: "unauthorized" }, { status: 401 });
     }
+
+    // Apply any pending one-off escalation rules before recalculating
+    await applyPendingEscalations(user.id);
 
     // Fetch active, non-archived obligations with their custom entries
     const obligations = await prisma.obligation.findMany({
