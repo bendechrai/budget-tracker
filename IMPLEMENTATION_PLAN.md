@@ -547,13 +547,13 @@
   - Acceptance: Accepts PDF uploads alongside CSV/OFX. Routes to PDF parser. Low-confidence transactions are flagged for user review. Import summary includes confidence info.
   - Tests: Test PDF upload flow with mocked parser
 
-## In Progress
-
-- [ ] **Add `DELETE /api/escalations/[id]` route**
+- [x] **Add `DELETE /api/escalations/[id]` route**
   - Files: `web/app/api/escalations/[id]/route.ts`
   - Spec: `specs/11-escalation.md`
   - Acceptance: Deletes an escalation rule. Only allows deleting own records (via obligation ownership). Returns 200.
   - Tests: Test delete (200), ownership check (403/404)
+
+## In Progress
 
 - [ ] **Add escalation projection utility**
   - Files: `web/lib/engine/escalation.ts`
