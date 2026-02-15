@@ -544,6 +544,76 @@
   color: var(--foreground);
 }
 
+.fundBalanceRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  margin-top: 6px;
+  flex-wrap: wrap;
+}
+
+.fundProgressBar {
+  width: 100px;
+  height: 6px;
+  background: #e2e8f0;
+  border-radius: 3px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.fundProgressFill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.fundProgress_green {
+  background: #38a169;
+}
+
+.fundProgress_amber {
+  background: #d69e2e;
+}
+
+.fundProgress_red {
+  background: #e53e3e;
+}
+
+.fundBalanceText {
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.fundText_green {
+  color: #38a169;
+}
+
+.fundText_amber {
+  color: #d69e2e;
+}
+
+.fundText_red {
+  color: #e53e3e;
+}
+
+.contributeButton {
+  padding: 3px 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  background: transparent;
+  color: var(--foreground);
+  transition: border-color 0.2s;
+  white-space: nowrap;
+}
+
+.contributeButton:hover {
+  border-color: var(--foreground);
+}
+
 @media (prefers-color-scheme: dark) {
   .whatIfBadge {
     color: #b794f4;
@@ -743,6 +813,42 @@
   .addEscalationButton:hover {
     border-color: var(--foreground);
     color: var(--foreground);
+  }
+
+  .fundProgressBar {
+    background: #2d3748;
+  }
+
+  .fundProgress_green {
+    background: #68d391;
+  }
+
+  .fundProgress_amber {
+    background: #f6e05e;
+  }
+
+  .fundProgress_red {
+    background: #fc8181;
+  }
+
+  .fundText_green {
+    color: #68d391;
+  }
+
+  .fundText_amber {
+    color: #f6e05e;
+  }
+
+  .fundText_red {
+    color: #fc8181;
+  }
+
+  .contributeButton {
+    border-color: #444;
+  }
+
+  .contributeButton:hover {
+    border-color: var(--foreground);
   }
 }
 

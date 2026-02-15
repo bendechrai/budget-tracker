@@ -886,7 +886,7 @@
   - Acceptance: Modal shows obligation name, current balance, amount needed, and engine's recommended contribution pre-filled. User can accept or enter custom amount. On save: calls POST /api/contributions, dispatches `budget-data-changed` event. Validates: no zero or negative amounts.
   - Tests: Component test: renders with pre-filled amount, custom amount input, submits successfully, validation rejects zero
 
-- [ ] **Add fund balance display to obligations list**
+- [x] **Add fund balance display to obligations list**
   - Files: `web/app/(app)/obligations/page.tsx` (update), `web/app/(app)/obligations/obligations.module.css` (update)
   - Spec: `specs/14-contributions.md`
   - Acceptance: Each obligation in the list shows fund balance: progress bar or text "$X of $Y saved" with percentage. Color coded: green (≥80%), amber (40-79%), red (<40%). "Record contribution" button on each obligation opens ContributionModal.

@@ -8,6 +8,7 @@ import SparkleButton from "@/app/components/SparkleButton";
 import { useWhatIf } from "@/app/contexts/WhatIfContext";
 import HypotheticalForm from "./HypotheticalForm";
 import EscalationForm from "./EscalationForm";
+import ContributionModal from "./ContributionModal";
 
 interface FundGroup {
   id: string;
@@ -32,6 +33,10 @@ interface CustomScheduleEntry {
   isPaid: boolean;
 }
 
+interface FundBalanceData {
+  currentBalance: number;
+}
+
 interface Obligation {
   id: string;
   name: string;
@@ -47,6 +52,7 @@ interface Obligation {
   fundGroupId: string | null;
   fundGroup: FundGroup | null;
   customEntries: CustomScheduleEntry[];
+  fundBalance: FundBalanceData | null;
 }
 
 const TYPE_LABELS: Record<string, string> = {
@@ -108,6 +114,14 @@ function formatEscalationRecurrence(esc: Escalation): string {
     return "Every month";
   }
   return `Every ${esc.intervalMonths} months`;
+}
+
+function getFundStatusColor(currentBalance: number, amountNeeded: number): "green" | "amber" | "red" {
+  if (amountNeeded <= 0) return "green";
+  const pct = (currentBalance / amountNeeded) * 100;
+  if (pct >= 80) return "green";
+  if (pct >= 40) return "amber";
+  return "red";
 }
 
 function isPastDue(nextDueDate: string): boolean {
@@ -187,6 +201,7 @@ export default function ObligationsPage() {
   const [escalations, setEscalations] = useState<Map<string, Escalation[]>>(new Map());
   const [expandedEscalations, setExpandedEscalations] = useState<Set<string>>(new Set());
   const [escalationFormTarget, setEscalationFormTarget] = useState<string | null>(null);
+  const [contributionTarget, setContributionTarget] = useState<Obligation | null>(null);
   const { overrides, toggleObligation, overrideAmount, addHypothetical, removeHypothetical } = useWhatIf();
 
   const archiveObligation = useCallback(async (ob: Obligation) => {
@@ -447,6 +462,34 @@ export default function ObligationsPage() {
                             <> · Ends: {formatDate(ob.endDate)}</>
                           )}
                         </span>
+                        {(() => {
+                          const balance = ob.fundBalance?.currentBalance ?? 0;
+                          const needed = ob.amount;
+                          const pct = needed > 0 ? Math.min(100, Math.round((balance / needed) * 100)) : 100;
+                          const color = getFundStatusColor(balance, needed);
+                          return (
+                            <div className={styles.fundBalanceRow} data-testid={`fund-balance-${ob.id}`}>
+                              <div className={styles.fundProgressBar}>
+                                <div
+                                  className={`${styles.fundProgressFill} ${styles[`fundProgress_${color}`]}`}
+                                  style={{ width: `${pct}%` }}
+                                  data-testid={`fund-progress-${ob.id}`}
+                                />
+                              </div>
+                              <span className={`${styles.fundBalanceText} ${styles[`fundText_${color}`]}`}>
+                                ${balance.toFixed(2)} of ${needed.toFixed(2)} saved ({pct}%)
+                              </span>
+                              <button
+                                type="button"
+                                className={styles.contributeButton}
+                                onClick={() => setContributionTarget(ob)}
+                                data-testid={`contribute-button-${ob.id}`}
+                              >
+                                Record contribution
+                              </button>
+                            </div>
+                          );
+                        })()}
                       </div>
                       <div className={styles.listItemActions}>
                         <label className={styles.whatIfToggle} data-testid={`whatif-toggle-${ob.id}`}>
@@ -651,6 +694,21 @@ export default function ObligationsPage() {
               />
             )}
           </div>
+        )}
+
+        {contributionTarget && (
+          <ContributionModal
+            obligationId={contributionTarget.id}
+            obligationName={contributionTarget.name}
+            currentBalance={contributionTarget.fundBalance?.currentBalance ?? 0}
+            amountNeeded={contributionTarget.amount}
+            recommendedContribution={Math.max(0, contributionTarget.amount - (contributionTarget.fundBalance?.currentBalance ?? 0))}
+            onClose={() => setContributionTarget(null)}
+            onSaved={() => {
+              setContributionTarget(null);
+              void fetchObligations();
+            }}
+          />
         )}
 
         {!loading && hasAnyObligations && (
