@@ -1,0 +1,357 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1002;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(0, 0, 0, 0.3);
+}
+
+.modal {
+  width: 28rem;
+  max-height: 80vh;
+  background-color: #fff;
+  border: 1px solid #e5e5e5;
+  border-radius: 0.75rem;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+@media (prefers-color-scheme: dark) {
+  .modal {
+    background-color: #1a1a1a;
+    border-color: #333;
+  }
+}
+
+.modalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.625rem 0.75rem;
+  border-bottom: 1px solid #e5e5e5;
+}
+
+@media (prefers-color-scheme: dark) {
+  .modalHeader {
+    border-bottom-color: #333;
+  }
+}
+
+.modalTitle {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+.closeButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border: none;
+  background: none;
+  color: #666;
+  font-size: 1rem;
+  cursor: pointer;
+  border-radius: 0.25rem;
+}
+
+.closeButton:hover {
+  background-color: #f0f0f0;
+  color: var(--foreground);
+}
+
+@media (prefers-color-scheme: dark) {
+  .closeButton:hover {
+    background-color: #333;
+  }
+}
+
+.content {
+  padding: 0.75rem;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.allFunded {
+  text-align: center;
+  padding: 1.5rem 0;
+  color: #2e7d32;
+  font-size: 0.875rem;
+}
+
+.amountInputSection {
+  margin-bottom: 0.75rem;
+}
+
+.amountLabel {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #666;
+  margin-bottom: 0.25rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  .amountLabel {
+    color: #999;
+  }
+}
+
+.amountInput {
+  width: 100%;
+  padding: 0.5rem 0.625rem;
+  border: 1px solid #ddd;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--foreground);
+  background: transparent;
+  box-sizing: border-box;
+}
+
+.amountInput:focus {
+  outline: none;
+  border-color: var(--foreground);
+}
+
+@media (prefers-color-scheme: dark) {
+  .amountInput {
+    border-color: #444;
+  }
+
+  .amountInput:focus {
+    border-color: var(--foreground);
+  }
+}
+
+.validationError {
+  font-size: 0.75rem;
+  color: #e53935;
+  margin-top: 0.25rem;
+}
+
+.totalShortfall {
+  font-size: 0.75rem;
+  color: #666;
+  margin-top: 0.25rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  .totalShortfall {
+    color: #999;
+  }
+}
+
+.distributionSection {
+  margin-top: 0.75rem;
+}
+
+.distributionTitle {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--foreground);
+  margin-bottom: 0.5rem;
+}
+
+.distributionList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.distributionRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.distributionRow:last-child {
+  border-bottom: none;
+}
+
+@media (prefers-color-scheme: dark) {
+  .distributionRow {
+    border-bottom-color: #2a2a2a;
+  }
+}
+
+.distributionName {
+  flex: 1;
+  font-size: 0.8125rem;
+  color: var(--foreground);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.distributionShortfall {
+  font-size: 0.6875rem;
+  color: #999;
+  white-space: nowrap;
+}
+
+.distributionAmountInput {
+  width: 5.5rem;
+  padding: 0.25rem 0.375rem;
+  border: 1px solid #ddd;
+  border-radius: 0.375rem;
+  font-size: 0.8125rem;
+  color: var(--foreground);
+  background: transparent;
+  text-align: right;
+  box-sizing: border-box;
+}
+
+.distributionAmountInput:focus {
+  outline: none;
+  border-color: var(--foreground);
+}
+
+@media (prefers-color-scheme: dark) {
+  .distributionAmountInput {
+    border-color: #444;
+  }
+
+  .distributionAmountInput:focus {
+    border-color: var(--foreground);
+  }
+}
+
+.sumRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 0.5rem 0 0;
+  margin-top: 0.25rem;
+  border-top: 1px solid #e5e5e5;
+}
+
+@media (prefers-color-scheme: dark) {
+  .sumRow {
+    border-top-color: #333;
+  }
+}
+
+.sumLabel {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #666;
+}
+
+@media (prefers-color-scheme: dark) {
+  .sumLabel {
+    color: #999;
+  }
+}
+
+.sumValue {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+.sumMismatch {
+  color: #e53935;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 0.75rem;
+  border-top: 1px solid #e5e5e5;
+}
+
+@media (prefers-color-scheme: dark) {
+  .actions {
+    border-top-color: #333;
+  }
+}
+
+.confirmButton {
+  flex: 1;
+  padding: 0.5rem 0.75rem;
+  border: none;
+  border-radius: 0.5rem;
+  background-color: #1a1a1a;
+  color: #fff;
+  font-size: 0.8125rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.confirmButton:hover {
+  background-color: #333;
+}
+
+.confirmButton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+@media (prefers-color-scheme: dark) {
+  .confirmButton {
+    background-color: #e5e5e5;
+    color: #1a1a1a;
+  }
+
+  .confirmButton:hover {
+    background-color: #ccc;
+  }
+}
+
+.cancelButton {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 0.5rem;
+  background: transparent;
+  color: var(--foreground);
+  font-size: 0.8125rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.cancelButton:hover {
+  border-color: var(--foreground);
+}
+
+@media (prefers-color-scheme: dark) {
+  .cancelButton {
+    border-color: #444;
+  }
+
+  .cancelButton:hover {
+    border-color: var(--foreground);
+  }
+}
+
+.statusSuccess {
+  font-size: 0.8125rem;
+  padding: 0.5rem 0;
+  line-height: 1.5;
+  color: #2e7d32;
+}
+
+.statusError {
+  font-size: 0.8125rem;
+  padding: 0.5rem 0;
+  line-height: 1.5;
+  color: #e53935;
+}
+
+@media (max-width: 480px) {
+  .modal {
+    width: calc(100vw - 2rem);
+    max-width: 28rem;
+  }
+}

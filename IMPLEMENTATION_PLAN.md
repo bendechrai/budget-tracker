@@ -898,7 +898,7 @@
   - Acceptance: Hero card's next action has a "Mark as done" button. Clicking it opens ContributionModal pre-filled with the hero card amount and target obligation. After saving, dashboard refreshes (engine recalculates, snapshot updates).
   - Tests: Component test: "Mark as done" button renders, opens modal with correct pre-fill
 
-- [ ] **Add lump sum catch-up modal component**
+- [x] **Add lump sum catch-up modal component**
   - Files: `web/app/(app)/dashboard/CatchUpModal.tsx`, `web/app/(app)/dashboard/catchup-modal.module.css`
   - Spec: `specs/14-contributions.md`
   - Acceptance: Modal for entering a lump sum amount. Shows distribution preview: per-obligation allocation prioritized by nearest due date. User can adjust individual allocations (must sum to total). Confirms via POST /api/contributions/bulk. Shows "all funded" message if no shortfall exists.
