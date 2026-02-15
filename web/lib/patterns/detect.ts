@@ -138,6 +138,14 @@ export function detectFrequency(transactions: TransactionRecord[]): IncomeFreque
 
   const medianInterval = median(intervals);
 
+  // For intervals in the fortnightly/twice-monthly range, check day-of-month pattern
+  if (medianInterval >= 11 && medianInterval <= 18) {
+    if (isTwiceMonthlyPattern(sorted)) {
+      return "twice_monthly";
+    }
+    return "fortnightly";
+  }
+
   return mapIntervalToFrequency(medianInterval);
 }
 
@@ -150,9 +158,65 @@ function median(values: number[]): number {
   return sorted[mid];
 }
 
+/** Maximum allowed deviation (in days) from a cluster center for day-of-month grouping. */
+const DAY_OF_MONTH_TOLERANCE = 3;
+
+/**
+ * Determine whether transactions follow a twice-monthly pattern by checking
+ * if they cluster around exactly two days of the month (e.g. 1st & 15th).
+ *
+ * Twice-monthly differs from fortnightly: twice-monthly lands on two fixed
+ * calendar days each month while fortnightly drifts across month boundaries.
+ */
+function isTwiceMonthlyPattern(sortedTransactions: TransactionRecord[]): boolean {
+  const days = sortedTransactions.map((t) => t.date.getDate());
+
+  // Find two clusters in the day-of-month values
+  // Use a simple approach: sort days and try to split into two groups
+  const sortedDays = [...days].sort((a, b) => a - b);
+
+  // Try every possible split point and find the two-cluster assignment
+  // with the lowest total deviation from cluster centers
+  let bestCost = Infinity;
+  let bestValid = false;
+
+  for (let split = 1; split < sortedDays.length; split++) {
+    const group1 = sortedDays.slice(0, split);
+    const group2 = sortedDays.slice(split);
+
+    if (group1.length === 0 || group2.length === 0) continue;
+
+    const center1 = Math.round(group1.reduce((s, d) => s + d, 0) / group1.length);
+    const center2 = Math.round(group2.reduce((s, d) => s + d, 0) / group2.length);
+
+    // The two cluster centers must be sufficiently separated
+    if (Math.abs(center2 - center1) < 10) continue;
+
+    // Check that all values in each group are within tolerance of their center
+    const allWithinTolerance =
+      group1.every((d) => Math.abs(d - center1) <= DAY_OF_MONTH_TOLERANCE) &&
+      group2.every((d) => Math.abs(d - center2) <= DAY_OF_MONTH_TOLERANCE);
+
+    if (!allWithinTolerance) continue;
+
+    const cost =
+      group1.reduce((s, d) => s + Math.abs(d - center1), 0) +
+      group2.reduce((s, d) => s + Math.abs(d - center2), 0);
+
+    if (cost < bestCost) {
+      bestCost = cost;
+      bestValid = true;
+    }
+  }
+
+  return bestValid;
+}
+
 /**
  * Map a median interval (in days) to a known frequency.
  * Allows ~20% tolerance on each range.
+ * Note: the 11-18 day range (fortnightly/twice_monthly) is handled
+ * separately in detectFrequency() before this function is called.
  */
 function mapIntervalToFrequency(days: number): IncomeFrequency {
   if (days >= 5 && days <= 9) return "weekly";

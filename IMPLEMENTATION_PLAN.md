@@ -730,7 +730,7 @@
   - Acceptance: Onboarding income form frequency dropdown includes "Twice monthly" option.
   - Tests: Component test: "Twice monthly" option renders in onboarding income form
 
-- [ ] **Add twice-monthly detection to pattern detection engine**
+- [x] **Add twice-monthly detection to pattern detection engine**
   - Files: `web/lib/patterns/detect.ts`
   - Spec: `specs/03a-twice-monthly-frequency.md`
   - Acceptance: Pattern detection can detect transactions occurring on approximately the 1st and 15th of each month as `twice_monthly` frequency. Existing frequency detection unchanged.

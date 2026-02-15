@@ -47,6 +47,40 @@ describe("detectFrequency", () => {
     expect(detectFrequency(txns)).toBe("fortnightly");
   });
 
+  it("detects twice_monthly frequency for transactions on 1st and 15th", () => {
+    // Transactions on the 1st and 15th of consecutive months
+    const txns = [
+      makeTxn({ date: new Date(2025, 0, 1) }),
+      makeTxn({ date: new Date(2025, 0, 15) }),
+      makeTxn({ date: new Date(2025, 1, 1) }),
+      makeTxn({ date: new Date(2025, 1, 15) }),
+      makeTxn({ date: new Date(2025, 2, 1) }),
+      makeTxn({ date: new Date(2025, 2, 15) }),
+    ];
+    expect(detectFrequency(txns)).toBe("twice_monthly");
+  });
+
+  it("detects twice_monthly frequency for transactions on 10th and 25th", () => {
+    const txns = [
+      makeTxn({ date: new Date(2025, 0, 10) }),
+      makeTxn({ date: new Date(2025, 0, 25) }),
+      makeTxn({ date: new Date(2025, 1, 10) }),
+      makeTxn({ date: new Date(2025, 1, 25) }),
+      makeTxn({ date: new Date(2025, 2, 10) }),
+      makeTxn({ date: new Date(2025, 2, 25) }),
+    ];
+    expect(detectFrequency(txns)).toBe("twice_monthly");
+  });
+
+  it("does not detect twice_monthly for true fortnightly (drifts across months)", () => {
+    // Fortnightly starting Jan 3: Jan 3, Jan 17, Jan 31, Feb 14, Feb 28, Mar 14
+    // These drift across month boundaries — days of month are 3, 17, 31, 14, 28, 14
+    const txns = Array.from({ length: 6 }, (_, i) =>
+      makeTxn({ date: new Date(2025, 0, 3 + i * 14) })
+    );
+    expect(detectFrequency(txns)).toBe("fortnightly");
+  });
+
   it("detects monthly frequency", () => {
     const txns = makeMonthlyTransactions("Test", 10, "debit", 4);
     expect(detectFrequency(txns)).toBe("monthly");
@@ -188,6 +222,24 @@ describe("detectPatterns", () => {
     const income = patterns.find((p) => p.type === "income");
     expect(expense).toBeDefined();
     expect(income).toBeDefined();
+  });
+
+  it("detects a twice-monthly income pattern", () => {
+    const txns = [
+      makeTxn({ id: "txn-pay-1", description: "ACME Corp Salary", amount: 2500, type: "credit", date: new Date(2025, 0, 1) }),
+      makeTxn({ id: "txn-pay-2", description: "ACME Corp Salary", amount: 2500, type: "credit", date: new Date(2025, 0, 15) }),
+      makeTxn({ id: "txn-pay-3", description: "ACME Corp Salary", amount: 2500, type: "credit", date: new Date(2025, 1, 1) }),
+      makeTxn({ id: "txn-pay-4", description: "ACME Corp Salary", amount: 2500, type: "credit", date: new Date(2025, 1, 15) }),
+      makeTxn({ id: "txn-pay-5", description: "ACME Corp Salary", amount: 2500, type: "credit", date: new Date(2025, 2, 1) }),
+      makeTxn({ id: "txn-pay-6", description: "ACME Corp Salary", amount: 2500, type: "credit", date: new Date(2025, 2, 15) }),
+    ];
+
+    const patterns = detectPatterns(txns, []);
+
+    expect(patterns).toHaveLength(1);
+    expect(patterns[0].type).toBe("income");
+    expect(patterns[0].detectedFrequency).toBe("twice_monthly");
+    expect(patterns[0].detectedAmount).toBe(2500);
   });
 
   it("assigns high confidence to consistent monthly pattern with many transactions", () => {
