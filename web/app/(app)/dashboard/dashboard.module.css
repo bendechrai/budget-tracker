@@ -54,6 +54,25 @@
 .heroDeadline {
   font-size: 13px;
   color: #999;
+  margin-bottom: 16px;
+}
+
+.markDoneButton {
+  display: inline-block;
+  padding: 8px 20px;
+  border: none;
+  border-radius: 8px;
+  background-color: #1a1a1a;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.markDoneButton:hover {
+  background-color: #333;
 }
 
 .heroScenario {
@@ -190,6 +209,15 @@
 
   .heroDeadline {
     color: #666;
+  }
+
+  .markDoneButton {
+    background-color: #e5e5e5;
+    color: #1a1a1a;
+  }
+
+  .markDoneButton:hover {
+    background-color: #ccc;
   }
 
   .celebrationDescription {

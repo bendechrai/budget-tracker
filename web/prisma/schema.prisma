@@ -267,15 +267,16 @@ model ContributionRecord {
 }
 
 model EngineSnapshot {
-  id                    String   @id @default(cuid())
-  userId                String
-  calculatedAt          DateTime @default(now())
-  totalRequired         Float
-  totalFunded           Float
-  nextActionAmount      Float
-  nextActionDate        DateTime
-  nextActionDescription String
-  user                  User     @relation(fields: [userId], references: [id])
+  id                      String   @id @default(cuid())
+  userId                  String
+  calculatedAt            DateTime @default(now())
+  totalRequired           Float
+  totalFunded             Float
+  nextActionAmount        Float
+  nextActionDate          DateTime
+  nextActionDescription   String
+  nextActionObligationId  String?
+  user                    User     @relation(fields: [userId], references: [id])
 
   @@index([userId])
 }

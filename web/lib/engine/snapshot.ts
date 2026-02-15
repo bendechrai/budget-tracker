@@ -6,6 +6,7 @@ export interface SnapshotData {
   nextActionAmount: number;
   nextActionDate: Date;
   nextActionDescription: string;
+  nextActionObligationId: string | null;
 }
 
 /**
@@ -42,6 +43,7 @@ export function generateSnapshot(engineResult: EngineResult, cycleConfig?: Cycle
       nextActionAmount: 0,
       nextActionDate: new Date(),
       nextActionDescription: "Add your first obligation to get started",
+      nextActionObligationId: null,
     };
   }
 
@@ -60,6 +62,7 @@ export function generateSnapshot(engineResult: EngineResult, cycleConfig?: Cycle
       nextActionAmount: 0,
       nextActionDate: nearestDueDate,
       nextActionDescription: "You're fully covered!",
+      nextActionObligationId: null,
     };
   }
 
@@ -75,6 +78,7 @@ export function generateSnapshot(engineResult: EngineResult, cycleConfig?: Cycle
     nextActionDescription: cycleConfig
       ? `Set aside $${nextAction.contributionPerCycle.toFixed(2)} ${cyclePeriodLabel(cycleConfig.type)} for ${nextAction.obligationName}`
       : `Set aside $${nextAction.contributionPerCycle.toFixed(2)} for ${nextAction.obligationName} by ${nextAction.nextDueDate.toISOString().split("T")[0]}`,
+    nextActionObligationId: nextAction.obligationId,
   };
 }
 

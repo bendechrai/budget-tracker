@@ -892,8 +892,8 @@
   - Acceptance: Each obligation in the list shows fund balance: progress bar or text "$X of $Y saved" with percentage. Color coded: green (≥80%), amber (40-79%), red (<40%). "Record contribution" button on each obligation opens ContributionModal.
   - Tests: Component test: fund balance renders with correct color, contribution button opens modal
 
-- [ ] **Add "Mark as done" action to dashboard hero card**
-  - Files: `web/app/(app)/dashboard/page.tsx` (update), `web/app/(app)/dashboard/dashboard.module.css` (update)
+- [x] **Add "Mark as done" action to dashboard hero card**
+  - Files: `web/app/(app)/dashboard/page.tsx` (update), `web/app/(app)/dashboard/dashboard.module.css` (update), `web/lib/engine/snapshot.ts` (update), `web/prisma/schema.prisma` (update), `web/app/api/engine/recalculate/route.ts` (update)
   - Spec: `specs/14-contributions.md`
   - Acceptance: Hero card's next action has a "Mark as done" button. Clicking it opens ContributionModal pre-filled with the hero card amount and target obligation. After saving, dashboard refreshes (engine recalculates, snapshot updates).
   - Tests: Component test: "Mark as done" button renders, opens modal with correct pre-fill

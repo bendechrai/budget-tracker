@@ -10,6 +10,7 @@ import TimelineChart from "./TimelineChart";
 import UpcomingObligations from "./UpcomingObligations";
 import NudgeCards from "./NudgeCards";
 import ScenarioBanner from "@/app/components/ScenarioBanner";
+import ContributionModal from "@/app/(app)/obligations/ContributionModal";
 
 interface EngineSnapshot {
   id: string;
@@ -18,7 +19,15 @@ interface EngineSnapshot {
   nextActionAmount: number;
   nextActionDate: string;
   nextActionDescription: string;
+  nextActionObligationId: string | null;
   calculatedAt: string;
+}
+
+interface ObligationData {
+  id: string;
+  name: string;
+  amount: number;
+  fundBalance: { currentBalance: number } | null;
 }
 
 interface ScenarioSnapshot {
@@ -72,10 +81,12 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [hasObligations, setHasObligations] = useState<boolean | null>(null);
+  const [obligations, setObligations] = useState<ObligationData[]>([]);
   const [scenarioSnapshot, setScenarioSnapshot] =
     useState<ScenarioSnapshot | null>(null);
   const [scenarioTimeline, setScenarioTimeline] =
     useState<TimelineData | null>(null);
+  const [showContributionModal, setShowContributionModal] = useState(false);
 
   const { isActive, overrides } = useWhatIf();
   const scenarioAbortRef = useRef<AbortController | null>(null);
@@ -88,8 +99,9 @@ export default function DashboardPage() {
       ]);
 
       if (obligationsRes.ok) {
-        const obligations = (await obligationsRes.json()) as unknown[];
-        setHasObligations(obligations.length > 0);
+        const oblData = (await obligationsRes.json()) as ObligationData[];
+        setObligations(oblData);
+        setHasObligations(oblData.length > 0);
       } else {
         setHasObligations(false);
       }
@@ -200,6 +212,12 @@ export default function DashboardPage() {
     displaySnapshot.nextActionAmount === 0 &&
     displaySnapshot.totalRequired > 0;
 
+  // Find the obligation for the hero card's "Mark as done" action
+  const nextActionObligation =
+    snapshot?.nextActionObligationId
+      ? obligations.find((o) => o.id === snapshot.nextActionObligationId) ?? null
+      : null;
+
   return (
     <div className={styles.page}>
       <div className={styles.container}>
@@ -276,6 +294,16 @@ export default function DashboardPage() {
                 <p className={styles.heroDeadline}>
                   Due by {formatDate(displaySnapshot.nextActionDate)}
                 </p>
+                {!isActive && snapshot?.nextActionObligationId && (
+                  <button
+                    type="button"
+                    className={styles.markDoneButton}
+                    onClick={() => setShowContributionModal(true)}
+                    data-testid="hero-mark-done"
+                  >
+                    Mark as done
+                  </button>
+                )}
               </div>
             )}
 
@@ -311,6 +339,18 @@ export default function DashboardPage() {
           </div>
         )}
       </div>
+
+      {showContributionModal && nextActionObligation && snapshot && (
+        <ContributionModal
+          obligationId={nextActionObligation.id}
+          obligationName={nextActionObligation.name}
+          currentBalance={nextActionObligation.fundBalance?.currentBalance ?? 0}
+          amountNeeded={nextActionObligation.amount}
+          recommendedContribution={snapshot.nextActionAmount}
+          onClose={() => setShowContributionModal(false)}
+          onSaved={() => setShowContributionModal(false)}
+        />
+      )}
     </div>
   );
 }

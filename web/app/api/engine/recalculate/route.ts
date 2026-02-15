@@ -95,6 +95,7 @@ export async function POST(): Promise<NextResponse> {
         nextActionAmount: snapshot.nextActionAmount,
         nextActionDate: snapshot.nextActionDate,
         nextActionDescription: snapshot.nextActionDescription,
+        nextActionObligationId: snapshot.nextActionObligationId,
       },
     });
 

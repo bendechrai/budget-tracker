@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, waitFor, cleanup } from "@testing-library/react";
+import { render, screen, waitFor, cleanup, fireEvent } from "@testing-library/react";
 import DashboardPage from "../page";
 
 vi.mock("next/navigation", () => ({
@@ -88,6 +88,7 @@ const mockSnapshot = {
   nextActionAmount: 412,
   nextActionDate: "2025-02-14T00:00:00.000Z",
   nextActionDescription: "Set aside $412.00 for Rent by 2025-02-14",
+  nextActionObligationId: "ob1",
   calculatedAt: "2025-02-01T00:00:00.000Z",
 };
 
@@ -98,6 +99,7 @@ const mockFullyFundedSnapshot = {
   nextActionAmount: 0,
   nextActionDate: "2025-03-01T00:00:00.000Z",
   nextActionDescription: "You're fully covered!",
+  nextActionObligationId: null,
   calculatedAt: "2025-02-01T00:00:00.000Z",
 };
 
@@ -108,7 +110,15 @@ const mockEmptySnapshot = {
   nextActionAmount: 0,
   nextActionDate: "2025-02-01T00:00:00.000Z",
   nextActionDescription: "Add your first obligation to get started",
+  nextActionObligationId: null,
   calculatedAt: "2025-02-01T00:00:00.000Z",
+};
+
+const mockObligationWithBalance = {
+  id: "ob1",
+  name: "Rent",
+  amount: 1200,
+  fundBalance: { currentBalance: 800 },
 };
 
 const mockScenarioResponse = {
@@ -420,5 +430,105 @@ describe("DashboardPage", () => {
     expect(
       screen.getByText("Set aside $200.00 for Insurance by 2025-03-15")
     ).toBeDefined();
+  });
+
+  it("renders 'Mark as done' button on hero card when obligation ID is present", async () => {
+    vi.mocked(global.fetch).mockImplementation((url) => {
+      if (typeof url === "string" && url.includes("/api/obligations")) {
+        return Promise.resolve(
+          mockFetchResponse([mockObligationWithBalance])
+        );
+      }
+      if (typeof url === "string" && url.includes("/api/engine/timeline")) {
+        return Promise.resolve(mockFetchResponse(mockTimelineData));
+      }
+      return Promise.resolve(mockFetchResponse(mockSnapshot));
+    });
+
+    render(<DashboardPage />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("hero-mark-done")).toBeDefined();
+    });
+
+    expect(screen.getByTestId("hero-mark-done").textContent).toBe("Mark as done");
+  });
+
+  it("opens ContributionModal with correct pre-fill when 'Mark as done' is clicked", async () => {
+    vi.mocked(global.fetch).mockImplementation((url) => {
+      if (typeof url === "string" && url.includes("/api/obligations")) {
+        return Promise.resolve(
+          mockFetchResponse([mockObligationWithBalance])
+        );
+      }
+      if (typeof url === "string" && url.includes("/api/engine/timeline")) {
+        return Promise.resolve(mockFetchResponse(mockTimelineData));
+      }
+      return Promise.resolve(mockFetchResponse(mockSnapshot));
+    });
+
+    render(<DashboardPage />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("hero-mark-done")).toBeDefined();
+    });
+
+    fireEvent.click(screen.getByTestId("hero-mark-done"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("contribution-modal")).toBeDefined();
+    });
+
+    // Modal should show the obligation name
+    expect(screen.getByTestId("contribution-modal-name").textContent).toBe("Rent");
+    // Modal should be pre-filled with the hero card amount
+    expect(screen.getByTestId("contribution-modal-amount")).toBeDefined();
+    const amountInput = screen.getByTestId("contribution-modal-amount") as HTMLInputElement;
+    expect(amountInput.value).toBe("412.00");
+  });
+
+  it("does not show 'Mark as done' button when what-if is active", async () => {
+    mockWhatIf.isActive = true;
+    mockWhatIf.changeSummary = "1 expense toggled off";
+    mockWhatIf.overrides = {
+      toggledOffIds: new Set(["ob2"]),
+      amountOverrides: new Map<string, number>(),
+      hypotheticals: [],
+      escalationOverrides: new Map(),
+    };
+
+    const scenarioWithNextAction = {
+      snapshot: {
+        totalRequired: 2100,
+        totalFunded: 1000,
+        nextActionAmount: 200,
+        nextActionDate: "2025-03-15T00:00:00.000Z",
+        nextActionDescription: "Set aside $200.00 for Insurance by 2025-03-15",
+      },
+      timeline: mockTimelineData,
+    };
+
+    vi.mocked(global.fetch).mockImplementation((url) => {
+      if (typeof url === "string" && url.includes("/api/obligations")) {
+        return Promise.resolve(
+          mockFetchResponse([mockObligationWithBalance])
+        );
+      }
+      if (typeof url === "string" && url.includes("/api/engine/scenario")) {
+        return Promise.resolve(mockFetchResponse(scenarioWithNextAction));
+      }
+      if (typeof url === "string" && url.includes("/api/engine/timeline")) {
+        return Promise.resolve(mockFetchResponse(mockTimelineData));
+      }
+      return Promise.resolve(mockFetchResponse(mockSnapshot));
+    });
+
+    render(<DashboardPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("$200.00")).toBeDefined();
+    });
+
+    expect(screen.queryByTestId("hero-mark-done")).toBeNull();
   });
 });

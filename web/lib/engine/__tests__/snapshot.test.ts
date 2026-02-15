@@ -82,6 +82,7 @@ describe("generateSnapshot", () => {
       expect(snapshot.nextActionDescription).toContain("Rent");
       expect(snapshot.nextActionDescription).toContain("1200.00");
       expect(snapshot.nextActionDescription).toContain("2025-03-15");
+      expect(snapshot.nextActionObligationId).toBe("obl-near");
     });
   });
 
@@ -181,6 +182,7 @@ describe("generateSnapshot", () => {
       expect(snapshot.nextActionDate).toEqual(new Date("2025-04-01"));
       expect(snapshot.totalRequired).toBe(800);
       expect(snapshot.totalFunded).toBe(800);
+      expect(snapshot.nextActionObligationId).toBeNull();
     });
   });
 
@@ -199,6 +201,7 @@ describe("generateSnapshot", () => {
       expect(snapshot.totalFunded).toBe(0);
       expect(snapshot.nextActionAmount).toBe(0);
       expect(snapshot.nextActionDescription).toContain("Add your first obligation");
+      expect(snapshot.nextActionObligationId).toBeNull();
     });
   });
 
@@ -299,6 +302,7 @@ describe("calculateAndSnapshot", () => {
     expect(snapshot.totalRequired).toBe(1200);
     expect(snapshot.nextActionDescription).toContain("Rent");
     expect(snapshot.nextActionDescription).toContain("this month");
+    expect(snapshot.nextActionObligationId).toBe("obl-1");
   });
 
   it("returns celebration snapshot when fully funded", () => {
@@ -326,5 +330,6 @@ describe("calculateAndSnapshot", () => {
 
     expect(snapshot.nextActionAmount).toBe(0);
     expect(snapshot.nextActionDescription).toBe("You're fully covered!");
+    expect(snapshot.nextActionObligationId).toBeNull();
   });
 });
