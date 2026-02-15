@@ -860,7 +860,7 @@
   - Acceptance: Budget section with: contribution cycle selector (weekly/fortnightly/twice monthly/monthly) showing auto-detected recommendation, currency symbol with quick picks ($, £, €, ¥, A$, NZ$) and free text input, max contribution per cycle input with clear option. Changes save via PUT /api/user/settings. Cycle changes trigger engine recalculation.
   - Tests: Component test: cycle selector renders with recommendation, currency picks work, max contribution saves
 
-- [ ] **Add settings page — account section**
+- [x] **Add settings page — account section**
   - Files: `web/app/(app)/settings/page.tsx` (update), `web/app/(app)/settings/settings.module.css` (update)
   - Spec: `specs/13-settings.md`
   - Acceptance: Account section with "Export data" button (triggers download) and "Delete account" button (requires typing "DELETE" to confirm). Export calls POST /api/user/export. Delete calls DELETE /api/user/account and redirects to landing page.

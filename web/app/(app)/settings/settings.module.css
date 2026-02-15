@@ -256,6 +256,34 @@
   cursor: not-allowed;
 }
 
+.dangerHint {
+  font-size: 13px;
+  color: #e53e3e;
+  margin: 0;
+}
+
+.dangerButton {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  background: #e53e3e;
+  color: #fff;
+  transition: opacity 0.2s;
+  margin-top: 12px;
+}
+
+.dangerButton:hover {
+  opacity: 0.9;
+}
+
+.dangerButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 @media (prefers-color-scheme: dark) {
   .error {
     color: #fc8181;
@@ -340,6 +368,10 @@
 
   .clearButton:hover {
     border-color: #666;
+  }
+
+  .dangerHint {
+    color: #fc8181;
   }
 }
 
