@@ -812,7 +812,7 @@
 
 ### Spec 13 — Settings & profile
 
-- [ ] **Add `GET /api/user/settings` route**
+- [x] **Add `GET /api/user/settings` route**
   - Files: `web/app/api/user/settings/route.ts`
   - Spec: `specs/13-settings.md`
   - Acceptance: Returns current user's email, contributionCycleType, contributionPayDays, currencySymbol, maxContributionPerCycle. Includes auto-detected cycle recommendation from income sources. Returns 401 if unauthenticated.
