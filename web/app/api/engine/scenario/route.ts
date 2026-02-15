@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth/getCurrentUser";
 import { logError } from "@/lib/logging";
-import { calculateWithWhatIf, cycleDaysToConfig } from "@/lib/engine/calculate";
+import { calculateWithWhatIf, resolveCycleConfig } from "@/lib/engine/calculate";
 import { generateSnapshot } from "@/lib/engine/snapshot";
 import { projectTimeline } from "@/lib/engine/timeline";
 import type {
@@ -67,6 +67,21 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       escalationOverrides: parsedEscalationOverrides,
     };
 
+    // Fetch active income sources for cycle auto-detection
+    const incomeSources = await prisma.incomeSource.findMany({
+      where: { userId: user.id, isActive: true },
+      select: { frequency: true, isIrregular: true, isActive: true, isPaused: true },
+    });
+
+    // Resolve cycle config: explicit user setting > auto-detect from income > monthly default
+    const cycleConfig = resolveCycleConfig(
+      {
+        contributionCycleType: user.contributionCycleType ?? null,
+        contributionPayDays: user.contributionPayDays ?? [],
+      },
+      incomeSources,
+    );
+
     const obligations = await prisma.obligation.findMany({
       where: {
         userId: user.id,
@@ -114,7 +129,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       obligations: obligationInputs,
       fundBalances: fundBalanceInputs,
       maxContributionPerCycle: user.maxContributionPerCycle,
-      cycleConfig: cycleDaysToConfig(user.contributionCycleDays),
+      cycleConfig,
     };
 
     const { scenario } = calculateWithWhatIf(engineInput, overrides);

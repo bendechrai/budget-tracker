@@ -798,7 +798,7 @@
   - Acceptance: Timeline projection uses `CycleConfig` instead of `cycleDays`. Contribution markers placed at actual cycle dates (not fixed intervals for twice-monthly/monthly).
   - Tests: Existing timeline tests updated to use `CycleConfig`; all pass
 
-- [ ] **Update scenario API route to resolve and pass `CycleConfig`**
+- [x] **Update scenario API route to resolve and pass `CycleConfig`**
   - Files: `web/app/api/engine/scenario/route.ts`
   - Spec: `specs/07a-cycle-auto-detection.md`
   - Acceptance: Scenario route resolves `CycleConfig` the same way as recalculate route and passes it to engine calculations.
