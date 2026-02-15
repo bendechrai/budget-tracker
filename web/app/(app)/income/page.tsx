@@ -42,6 +42,7 @@ function formatDate(dateStr: string | null): string | null {
     year: "numeric",
     month: "short",
     day: "numeric",
+    timeZone: "UTC",
   });
 }
 

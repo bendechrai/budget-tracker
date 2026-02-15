@@ -16,6 +16,14 @@
 /
 ├── web/                    # Next.js application
 │   ├── app/                # App Router pages and layouts
+│   │   ├── (app)/          # Route group — all authenticated pages (shared header/nav layout)
+│   │   │   ├── layout.tsx  # Header, nav, AIBar wrapper
+│   │   │   ├── dashboard/
+│   │   │   ├── income/
+│   │   │   ├── obligations/
+│   │   │   ├── suggestions/
+│   │   │   ├── import/
+│   │   │   └── transactions/
 │   ├── lib/prisma.ts       # Prisma client singleton
 │   ├── prisma/
 │   │   └── schema.prisma   # Database schema

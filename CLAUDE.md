@@ -98,6 +98,14 @@ docker compose exec web npx prisma generate   # regenerate client
 - CSS Modules for styling, no Tailwind
 - No `any` types — ESLint must pass
 
+### Keeping artifacts in sync
+
+When making ad-hoc changes (outside of Ralph), update related artifacts before committing:
+
+- **Specs** — if a change contradicts or extends a spec in `specs/`, update the spec to match the new behavior
+- **Tests** — fix or add tests for any changed behavior; never commit with failing tests
+- **AGENTS.md** — if the project structure, conventions, or key file paths change, update AGENTS.md to reflect reality
+
 ## Project Structure
 
 See `AGENTS.md` for the full project tree, tech stack, conventions, and Docker commands.

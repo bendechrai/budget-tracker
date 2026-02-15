@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import IncomeForm from "../../IncomeForm";
 import type { IncomeFormData } from "../../IncomeForm";
 import styles from "../../income.module.css";
@@ -110,6 +111,7 @@ export default function EditIncomePage({
   return (
     <div className={styles.page}>
       <div className={styles.container}>
+        <Link href="/income" className={styles.backLink}>← Back</Link>
         <h1 className={styles.title}>Edit Income Source</h1>
         {incomeSource && (
           <IncomeForm

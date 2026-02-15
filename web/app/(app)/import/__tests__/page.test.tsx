@@ -71,8 +71,8 @@ describe("ImportPage", () => {
     expect(
       screen.getByRole("heading", { name: "Import Statements" })
     ).toBeDefined();
-    expect(screen.getByText("Drop your statement file here")).toBeDefined();
-    expect(screen.getByText("Supports CSV and OFX formats")).toBeDefined();
+    expect(screen.getByText("Drop your statement files here")).toBeDefined();
+    expect(screen.getByText(/Supports CSV, OFX, and PDF formats/)).toBeDefined();
     expect(
       screen.getByRole("button", { name: "Browse files" })
     ).toBeDefined();
@@ -86,13 +86,14 @@ describe("ImportPage", () => {
     expect(link.getAttribute("href")).toBe("/import/history");
   });
 
-  it("renders a file input that accepts CSV and OFX", () => {
+  it("renders a file input that accepts CSV, OFX, and PDF with multi-select", () => {
     render(<ImportPage />);
 
     const input = screen.getByTestId("file-input") as HTMLInputElement;
     expect(input).toBeDefined();
     expect(input.type).toBe("file");
-    expect(input.accept).toBe(".csv,.ofx,.qfx");
+    expect(input.accept).toBe(".csv,.ofx,.qfx,.pdf");
+    expect(input.multiple).toBe(true);
   });
 
   it("shows uploading state when a file is selected", async () => {
@@ -275,10 +276,10 @@ describe("ImportPage", () => {
     });
 
     await user.click(
-      screen.getByRole("button", { name: "Upload another file" })
+      screen.getByRole("button", { name: "Upload more files" })
     );
 
-    expect(screen.getByText("Drop your statement file here")).toBeDefined();
+    expect(screen.getByText("Drop your statement files here")).toBeDefined();
   });
 
   it("shows error when resolve fails", async () => {

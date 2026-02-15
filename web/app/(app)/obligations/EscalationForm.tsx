@@ -56,6 +56,7 @@ function computePreview(
         year: "numeric",
         month: "short",
         day: "numeric",
+        timeZone: "UTC",
       }),
       amount: Math.round(amount * 100) / 100,
     });

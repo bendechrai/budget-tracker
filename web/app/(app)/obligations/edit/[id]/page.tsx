@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import ObligationForm from "../../ObligationForm";
 import type { ObligationFormData } from "../../ObligationForm";
 import styles from "../../obligations.module.css";
@@ -138,6 +139,7 @@ export default function EditObligationPage({
   return (
     <div className={styles.page}>
       <div className={styles.container}>
+        <Link href="/obligations" className={styles.backLink}>← Back</Link>
         <h1 className={styles.title}>Edit Obligation</h1>
         {obligation && (
           <ObligationForm

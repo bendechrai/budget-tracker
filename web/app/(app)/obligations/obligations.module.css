@@ -25,6 +25,25 @@
   color: var(--foreground);
 }
 
+.backLink {
+  display: inline-block;
+  padding: 8px 14px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  background: transparent;
+  color: var(--foreground);
+  text-decoration: none;
+  transition: border-color 0.2s;
+  margin-bottom: 16px;
+}
+
+.backLink:hover {
+  border-color: var(--foreground);
+}
+
 .addButton {
   padding: 10px 16px;
   border: none;
@@ -629,6 +648,14 @@
   }
 
   .pauseButton:hover {
+    border-color: var(--foreground);
+  }
+
+  .backLink {
+    border-color: #333;
+  }
+
+  .backLink:hover {
     border-color: var(--foreground);
   }
 

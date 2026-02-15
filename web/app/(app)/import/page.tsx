@@ -46,55 +46,70 @@ function formatDate(dateStr: string): string {
     year: "numeric",
     month: "short",
     day: "numeric",
+    timeZone: "UTC",
   });
 }
 
 export default function ImportPage() {
   const [error, setError] = useState("");
   const [uploading, setUploading] = useState(false);
-  const [summary, setSummary] = useState<ImportSummary | null>(null);
+  const [uploadProgress, setUploadProgress] = useState("");
+  const [summaries, setSummaries] = useState<ImportSummary[]>([]);
   const [dragActive, setDragActive] = useState(false);
-  const [decisions, setDecisions] = useState<Record<number, FlaggedDecision>>({});
-  const [resolving, setResolving] = useState(false);
+  const [decisions, setDecisions] = useState<Record<string, Record<number, FlaggedDecision>>>({});
+  const [resolving, setResolving] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleUpload = useCallback(async (file: File) => {
+  const handleUploadFiles = useCallback(async (files: File[]) => {
     setError("");
-    setSummary(null);
+    setSummaries([]);
     setDecisions({});
     setUploading(true);
 
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
+    const results: ImportSummary[] = [];
 
-      const res = await fetch("/api/import/upload", {
-        method: "POST",
-        body: formData,
-      });
+    for (let i = 0; i < files.length; i++) {
+      setUploadProgress(
+        files.length > 1
+          ? `Uploading file ${i + 1} of ${files.length} (${files[i].name})...`
+          : "Uploading and processing..."
+      );
 
-      if (!res.ok) {
-        const data = (await res.json()) as { error: string };
-        setError(data.error || "Upload failed");
-        return;
+      try {
+        const formData = new FormData();
+        formData.append("file", files[i]);
+
+        const res = await fetch("/api/import/upload", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (!res.ok) {
+          const data = (await res.json()) as { error: string };
+          setError(data.error || `Upload failed for ${files[i].name}`);
+          // Continue with remaining files
+          continue;
+        }
+
+        const data = (await res.json()) as ImportSummary;
+        results.push(data);
+      } catch (err) {
+        logError("failed to upload import file", err);
+        setError(`Upload failed for ${files[i].name}. Please try again.`);
       }
-
-      const data = (await res.json()) as ImportSummary;
-      setSummary(data);
-    } catch (err) {
-      logError("failed to upload import file", err);
-      setError("Upload failed. Please try again.");
-    } finally {
-      setUploading(false);
     }
+
+    setSummaries(results);
+    setUploadProgress("");
+    setUploading(false);
   }, []);
 
   function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (file) {
-      void handleUpload(file);
+    const fileList = e.target.files;
+    if (fileList && fileList.length > 0) {
+      void handleUploadFiles(Array.from(fileList));
     }
-    // Reset input so the same file can be selected again
+    // Reset input so the same files can be selected again
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -117,9 +132,9 @@ export default function ImportPage() {
     e.stopPropagation();
     setDragActive(false);
 
-    const file = e.dataTransfer.files[0];
-    if (file) {
-      void handleUpload(file);
+    const fileList = e.dataTransfer.files;
+    if (fileList.length > 0) {
+      void handleUploadFiles(Array.from(fileList));
     }
   }
 
@@ -127,32 +142,42 @@ export default function ImportPage() {
     fileInputRef.current?.click();
   }
 
-  function handleDecision(index: number, action: FlaggedDecision) {
-    setDecisions((prev) => ({ ...prev, [index]: action }));
+  function handleDecision(importLogId: string, index: number, action: FlaggedDecision) {
+    setDecisions((prev) => ({
+      ...prev,
+      [importLogId]: { ...prev[importLogId], [index]: action },
+    }));
   }
 
-  async function handleResolve() {
-    if (!summary) return;
+  function allFlaggedDecidedFor(s: ImportSummary): boolean {
+    const fileDecisions = decisions[s.importLogId];
+    if (!fileDecisions) return false;
+    return s.flagged.every((_, i) => fileDecisions[i] !== undefined);
+  }
 
-    const allDecided = summary.flagged.every(
-      (_, i) => decisions[i] !== undefined
+  async function handleResolve(s: ImportSummary) {
+    const fileDecisions = decisions[s.importLogId];
+    if (!fileDecisions) return;
+
+    const allDecided = s.flagged.every(
+      (_, i) => fileDecisions[i] !== undefined
     );
     if (!allDecided) return;
 
-    setResolving(true);
+    setResolving(s.importLogId);
     setError("");
 
     try {
-      const resolveDecisions = summary.flagged.map((item, i) => ({
+      const resolveDecisions = s.flagged.map((item, i) => ({
         transaction: item.transaction,
-        action: decisions[i],
+        action: fileDecisions[i],
       }));
 
       const res = await fetch("/api/import/resolve", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          importLogId: summary.importLogId,
+          importLogId: s.importLogId,
           decisions: resolveDecisions,
         }),
       });
@@ -165,36 +190,43 @@ export default function ImportPage() {
 
       const result = (await res.json()) as { kept: number; skipped: number };
 
-      // Update the summary to reflect resolved state
-      setSummary((prev) => {
-        if (!prev) return prev;
-        return {
-          ...prev,
-          transactionsImported: prev.transactionsImported + result.kept,
-          duplicatesSkipped: prev.duplicatesSkipped + result.skipped,
-          duplicatesFlagged: 0,
-          flagged: [],
-        };
+      setSummaries((prev) =>
+        prev.map((item) =>
+          item.importLogId === s.importLogId
+            ? {
+                ...item,
+                transactionsImported: item.transactionsImported + result.kept,
+                duplicatesSkipped: item.duplicatesSkipped + result.skipped,
+                duplicatesFlagged: 0,
+                flagged: [],
+              }
+            : item
+        )
+      );
+      setDecisions((prev) => {
+        const next = { ...prev };
+        delete next[s.importLogId];
+        return next;
       });
-      setDecisions({});
     } catch (err) {
       logError("failed to resolve flagged transactions", err);
       setError("Failed to resolve flagged transactions. Please try again.");
     } finally {
-      setResolving(false);
+      setResolving(null);
     }
   }
 
-  function handleUploadAnother() {
-    setSummary(null);
+  function handleUploadMore() {
+    setSummaries([]);
     setDecisions({});
     setError("");
   }
 
-  const allFlaggedDecided =
-    summary !== null &&
-    summary.flagged.length > 0 &&
-    summary.flagged.every((_, i) => decisions[i] !== undefined);
+  const totalFound = summaries.reduce((sum, s) => sum + s.transactionsFound, 0);
+  const totalImported = summaries.reduce((sum, s) => sum + s.transactionsImported, 0);
+  const totalSkipped = summaries.reduce((sum, s) => sum + s.duplicatesSkipped, 0);
+  const totalFlagged = summaries.reduce((sum, s) => sum + s.duplicatesFlagged, 0);
+  const hasFlagged = summaries.some((s) => s.flagged.length > 0);
 
   return (
     <div className={styles.page}>
@@ -212,7 +244,7 @@ export default function ImportPage() {
           </div>
         )}
 
-        {!uploading && !summary && (
+        {!uploading && summaries.length === 0 && (
           <div
             className={`${styles.dropZone}${dragActive ? ` ${styles.dropZoneActive}` : ""}`}
             onDragOver={handleDragOver}
@@ -221,10 +253,10 @@ export default function ImportPage() {
             data-testid="drop-zone"
           >
             <p className={styles.dropZoneTitle}>
-              Drop your statement file here
+              Drop your statement files here
             </p>
             <p className={styles.dropZoneDescription}>
-              Supports CSV and OFX formats
+              Supports CSV, OFX, and PDF formats. You can select multiple files.
             </p>
             <button
               type="button"
@@ -236,7 +268,8 @@ export default function ImportPage() {
             <input
               ref={fileInputRef}
               type="file"
-              accept=".csv,.ofx,.qfx"
+              accept=".csv,.ofx,.qfx,.pdf"
+              multiple
               className={styles.hiddenInput}
               onChange={handleFileSelect}
               data-testid="file-input"
@@ -246,7 +279,7 @@ export default function ImportPage() {
 
         {uploading && (
           <div className={styles.uploading}>
-            <p className={styles.uploadingText}>Uploading and processing...</p>
+            <p className={styles.uploadingText}>{uploadProgress}</p>
             <div className={styles.progressBar}>
               <div
                 className={styles.progressFill}
@@ -256,29 +289,39 @@ export default function ImportPage() {
           </div>
         )}
 
-        {summary && (
+        {summaries.length > 0 && (
           <>
             <div className={styles.summary}>
               <h2 className={styles.summaryTitle}>Import Complete</h2>
               <div className={styles.summaryStats}>
-                <div className={styles.summaryStat}>
-                  <span className={styles.summaryStatLabel}>File</span>
-                  <span className={styles.summaryStatValue}>
-                    {summary.fileName}
-                  </span>
-                </div>
+                {summaries.length > 1 && (
+                  <div className={styles.summaryStat}>
+                    <span className={styles.summaryStatLabel}>Files</span>
+                    <span className={styles.summaryStatValue}>
+                      {summaries.map((s) => s.fileName).join(", ")}
+                    </span>
+                  </div>
+                )}
+                {summaries.length === 1 && (
+                  <div className={styles.summaryStat}>
+                    <span className={styles.summaryStatLabel}>File</span>
+                    <span className={styles.summaryStatValue}>
+                      {summaries[0].fileName}
+                    </span>
+                  </div>
+                )}
                 <div className={styles.summaryStat}>
                   <span className={styles.summaryStatLabel}>
                     Transactions found
                   </span>
                   <span className={styles.summaryStatValue}>
-                    {summary.transactionsFound}
+                    {totalFound}
                   </span>
                 </div>
                 <div className={styles.summaryStat}>
                   <span className={styles.summaryStatLabel}>Imported</span>
                   <span className={styles.summaryStatValue}>
-                    {summary.transactionsImported}
+                    {totalImported}
                   </span>
                 </div>
                 <div className={styles.summaryStat}>
@@ -286,16 +329,16 @@ export default function ImportPage() {
                     Duplicates skipped
                   </span>
                   <span className={styles.summaryStatValue}>
-                    {summary.duplicatesSkipped}
+                    {totalSkipped}
                   </span>
                 </div>
-                {summary.duplicatesFlagged > 0 && (
+                {totalFlagged > 0 && (
                   <div className={styles.summaryStat}>
                     <span className={styles.summaryStatLabel}>
                       Flagged for review
                     </span>
                     <span className={styles.summaryStatValue}>
-                      {summary.duplicatesFlagged}
+                      {totalFlagged}
                     </span>
                   </div>
                 )}
@@ -304,24 +347,24 @@ export default function ImportPage() {
                 <button
                   type="button"
                   className={styles.uploadAnotherButton}
-                  onClick={handleUploadAnother}
+                  onClick={handleUploadMore}
                 >
-                  Upload another file
+                  Upload more files
                 </button>
               </div>
             </div>
 
-            {summary.flagged.length > 0 && (
-              <div className={styles.flaggedSection}>
+            {hasFlagged && summaries.filter((s) => s.flagged.length > 0).map((s) => (
+              <div key={s.importLogId} className={styles.flaggedSection}>
                 <h3 className={styles.flaggedTitle}>
-                  Review flagged transactions
+                  Review flagged transactions{summaries.length > 1 ? ` — ${s.fileName}` : ""}
                 </h3>
                 <p className={styles.flaggedDescription}>
                   These transactions are similar to existing records. Choose
                   whether to keep or skip each one.
                 </p>
                 <ul className={styles.flaggedList}>
-                  {summary.flagged.map((item, index) => (
+                  {s.flagged.map((item, index) => (
                     <li key={index} className={styles.flaggedItem}>
                       <div className={styles.flaggedItemHeader}>
                         <div className={styles.flaggedItemInfo}>
@@ -342,10 +385,10 @@ export default function ImportPage() {
                           <button
                             type="button"
                             className={styles.keepButton}
-                            onClick={() => handleDecision(index, "keep")}
-                            aria-pressed={decisions[index] === "keep"}
+                            onClick={() => handleDecision(s.importLogId, index, "keep")}
+                            aria-pressed={decisions[s.importLogId]?.[index] === "keep"}
                             style={
-                              decisions[index] === "keep"
+                              decisions[s.importLogId]?.[index] === "keep"
                                 ? { fontWeight: 700 }
                                 : undefined
                             }
@@ -355,10 +398,10 @@ export default function ImportPage() {
                           <button
                             type="button"
                             className={styles.skipButton}
-                            onClick={() => handleDecision(index, "skip")}
-                            aria-pressed={decisions[index] === "skip"}
+                            onClick={() => handleDecision(s.importLogId, index, "skip")}
+                            aria-pressed={decisions[s.importLogId]?.[index] === "skip"}
                             style={
-                              decisions[index] === "skip"
+                              decisions[s.importLogId]?.[index] === "skip"
                                 ? { fontWeight: 700 }
                                 : undefined
                             }
@@ -373,13 +416,13 @@ export default function ImportPage() {
                 <button
                   type="button"
                   className={styles.resolveButton}
-                  onClick={() => void handleResolve()}
-                  disabled={!allFlaggedDecided || resolving}
+                  onClick={() => void handleResolve(s)}
+                  disabled={!allFlaggedDecidedFor(s) || resolving === s.importLogId}
                 >
-                  {resolving ? "Resolving..." : "Resolve flagged transactions"}
+                  {resolving === s.importLogId ? "Resolving..." : "Resolve flagged transactions"}
                 </button>
               </div>
-            )}
+            ))}
           </>
         )}
       </div>
