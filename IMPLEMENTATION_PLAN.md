@@ -665,9 +665,7 @@
   - Acceptance: `PROMPT_build.md` validation step includes `docker compose -f /project/docker-compose.yml exec web npm run test:e2e` after the existing `npm test` step. E2e tests skip gracefully (exit 0) when the dev server is not running.
   - Tests: Ralph validation step list includes e2e command; e2e tests skip without failure when server is unavailable
 
-## Backlog
-
-### Spec 09a — Replace regex NL parser with Claude API
+## Completed (continued 3)
 
 - [x] **Rewrite `nlParser.ts` to call Claude API (Sonnet) instead of regex**
   - Files: `web/lib/ai/nlParser.ts`
@@ -698,3 +696,213 @@
   - Spec: `specs/09a-nl-to-claude-api.md`
   - Acceptance: When parse API returns the missing-API-key error type, AIBar displays "AI features require an API key — you can still use the app normally" instead of a generic error. Message is persistent (not dismissed on next input). Rest of app continues to function. SparkleButton preset actions (which generate structured intents directly) still work without API key.
   - Tests: Component test: missing API key error shows friendly message; app remains usable
+
+## In Progress
+
+- [ ] **Add `twice_monthly` to `IncomeFrequency` enum with Prisma migration**
+  - Files: `web/prisma/schema.prisma`, new migration
+  - Spec: `specs/03a-twice-monthly-frequency.md`
+  - Acceptance: `IncomeFrequency` enum includes `twice_monthly`. Migration applies cleanly without data loss. Prisma generate succeeds.
+  - Tests: Migration applies; Prisma generate succeeds
+
+## Backlog
+
+### Spec 03a — Add twice-monthly income frequency
+
+- [ ] **Add `twice_monthly` mapping in engine `frequencyToDays()`**
+  - Files: `web/lib/engine/calculate.ts`
+  - Spec: `specs/03a-twice-monthly-frequency.md`
+  - Acceptance: `frequencyToDays("twice_monthly", null)` returns `15`. No other frequency mappings change.
+  - Tests: Unit test: `frequencyToDays("twice_monthly", null)` returns 15
+
+- [ ] **Add "Twice monthly" option to income source form**
+  - Files: `web/app/(app)/income/IncomeForm.tsx`
+  - Spec: `specs/03a-twice-monthly-frequency.md`
+  - Acceptance: Frequency dropdown includes "Twice monthly" as an option between "Fortnightly" and "Monthly". Selecting it sets frequency to `twice_monthly`.
+  - Tests: Component test: "Twice monthly" option renders in frequency dropdown
+
+- [ ] **Add "Twice monthly" option to onboarding manual income form**
+  - Files: `web/app/onboarding/manual/income/page.tsx`
+  - Spec: `specs/03a-twice-monthly-frequency.md`
+  - Acceptance: Onboarding income form frequency dropdown includes "Twice monthly" option.
+  - Tests: Component test: "Twice monthly" option renders in onboarding income form
+
+- [ ] **Add twice-monthly detection to pattern detection engine**
+  - Files: `web/lib/patterns/detect.ts`
+  - Spec: `specs/03a-twice-monthly-frequency.md`
+  - Acceptance: Pattern detection can detect transactions occurring on approximately the 1st and 15th of each month as `twice_monthly` frequency. Existing frequency detection unchanged.
+  - Tests: Unit test: transactions on 1st and 15th of consecutive months detected as twice_monthly
+
+### Spec 07a — Calendar-based cycle counting & auto-detection
+
+- [ ] **Add `ContributionCycleType` enum and User model fields with Prisma migration**
+  - Files: `web/prisma/schema.prisma`, new migration
+  - Spec: `specs/07a-cycle-auto-detection.md`, `specs/13-settings.md`
+  - Acceptance: `ContributionCycleType` enum with values: `weekly`, `fortnightly`, `twice_monthly`, `monthly`. User model gains `contributionCycleType` (nullable ContributionCycleType) and `contributionPayDays` (Int[], default []). Existing `contributionCycleDays` column kept but deprecated. Migration runs cleanly.
+  - Tests: Migration applies; Prisma generate succeeds
+
+- [ ] **Add `countCyclesBetween()` function replacing `getCyclesUntilDue()`**
+  - Files: `web/lib/engine/calculate.ts`
+  - Spec: `specs/07a-cycle-auto-detection.md`
+  - Acceptance: New `countCyclesBetween(start, due, cycleType, payDays)` function. Weekly/fortnightly use day division (7/14). Twice-monthly counts actual pay date occurrences with end-of-month clamping. Monthly counts month occurrences. Returns at least 1 for future dates. `getCyclesUntilDue()` removed. `calculateContributions()` uses new function via `CycleConfig`.
+  - Tests: Unit tests: weekly counts, fortnightly counts, twice-monthly Feb edge case (2 cycles not 1), monthly counts, end-of-month clamping (pay day 30 in Feb → 28th)
+
+- [ ] **Add cycle auto-detection from income sources**
+  - Files: `web/lib/engine/calculate.ts`
+  - Spec: `specs/07a-cycle-auto-detection.md`
+  - Acceptance: New `resolveCycleConfig(user, incomeSources)` function. Priority: (1) user's explicit `contributionCycleType` + `contributionPayDays`, (2) derive from most frequent non-irregular income source, (3) default to monthly on the 1st. Maps income frequency to cycle type.
+  - Tests: Unit tests: explicit user config used, auto-detect from weekly income, auto-detect from twice-monthly income, fallback to monthly when no income
+
+- [ ] **Update `EngineInput` to accept `CycleConfig` instead of `contributionCycleDays`**
+  - Files: `web/lib/engine/calculate.ts`
+  - Spec: `specs/07a-cycle-auto-detection.md`
+  - Acceptance: `EngineInput` interface replaces `contributionCycleDays: number | null` with `cycleConfig: CycleConfig`. `CycleConfig` has `type` and `payDays` fields. `calculateContributions()` uses `cycleConfig` throughout. All callers updated.
+  - Tests: Existing engine tests updated to pass `cycleConfig` instead of `contributionCycleDays`; all pass
+
+- [ ] **Update recalculate API route to resolve and pass `CycleConfig`**
+  - Files: `web/app/api/engine/recalculate/route.ts`
+  - Spec: `specs/07a-cycle-auto-detection.md`
+  - Acceptance: Route reads `user.contributionCycleType` and `user.contributionPayDays`. If null, queries income sources and derives cycle via `resolveCycleConfig()`. Passes resolved `CycleConfig` to engine calculation.
+  - Tests: Test recalculation with explicit user cycle config; test auto-detection when no cycle set
+
+- [ ] **Update engine snapshot description to show cycle-aware text**
+  - Files: `web/lib/engine/snapshot.ts`
+  - Spec: `specs/07a-cycle-auto-detection.md`
+  - Acceptance: Snapshot `nextActionDescription` reflects cycle type: "Set aside $X this week" / "this fortnight" / "this pay period" / "this month" based on the resolved cycle config. Snapshot generation accepts `CycleConfig` parameter.
+  - Tests: Unit test: snapshot description matches cycle type for each of the four types
+
+- [ ] **Update timeline projection to use `CycleConfig`**
+  - Files: `web/lib/engine/timeline.ts`
+  - Spec: `specs/07a-cycle-auto-detection.md`
+  - Acceptance: Timeline projection uses `CycleConfig` instead of `cycleDays`. Contribution markers placed at actual cycle dates (not fixed intervals for twice-monthly/monthly).
+  - Tests: Existing timeline tests updated to use `CycleConfig`; all pass
+
+- [ ] **Update scenario API route to resolve and pass `CycleConfig`**
+  - Files: `web/app/api/engine/scenario/route.ts`
+  - Spec: `specs/07a-cycle-auto-detection.md`
+  - Acceptance: Scenario route resolves `CycleConfig` the same way as recalculate route and passes it to engine calculations.
+  - Tests: Test scenario calculation with resolved cycle config
+
+- [ ] **Update timeline API route to resolve and pass `CycleConfig`**
+  - Files: `web/app/api/engine/timeline/route.ts`
+  - Spec: `specs/07a-cycle-auto-detection.md`
+  - Acceptance: Timeline route resolves `CycleConfig` and passes it to timeline projection.
+  - Tests: Test timeline route returns correct data with resolved cycle config
+
+### Spec 13 — Settings & profile
+
+- [ ] **Add `GET /api/user/settings` route**
+  - Files: `web/app/api/user/settings/route.ts`
+  - Spec: `specs/13-settings.md`
+  - Acceptance: Returns current user's email, contributionCycleType, contributionPayDays, currencySymbol, maxContributionPerCycle. Includes auto-detected cycle recommendation from income sources. Returns 401 if unauthenticated.
+  - Tests: Test returns user settings (200), unauthenticated (401), includes auto-detected cycle
+
+- [ ] **Add `PUT /api/user/settings` route**
+  - Files: `web/app/api/user/settings/route.ts`
+  - Spec: `specs/13-settings.md`
+  - Acceptance: Updates user's contributionCycleType, contributionPayDays, currencySymbol, maxContributionPerCycle. Triggers engine recalculation after cycle or max contribution changes. Returns updated settings.
+  - Tests: Test update cycle type (200), update currency (200), cycle change triggers recalculation, unauthenticated (401)
+
+- [ ] **Add `PUT /api/user/email` route**
+  - Files: `web/app/api/user/email/route.ts`
+  - Spec: `specs/13-settings.md`
+  - Acceptance: Updates user's email. Requires current password confirmation. Validates email format. Rejects if new email already in use. Returns 200 on success.
+  - Tests: Test update email (200), wrong password (403), duplicate email (409), invalid format (400)
+
+- [ ] **Add `PUT /api/user/password` route**
+  - Files: `web/app/api/user/password/route.ts`
+  - Spec: `specs/13-settings.md`
+  - Acceptance: Updates user's password. Requires current password. New password must be ≥8 chars and differ from current. Returns 200 on success.
+  - Tests: Test update password (200), wrong current password (403), short new password (400), same password (400)
+
+- [ ] **Add `POST /api/user/export` route**
+  - Files: `web/app/api/user/export/route.ts`
+  - Spec: `specs/13-settings.md`
+  - Acceptance: Generates CSV files for transactions, obligations, income sources, and contribution records. Returns as a zip download. Scoped to authenticated user's data only.
+  - Tests: Test export returns zip with correct CSV files, unauthenticated (401)
+
+- [ ] **Add `DELETE /api/user/account` route**
+  - Files: `web/app/api/user/account/route.ts`
+  - Spec: `specs/13-settings.md`
+  - Acceptance: Hard-deletes all user data (cascade). Requires confirmation token ("DELETE" string). Clears session. Returns 200.
+  - Tests: Test delete with correct confirmation (200), wrong confirmation (400), unauthenticated (401)
+
+- [ ] **Add settings page — profile section**
+  - Files: `web/app/(app)/settings/page.tsx`, `web/app/(app)/settings/settings.module.css`
+  - Spec: `specs/13-settings.md`
+  - Acceptance: Settings page with profile section showing current email and forms to change email and password. Email change requires current password. Password change requires current + new + confirm. Inline validation errors.
+  - Tests: Component test: renders email, change email form submits, change password form submits, validation errors display
+
+- [ ] **Add settings page — budget preferences section**
+  - Files: `web/app/(app)/settings/page.tsx` (update), `web/app/(app)/settings/settings.module.css` (update)
+  - Spec: `specs/13-settings.md`
+  - Acceptance: Budget section with: contribution cycle selector (weekly/fortnightly/twice monthly/monthly) showing auto-detected recommendation, currency symbol with quick picks ($, £, €, ¥, A$, NZ$) and free text input, max contribution per cycle input with clear option. Changes save via PUT /api/user/settings. Cycle changes trigger engine recalculation.
+  - Tests: Component test: cycle selector renders with recommendation, currency picks work, max contribution saves
+
+- [ ] **Add settings page — account section**
+  - Files: `web/app/(app)/settings/page.tsx` (update), `web/app/(app)/settings/settings.module.css` (update)
+  - Spec: `specs/13-settings.md`
+  - Acceptance: Account section with "Export data" button (triggers download) and "Delete account" button (requires typing "DELETE" to confirm). Export calls POST /api/user/export. Delete calls DELETE /api/user/account and redirects to landing page.
+  - Tests: Component test: export button triggers download, delete requires confirmation, delete redirects
+
+- [ ] **Add Settings link to navigation**
+  - Files: `web/app/components/Nav.tsx`
+  - Spec: `specs/13-settings.md`
+  - Acceptance: Nav component includes a "Settings" link that navigates to `/settings`. Highlights when active.
+  - Tests: Component test: Settings link renders and navigates correctly
+
+### Spec 14 — Contributions & catch-up
+
+- [ ] **Add `POST /api/contributions/bulk` route for lump sum**
+  - Files: `web/app/api/contributions/bulk/route.ts`
+  - Spec: `specs/14-contributions.md`
+  - Acceptance: Accepts array of `{ obligationId, amount }`. Creates ContributionRecord for each with type `contribution` and note "Lump sum catch-up". Updates FundBalance for each. Triggers one engine recalculation at the end. Validates: all obligations belong to user, no zero amounts. Returns 201 with updated balances.
+  - Tests: Test bulk create (201), ownership check, zero amount rejected, single recalculation triggered
+
+- [ ] **Add contribution modal component**
+  - Files: `web/app/(app)/obligations/ContributionModal.tsx`, `web/app/(app)/obligations/contribution-modal.module.css`
+  - Spec: `specs/14-contributions.md`
+  - Acceptance: Modal shows obligation name, current balance, amount needed, and engine's recommended contribution pre-filled. User can accept or enter custom amount. On save: calls POST /api/contributions, dispatches `budget-data-changed` event. Validates: no zero or negative amounts.
+  - Tests: Component test: renders with pre-filled amount, custom amount input, submits successfully, validation rejects zero
+
+- [ ] **Add fund balance display to obligations list**
+  - Files: `web/app/(app)/obligations/page.tsx` (update), `web/app/(app)/obligations/obligations.module.css` (update)
+  - Spec: `specs/14-contributions.md`
+  - Acceptance: Each obligation in the list shows fund balance: progress bar or text "$X of $Y saved" with percentage. Color coded: green (≥80%), amber (40-79%), red (<40%). "Record contribution" button on each obligation opens ContributionModal.
+  - Tests: Component test: fund balance renders with correct color, contribution button opens modal
+
+- [ ] **Add "Mark as done" action to dashboard hero card**
+  - Files: `web/app/(app)/dashboard/page.tsx` (update), `web/app/(app)/dashboard/dashboard.module.css` (update)
+  - Spec: `specs/14-contributions.md`
+  - Acceptance: Hero card's next action has a "Mark as done" button. Clicking it opens ContributionModal pre-filled with the hero card amount and target obligation. After saving, dashboard refreshes (engine recalculates, snapshot updates).
+  - Tests: Component test: "Mark as done" button renders, opens modal with correct pre-fill
+
+- [ ] **Add lump sum catch-up modal component**
+  - Files: `web/app/(app)/dashboard/CatchUpModal.tsx`, `web/app/(app)/dashboard/catchup-modal.module.css`
+  - Spec: `specs/14-contributions.md`
+  - Acceptance: Modal for entering a lump sum amount. Shows distribution preview: per-obligation allocation prioritized by nearest due date. User can adjust individual allocations (must sum to total). Confirms via POST /api/contributions/bulk. Shows "all funded" message if no shortfall exists.
+  - Tests: Component test: renders amount input, shows distribution preview, adjustable allocations sum correctly, submits bulk
+
+- [ ] **Add "Catch up" button to dashboard**
+  - Files: `web/app/(app)/dashboard/page.tsx` (update), `web/app/(app)/dashboard/dashboard.module.css` (update)
+  - Spec: `specs/14-contributions.md`
+  - Acceptance: Dashboard shows a "Catch up" button when multiple obligations are underfunded. Clicking it opens CatchUpModal. Hidden when all obligations are fully funded.
+  - Tests: Component test: button appears when underfunded, hidden when fully funded, opens modal
+
+- [ ] **Add balance adjustment modal to obligation detail**
+  - Files: `web/app/(app)/obligations/AdjustBalanceModal.tsx`, `web/app/(app)/obligations/adjust-balance-modal.module.css`
+  - Spec: `specs/14-contributions.md`
+  - Acceptance: Modal shows current fund balance. User enters new exact balance. On save: calls PUT /api/fund-balances/[obligationId]. Supports both increasing and decreasing. Dispatches `budget-data-changed` event.
+  - Tests: Component test: renders current balance, accepts new balance, submits adjustment
+
+- [ ] **Add "Adjust balance" action to obligations list**
+  - Files: `web/app/(app)/obligations/page.tsx` (update)
+  - Spec: `specs/14-contributions.md`
+  - Acceptance: Each obligation has an "Adjust balance" link/button that opens AdjustBalanceModal. Available alongside the "Record contribution" button.
+  - Tests: Component test: adjust balance button renders, opens modal
+
+- [ ] **Add contribution history to obligation detail**
+  - Files: `web/app/api/contributions/[obligationId]/route.ts`, `web/app/(app)/obligations/ContributionHistory.tsx`, `web/app/(app)/obligations/contribution-history.module.css`
+  - Spec: `specs/14-contributions.md`
+  - Acceptance: GET /api/contributions/[obligationId] returns chronological list of contributions and adjustments for an obligation. UI component shows date, amount, type, and note for each entry. Displayed on the obligation edit/detail page.
+  - Tests: API test: returns contributions for user's obligation only. Component test: renders history list
