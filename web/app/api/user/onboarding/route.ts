@@ -4,11 +4,14 @@ import { getCurrentUser } from "@/lib/auth/getCurrentUser";
 import { createSession } from "@/lib/auth/session";
 import { logError } from "@/lib/logging";
 
+const VALID_CYCLE_TYPES = ["weekly", "fortnightly", "twice_monthly", "monthly"];
+
 interface OnboardingBody {
   currentFundBalance: number;
   currencySymbol: string;
   maxContributionPerCycle?: number;
   contributionCycleDays?: number;
+  contributionCycleType?: string;
 }
 
 export async function PUT(request: NextRequest): Promise<NextResponse> {
@@ -61,6 +64,16 @@ export async function PUT(request: NextRequest): Promise<NextResponse> {
       );
     }
 
+    if (
+      body.contributionCycleType !== undefined &&
+      !VALID_CYCLE_TYPES.includes(body.contributionCycleType)
+    ) {
+      return NextResponse.json(
+        { error: "contributionCycleType must be one of: " + VALID_CYCLE_TYPES.join(", ") },
+        { status: 400 }
+      );
+    }
+
     const updated = await prisma.user.update({
       where: { id: user.id },
       data: {
@@ -68,6 +81,9 @@ export async function PUT(request: NextRequest): Promise<NextResponse> {
         currencySymbol: body.currencySymbol.trim(),
         maxContributionPerCycle: body.maxContributionPerCycle ?? null,
         contributionCycleDays: body.contributionCycleDays ?? null,
+        ...(body.contributionCycleType !== undefined && {
+          contributionCycleType: body.contributionCycleType as "weekly" | "fortnightly" | "twice_monthly" | "monthly",
+        }),
         onboardingComplete: true,
       },
     });
@@ -82,6 +98,7 @@ export async function PUT(request: NextRequest): Promise<NextResponse> {
       currentFundBalance: updated.currentFundBalance,
       maxContributionPerCycle: updated.maxContributionPerCycle,
       contributionCycleDays: updated.contributionCycleDays,
+      contributionCycleType: updated.contributionCycleType,
       onboardingComplete: updated.onboardingComplete,
     });
   } catch (error) {

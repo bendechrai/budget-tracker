@@ -33,11 +33,39 @@ describe("OnboardingFundSetupPage", () => {
     ).toBeDefined();
     expect(screen.getByLabelText("Current fund balance")).toBeDefined();
     expect(screen.getByLabelText("Max contribution per cycle")).toBeDefined();
-    expect(screen.getByLabelText("Contribution cycle (days)")).toBeDefined();
-    expect(screen.getByLabelText("Currency symbol")).toBeDefined();
+    expect(
+      screen.getByRole("radiogroup", { name: "Contribution cycle" })
+    ).toBeDefined();
+    expect(screen.getByText("Currency symbol")).toBeDefined();
     expect(
       screen.getByRole("button", { name: "Finish Setup" })
     ).toBeDefined();
+  });
+
+  it("renders cycle type radio buttons", () => {
+    render(<OnboardingFundSetupPage />);
+
+    expect(screen.getByRole("radio", { name: "Weekly" })).toBeDefined();
+    expect(screen.getByRole("radio", { name: "Fortnightly" })).toBeDefined();
+    expect(screen.getByRole("radio", { name: "Twice monthly" })).toBeDefined();
+    expect(screen.getByRole("radio", { name: "Monthly" })).toBeDefined();
+
+    // Default is fortnightly
+    expect(
+      (screen.getByRole("radio", { name: "Fortnightly" }) as HTMLInputElement)
+        .checked
+    ).toBe(true);
+  });
+
+  it("renders currency quick-pick buttons", () => {
+    render(<OnboardingFundSetupPage />);
+
+    expect(screen.getByRole("button", { name: "$" })).toBeDefined();
+    expect(screen.getByRole("button", { name: "£" })).toBeDefined();
+    expect(screen.getByRole("button", { name: "€" })).toBeDefined();
+    expect(screen.getByRole("button", { name: "¥" })).toBeDefined();
+    expect(screen.getByRole("button", { name: "A$" })).toBeDefined();
+    expect(screen.getByRole("button", { name: "NZ$" })).toBeDefined();
   });
 
   it("renders the 'I'm not sure' checkbox", () => {
@@ -59,10 +87,12 @@ describe("OnboardingFundSetupPage", () => {
       (screen.getByLabelText("Max contribution per cycle") as HTMLInputElement)
         .disabled
     ).toBe(true);
-    expect(
-      (screen.getByLabelText("Contribution cycle (days)") as HTMLInputElement)
-        .disabled
-    ).toBe(true);
+
+    // All cycle radio buttons should be disabled
+    const radios = screen.getAllByRole("radio");
+    for (const radio of radios) {
+      expect((radio as HTMLInputElement).disabled).toBe(true);
+    }
   });
 
   it("re-enables contribution fields when 'I'm not sure' is unchecked", async () => {
@@ -77,13 +107,14 @@ describe("OnboardingFundSetupPage", () => {
       (screen.getByLabelText("Max contribution per cycle") as HTMLInputElement)
         .disabled
     ).toBe(false);
-    expect(
-      (screen.getByLabelText("Contribution cycle (days)") as HTMLInputElement)
-        .disabled
-    ).toBe(false);
+
+    const radios = screen.getAllByRole("radio");
+    for (const radio of radios) {
+      expect((radio as HTMLInputElement).disabled).toBe(false);
+    }
   });
 
-  it("submits the form and redirects to dashboard on success", async () => {
+  it("submits the form with cycle type and redirects to dashboard on success", async () => {
     const user = userEvent.setup();
     render(<OnboardingFundSetupPage />);
 
@@ -104,13 +135,65 @@ describe("OnboardingFundSetupPage", () => {
           currentFundBalance: 500,
           currencySymbol: "$",
           maxContributionPerCycle: 200,
-          contributionCycleDays: 14,
+          contributionCycleType: "fortnightly",
         }),
       });
     });
 
     await waitFor(() => {
       expect(mockPush).toHaveBeenCalledWith("/dashboard");
+    });
+  });
+
+  it("submits with selected cycle type", async () => {
+    const user = userEvent.setup();
+    render(<OnboardingFundSetupPage />);
+
+    await user.type(screen.getByLabelText("Current fund balance"), "500");
+    await user.type(
+      screen.getByLabelText("Max contribution per cycle"),
+      "200"
+    );
+    await user.click(screen.getByRole("radio", { name: "Monthly" }));
+    await user.click(screen.getByRole("button", { name: "Finish Setup" }));
+
+    await waitFor(() => {
+      expect(mockFetch).toHaveBeenCalledWith("/api/user/onboarding", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          currentFundBalance: 500,
+          currencySymbol: "$",
+          maxContributionPerCycle: 200,
+          contributionCycleType: "monthly",
+        }),
+      });
+    });
+  });
+
+  it("submits with selected currency quick-pick", async () => {
+    const user = userEvent.setup();
+    render(<OnboardingFundSetupPage />);
+
+    await user.type(screen.getByLabelText("Current fund balance"), "500");
+    await user.type(
+      screen.getByLabelText("Max contribution per cycle"),
+      "200"
+    );
+    await user.click(screen.getByRole("button", { name: "£" }));
+    await user.click(screen.getByRole("button", { name: "Finish Setup" }));
+
+    await waitFor(() => {
+      expect(mockFetch).toHaveBeenCalledWith("/api/user/onboarding", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          currentFundBalance: 500,
+          currencySymbol: "£",
+          maxContributionPerCycle: 200,
+          contributionCycleType: "fortnightly",
+        }),
+      });
     });
   });
 
@@ -170,28 +253,10 @@ describe("OnboardingFundSetupPage", () => {
           currentFundBalance: 0,
           currencySymbol: "$",
           maxContributionPerCycle: 200,
-          contributionCycleDays: 14,
+          contributionCycleType: "fortnightly",
         }),
       });
     });
-  });
-
-  it("shows error when currency symbol is empty", async () => {
-    const user = userEvent.setup();
-    render(<OnboardingFundSetupPage />);
-
-    await user.type(screen.getByLabelText("Current fund balance"), "500");
-    await user.type(
-      screen.getByLabelText("Max contribution per cycle"),
-      "200"
-    );
-    await user.clear(screen.getByLabelText("Currency symbol"));
-    await user.click(screen.getByRole("button", { name: "Finish Setup" }));
-
-    expect(screen.getByRole("alert").textContent).toBe(
-      "Currency symbol is required"
-    );
-    expect(mockFetch).not.toHaveBeenCalled();
   });
 
   it("shows server error when API call fails", async () => {
@@ -216,20 +281,20 @@ describe("OnboardingFundSetupPage", () => {
     expect(mockPush).not.toHaveBeenCalled();
   });
 
-  it("has default currency symbol of $", () => {
+  it("has default currency of $ selected", () => {
     render(<OnboardingFundSetupPage />);
 
-    expect(
-      (screen.getByLabelText("Currency symbol") as HTMLInputElement).value
-    ).toBe("$");
+    // The $ button should be visually active (has active class)
+    const dollarButton = screen.getByRole("button", { name: "$" });
+    expect(dollarButton).toBeDefined();
   });
 
-  it("has default cycle days of 14", () => {
+  it("has default cycle type of fortnightly", () => {
     render(<OnboardingFundSetupPage />);
 
     expect(
-      (screen.getByLabelText("Contribution cycle (days)") as HTMLInputElement)
-        .value
-    ).toBe("14");
+      (screen.getByRole("radio", { name: "Fortnightly" }) as HTMLInputElement)
+        .checked
+    ).toBe(true);
   });
 });

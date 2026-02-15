@@ -5,12 +5,22 @@ import { useRouter } from "next/navigation";
 import styles from "../onboarding.module.css";
 import fundStyles from "./fund-setup.module.css";
 
+const CYCLE_OPTIONS = [
+  { value: "weekly", label: "Weekly" },
+  { value: "fortnightly", label: "Fortnightly" },
+  { value: "twice_monthly", label: "Twice monthly" },
+  { value: "monthly", label: "Monthly" },
+];
+
+const CURRENCY_QUICK_PICKS = ["$", "\u00a3", "\u20ac", "\u00a5", "A$", "NZ$"];
+
 export default function OnboardingFundSetupPage() {
   const router = useRouter();
   const [currentBalance, setCurrentBalance] = useState("");
   const [maxContribution, setMaxContribution] = useState("");
-  const [cycleDays, setCycleDays] = useState("14");
+  const [cycleType, setCycleType] = useState("fortnightly");
   const [currencySymbol, setCurrencySymbol] = useState("$");
+  const [customCurrency, setCustomCurrency] = useState("");
   const [notSure, setNotSure] = useState(false);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -31,12 +41,6 @@ export default function OnboardingFundSetupPage() {
         setError("Contribution amount must be a positive number");
         return;
       }
-
-      const days = parseInt(cycleDays, 10);
-      if (isNaN(days) || days <= 0) {
-        setError("Cycle days must be a positive number");
-        return;
-      }
     }
 
     if (!currencySymbol.trim()) {
@@ -54,7 +58,7 @@ export default function OnboardingFundSetupPage() {
 
       if (!notSure) {
         body.maxContributionPerCycle = parseFloat(maxContribution);
-        body.contributionCycleDays = parseInt(cycleDays, 10);
+        body.contributionCycleType = cycleType;
       }
 
       const res = await fetch("/api/user/onboarding", {
@@ -76,6 +80,18 @@ export default function OnboardingFundSetupPage() {
     } catch {
       setError("Something went wrong. Please try again.");
       setSubmitting(false);
+    }
+  }
+
+  function handleCurrencyPick(symbol: string) {
+    setCurrencySymbol(symbol);
+    setCustomCurrency("");
+  }
+
+  function handleCustomCurrencySet() {
+    const value = customCurrency.trim();
+    if (value) {
+      setCurrencySymbol(value);
     }
   }
 
@@ -144,7 +160,7 @@ export default function OnboardingFundSetupPage() {
                 setNotSure(e.target.checked);
                 if (e.target.checked) {
                   setMaxContribution("");
-                  setCycleDays("14");
+                  setCycleType("fortnightly");
                 }
               }}
             />
@@ -154,39 +170,66 @@ export default function OnboardingFundSetupPage() {
           </div>
 
           <div className={fundStyles.field}>
-            <label className={fundStyles.label} htmlFor="cycle-days">
-              Contribution cycle (days)
-            </label>
+            <span className={fundStyles.label}>Contribution cycle</span>
             <span className={fundStyles.hint}>
-              How often do you get paid? e.g. 7 for weekly, 14 for fortnightly,
-              30 for monthly.
+              How often do you get paid?
             </span>
-            <input
-              id="cycle-days"
-              className={fundStyles.input}
-              type="number"
-              min="1"
-              step="1"
-              value={cycleDays}
-              onChange={(e) => setCycleDays(e.target.value)}
-              placeholder="14"
-              disabled={notSure}
-            />
+            <div
+              className={fundStyles.cycleOptions}
+              role="radiogroup"
+              aria-label="Contribution cycle"
+            >
+              {CYCLE_OPTIONS.map((opt) => (
+                <label
+                  key={opt.value}
+                  className={`${fundStyles.cycleOption}${cycleType === opt.value ? ` ${fundStyles.cycleOptionActive}` : ""}`}
+                >
+                  <input
+                    type="radio"
+                    name="cycle"
+                    value={opt.value}
+                    checked={cycleType === opt.value}
+                    onChange={() => setCycleType(opt.value)}
+                    disabled={notSure}
+                    className={fundStyles.radioInput}
+                  />
+                  {opt.label}
+                </label>
+              ))}
+            </div>
           </div>
 
           <div className={fundStyles.field}>
-            <label className={fundStyles.label} htmlFor="currency-symbol">
-              Currency symbol
-            </label>
-            <input
-              id="currency-symbol"
-              className={fundStyles.input}
-              type="text"
-              value={currencySymbol}
-              onChange={(e) => setCurrencySymbol(e.target.value)}
-              placeholder="$"
-              maxLength={5}
-            />
+            <span className={fundStyles.label}>Currency symbol</span>
+            <div className={fundStyles.currencyPicks}>
+              {CURRENCY_QUICK_PICKS.map((sym) => (
+                <button
+                  key={sym}
+                  type="button"
+                  className={`${fundStyles.currencyPick}${currencySymbol === sym ? ` ${fundStyles.currencyPickActive}` : ""}`}
+                  onClick={() => handleCurrencyPick(sym)}
+                >
+                  {sym}
+                </button>
+              ))}
+            </div>
+            <div className={fundStyles.inlineForm}>
+              <input
+                className={fundStyles.input}
+                type="text"
+                value={customCurrency}
+                onChange={(e) => setCustomCurrency(e.target.value)}
+                placeholder="Custom symbol"
+                maxLength={5}
+              />
+              <button
+                type="button"
+                className={fundStyles.setButton}
+                onClick={handleCustomCurrencySet}
+              >
+                Set
+              </button>
+            </div>
           </div>
 
           <div className={fundStyles.actions}>
