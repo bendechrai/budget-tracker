@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import styles from "./suggestions.module.css";
 import { logError } from "@/lib/logging";
+import { useSuggestionsCount } from "@/app/contexts/SuggestionsCountContext";
 
 interface SuggestionTransaction {
   transaction: {
@@ -108,6 +109,7 @@ export default function SuggestionsPage() {
   const [tweakAmount, setTweakAmount] = useState("");
   const [tweakFrequency, setTweakFrequency] = useState("");
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  const { decrement } = useSuggestionsCount();
 
   const fetchSuggestions = useCallback(async () => {
     try {
@@ -147,6 +149,7 @@ export default function SuggestionsPage() {
         return;
       }
       setSuggestions((prev) => prev.filter((s) => s.id !== id));
+      decrement();
     } catch (err) {
       logError("failed to accept suggestion", err);
       setError("Failed to accept suggestion");
@@ -169,6 +172,7 @@ export default function SuggestionsPage() {
         return;
       }
       setSuggestions((prev) => prev.filter((s) => s.id !== id));
+      decrement();
     } catch (err) {
       logError("failed to dismiss suggestion", err);
       setError("Failed to dismiss suggestion");
@@ -234,6 +238,7 @@ export default function SuggestionsPage() {
         return;
       }
       setSuggestions((prev) => prev.filter((s) => s.id !== id));
+      decrement();
       handleCancelTweak();
     } catch (err) {
       logError("failed to save tweaked suggestion", err);

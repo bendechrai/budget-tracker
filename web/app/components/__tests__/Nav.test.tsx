@@ -1,10 +1,16 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, waitFor, cleanup } from "@testing-library/react";
+import { render, screen, cleanup } from "@testing-library/react";
 import Nav from "../Nav";
 import { usePathname } from "next/navigation";
 
-vi.mock("@/lib/logging", () => ({
-  logError: vi.fn(),
+let mockCount = 0;
+
+vi.mock("@/app/contexts/SuggestionsCountContext", () => ({
+  useSuggestionsCount: () => ({
+    count: mockCount,
+    decrement: vi.fn(),
+    refresh: vi.fn(),
+  }),
 }));
 
 vi.mock("next/navigation", () => ({
@@ -28,28 +34,17 @@ vi.mock("next/link", () => ({
   ),
 }));
 
-function mockFetchResponse(data: unknown, status = 200) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { "Content-Type": "application/json" },
-  });
-}
-
 describe("Nav", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    global.fetch = vi.fn();
+    mockCount = 0;
   });
 
   afterEach(() => {
     cleanup();
   });
 
-  it("renders all navigation links", async () => {
-    vi.mocked(global.fetch).mockResolvedValueOnce(
-      mockFetchResponse({ suggestions: [], count: 0 })
-    );
-
+  it("renders all navigation links", () => {
     render(<Nav />);
 
     expect(screen.getByText("Dashboard")).toBeDefined();
@@ -60,79 +55,38 @@ describe("Nav", () => {
     expect(screen.getByText("Suggestions")).toBeDefined();
   });
 
-  it("shows badge when pending suggestions count is greater than 0", async () => {
-    vi.mocked(global.fetch).mockResolvedValueOnce(
-      mockFetchResponse({ suggestions: [], count: 5 })
-    );
-
+  it("shows badge when pending suggestions count is greater than 0", () => {
+    mockCount = 5;
     render(<Nav />);
 
-    await waitFor(() => {
-      expect(screen.getByText("5")).toBeDefined();
-    });
-
+    expect(screen.getByText("5")).toBeDefined();
     const badge = screen.getByLabelText("5 pending suggestions");
     expect(badge).toBeDefined();
   });
 
-  it("hides badge when count is 0", async () => {
-    vi.mocked(global.fetch).mockResolvedValueOnce(
-      mockFetchResponse({ suggestions: [], count: 0 })
-    );
-
+  it("hides badge when count is 0", () => {
+    mockCount = 0;
     render(<Nav />);
-
-    await waitFor(() => {
-      expect(global.fetch).toHaveBeenCalledWith("/api/suggestions");
-    });
 
     expect(screen.queryByLabelText(/pending suggestions/)).toBeNull();
   });
 
-  it("hides badge when fetch fails", async () => {
-    vi.mocked(global.fetch).mockResolvedValueOnce(
-      mockFetchResponse({ error: "internal server error" }, 500)
-    );
-
-    render(<Nav />);
-
-    await waitFor(() => {
-      expect(global.fetch).toHaveBeenCalledWith("/api/suggestions");
-    });
-
-    expect(screen.queryByLabelText(/pending suggestions/)).toBeNull();
-  });
-
-  it("renders the nav element with accessible label", async () => {
-    vi.mocked(global.fetch).mockResolvedValueOnce(
-      mockFetchResponse({ suggestions: [], count: 0 })
-    );
-
+  it("renders the nav element with accessible label", () => {
     render(<Nav />);
 
     expect(screen.getByRole("navigation", { name: "Main navigation" })).toBeDefined();
   });
 
-  it("updates badge after suggestions are acted on", async () => {
-    vi.mocked(global.fetch).mockResolvedValueOnce(
-      mockFetchResponse({ suggestions: [], count: 3 })
-    );
-
+  it("shows correct badge count", () => {
+    mockCount = 3;
     render(<Nav />);
-
-    await waitFor(() => {
-      expect(screen.getByText("3")).toBeDefined();
-    });
 
     const badge = screen.getByLabelText("3 pending suggestions");
     expect(badge).toBeDefined();
+    expect(badge.textContent).toBe("3");
   });
 
-  it("highlights the active link based on current pathname", async () => {
-    vi.mocked(global.fetch).mockResolvedValueOnce(
-      mockFetchResponse({ suggestions: [], count: 0 })
-    );
-
+  it("highlights the active link based on current pathname", () => {
     render(<Nav />);
 
     const dashboardLink = screen.getByText("Dashboard").closest("a");
@@ -145,11 +99,8 @@ describe("Nav", () => {
     expect(obligationsLink?.getAttribute("aria-current")).toBeNull();
   });
 
-  it("highlights a different link when pathname changes", async () => {
+  it("highlights a different link when pathname changes", () => {
     vi.mocked(usePathname).mockReturnValue("/obligations");
-    vi.mocked(global.fetch).mockResolvedValueOnce(
-      mockFetchResponse({ suggestions: [], count: 0 })
-    );
 
     render(<Nav />);
 

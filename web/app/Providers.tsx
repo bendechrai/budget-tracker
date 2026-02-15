@@ -2,7 +2,12 @@
 
 import { type ReactNode } from "react";
 import { WhatIfProvider } from "@/app/contexts/WhatIfContext";
+import { SuggestionsCountProvider } from "@/app/contexts/SuggestionsCountContext";
 
 export default function Providers({ children }: { children: ReactNode }) {
-  return <WhatIfProvider>{children}</WhatIfProvider>;
+  return (
+    <SuggestionsCountProvider>
+      <WhatIfProvider>{children}</WhatIfProvider>
+    </SuggestionsCountProvider>
+  );
 }

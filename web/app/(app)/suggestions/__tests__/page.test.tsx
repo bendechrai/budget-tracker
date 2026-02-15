@@ -7,6 +7,15 @@ vi.mock("@/lib/logging", () => ({
   logError: vi.fn(),
 }));
 
+const mockDecrement = vi.fn();
+vi.mock("@/app/contexts/SuggestionsCountContext", () => ({
+  useSuggestionsCount: () => ({
+    count: 0,
+    decrement: mockDecrement,
+    refresh: vi.fn(),
+  }),
+}));
+
 const mockSuggestions = [
   {
     id: "s1",

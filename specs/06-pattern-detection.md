@@ -49,6 +49,7 @@ flowchart TD
   - **Dismiss**: hides the suggestion; same pattern won't be re-suggested unless significant new transaction data strengthens the case
 - Suggestions are sorted by confidence (high first, then medium, then low), with newest first within each confidence level
 - Suggestions feed is accessible via a nav item with a badge showing the count of pending suggestions
+- Badge count updates in real time as suggestions are accepted/dismissed (via shared context), without requiring page reload
 - High-confidence suggestions may also appear as smart nudge cards on the dashboard
 - Already-tracked income sources and obligations are not re-suggested (matched by vendor pattern and amount similarity)
 
@@ -78,7 +79,7 @@ flowchart TD
 - [ ] User can tweak and accept a suggestion (pre-filled form)
 - [ ] User can dismiss a suggestion
 - [ ] Dismissed patterns are not re-suggested unless significant new data appears
-- [ ] Nav shows badge count for pending suggestions
+- [x] Nav shows badge count for pending suggestions, updating in real time on accept/dismiss
 - [ ] High-confidence suggestions appear as dashboard nudge cards
 - [ ] Already-tracked patterns are excluded from suggestions
 - [x] Suggestions are sorted by confidence (high first), then by recency

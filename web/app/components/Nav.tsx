@@ -1,37 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import styles from "./nav.module.css";
-import { logError } from "@/lib/logging";
+import { useSuggestionsCount } from "@/app/contexts/SuggestionsCountContext";
 
 export default function Nav() {
   const pathname = usePathname();
-  const [suggestionsCount, setSuggestionsCount] = useState(0);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function loadCount() {
-      try {
-        const res = await fetch("/api/suggestions");
-        if (!res.ok || cancelled) return;
-        const data = (await res.json()) as { count: number };
-        if (!cancelled) {
-          setSuggestionsCount(data.count);
-        }
-      } catch (err) {
-        logError("failed to fetch suggestions count", err);
-      }
-    }
-
-    void loadCount();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const { count: suggestionsCount } = useSuggestionsCount();
 
   const links = [
     { href: "/dashboard", label: "Dashboard" },
