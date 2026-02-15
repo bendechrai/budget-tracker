@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth/getCurrentUser";
 import { logError } from "@/lib/logging";
 import { calculateAndSnapshot } from "@/lib/engine/snapshot";
+import { cycleDaysToConfig } from "@/lib/engine/calculate";
 import type { ObligationInput, FundBalanceInput } from "@/lib/engine/calculate";
 
 interface FundBalanceBody {
@@ -145,7 +146,7 @@ export async function PUT(
       obligations: obligationInputs,
       fundBalances: fundBalanceInputs,
       maxContributionPerCycle: user.maxContributionPerCycle,
-      contributionCycleDays: user.contributionCycleDays,
+      cycleConfig: cycleDaysToConfig(user.contributionCycleDays),
     });
 
     await prisma.engineSnapshot.create({

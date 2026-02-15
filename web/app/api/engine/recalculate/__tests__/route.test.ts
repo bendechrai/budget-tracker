@@ -171,7 +171,7 @@ describe("POST /api/engine/recalculate", () => {
         },
       ],
       maxContributionPerCycle: 500,
-      contributionCycleDays: 14,
+      cycleConfig: { type: "fortnightly", payDays: [] },
     });
   });
 

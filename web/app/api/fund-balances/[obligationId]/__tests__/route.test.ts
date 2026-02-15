@@ -334,7 +334,7 @@ describe("PUT /api/fund-balances/[obligationId]", () => {
         },
       ],
       maxContributionPerCycle: 500,
-      contributionCycleDays: 14,
+      cycleConfig: { type: "fortnightly", payDays: [] },
     });
 
     expect(mockEngineSnapshotCreate).toHaveBeenCalledWith({

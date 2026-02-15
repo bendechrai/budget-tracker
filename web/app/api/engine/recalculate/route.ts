@@ -5,6 +5,7 @@ import { logError } from "@/lib/logging";
 import { calculateAndSnapshot } from "@/lib/engine/snapshot";
 import { applyPendingEscalations } from "@/lib/engine/applyEscalations";
 import type { ObligationInput, FundBalanceInput } from "@/lib/engine/calculate";
+import { cycleDaysToConfig } from "@/lib/engine/calculate";
 
 export async function POST(): Promise<NextResponse> {
   try {
@@ -67,7 +68,7 @@ export async function POST(): Promise<NextResponse> {
       obligations: obligationInputs,
       fundBalances: fundBalanceInputs,
       maxContributionPerCycle: user.maxContributionPerCycle,
-      contributionCycleDays: user.contributionCycleDays,
+      cycleConfig: cycleDaysToConfig(user.contributionCycleDays),
     });
 
     // Persist the snapshot

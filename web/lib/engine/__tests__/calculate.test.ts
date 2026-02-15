@@ -41,7 +41,7 @@ describe("calculateContributions", () => {
         obligations: [makeObligation()],
         fundBalances: [],
         maxContributionPerCycle: null,
-        contributionCycleDays: 30,
+        cycleConfig: { type: "monthly", payDays: [1] },
         now: NOW,
       });
 
@@ -71,7 +71,7 @@ describe("calculateContributions", () => {
         ],
         fundBalances: [],
         maxContributionPerCycle: null,
-        contributionCycleDays: 30,
+        cycleConfig: { type: "monthly", payDays: [1] },
         now: NOW,
       });
 
@@ -90,7 +90,7 @@ describe("calculateContributions", () => {
         ],
         fundBalances: [{ obligationId: "obl-1", currentBalance: 300 }],
         maxContributionPerCycle: null,
-        contributionCycleDays: 30,
+        cycleConfig: { type: "monthly", payDays: [1] },
         now: NOW,
       });
 
@@ -115,7 +115,7 @@ describe("calculateContributions", () => {
         ],
         fundBalances: [],
         maxContributionPerCycle: null,
-        contributionCycleDays: 30,
+        cycleConfig: { type: "monthly", payDays: [1] },
         now: NOW,
       });
 
@@ -137,7 +137,7 @@ describe("calculateContributions", () => {
         ],
         fundBalances: [],
         maxContributionPerCycle: null,
-        contributionCycleDays: 30,
+        cycleConfig: { type: "monthly", payDays: [1] },
         now: NOW,
       });
 
@@ -160,7 +160,7 @@ describe("calculateContributions", () => {
         ],
         fundBalances: [{ obligationId: "obl-1", currentBalance: 600 }],
         maxContributionPerCycle: null,
-        contributionCycleDays: 30,
+        cycleConfig: { type: "monthly", payDays: [1] },
         now: NOW,
       });
 
@@ -174,7 +174,7 @@ describe("calculateContributions", () => {
         obligations: [makeObligation({ amount: 500 })],
         fundBalances: [{ obligationId: "obl-1", currentBalance: 500 }],
         maxContributionPerCycle: null,
-        contributionCycleDays: 30,
+        cycleConfig: { type: "monthly", payDays: [1] },
         now: NOW,
       });
 
@@ -190,7 +190,7 @@ describe("calculateContributions", () => {
         obligations: [makeObligation({ amount: 500 })],
         fundBalances: [{ obligationId: "obl-1", currentBalance: 700 }],
         maxContributionPerCycle: null,
-        contributionCycleDays: 30,
+        cycleConfig: { type: "monthly", payDays: [1] },
         now: NOW,
       });
 
@@ -220,7 +220,7 @@ describe("calculateContributions", () => {
         ],
         fundBalances: [],
         maxContributionPerCycle: 500,
-        contributionCycleDays: 30,
+        cycleConfig: { type: "monthly", payDays: [1] },
         now: NOW,
       });
 
@@ -266,7 +266,7 @@ describe("calculateContributions", () => {
         ],
         fundBalances: [],
         maxContributionPerCycle: 400,
-        contributionCycleDays: 30,
+        cycleConfig: { type: "monthly", payDays: [1] },
         now: NOW,
       });
 
@@ -292,7 +292,7 @@ describe("calculateContributions", () => {
         ],
         fundBalances: [],
         maxContributionPerCycle: 200,
-        contributionCycleDays: 30,
+        cycleConfig: { type: "monthly", payDays: [1] },
         now: NOW,
       });
 
@@ -317,7 +317,7 @@ describe("calculateContributions", () => {
         ],
         fundBalances: [],
         maxContributionPerCycle: 500,
-        contributionCycleDays: 30,
+        cycleConfig: { type: "monthly", payDays: [1] },
         now: NOW,
       });
 
@@ -339,7 +339,7 @@ describe("calculateContributions", () => {
         ],
         fundBalances: [],
         maxContributionPerCycle: null,
-        contributionCycleDays: 30,
+        cycleConfig: { type: "monthly", payDays: [1] },
         now: NOW,
       });
 
@@ -360,7 +360,7 @@ describe("calculateContributions", () => {
         ],
         fundBalances: [],
         maxContributionPerCycle: null,
-        contributionCycleDays: 30,
+        cycleConfig: { type: "monthly", payDays: [1] },
         now: NOW, // 2025-03-01
       });
 
@@ -382,7 +382,7 @@ describe("calculateContributions", () => {
         ],
         fundBalances: [],
         maxContributionPerCycle: null,
-        contributionCycleDays: 30,
+        cycleConfig: { type: "monthly", payDays: [1] },
         now: NOW,
       });
 
@@ -397,7 +397,7 @@ describe("calculateContributions", () => {
         obligations: [makeObligation({ isPaused: true })],
         fundBalances: [],
         maxContributionPerCycle: null,
-        contributionCycleDays: 30,
+        cycleConfig: { type: "monthly", payDays: [1] },
         now: NOW,
       });
 
@@ -409,7 +409,7 @@ describe("calculateContributions", () => {
         obligations: [makeObligation({ isActive: false })],
         fundBalances: [],
         maxContributionPerCycle: null,
-        contributionCycleDays: 30,
+        cycleConfig: { type: "monthly", payDays: [1] },
         now: NOW,
       });
 
@@ -430,7 +430,7 @@ describe("calculateContributions", () => {
         ],
         fundBalances: [],
         maxContributionPerCycle: null,
-        contributionCycleDays: 30,
+        cycleConfig: { type: "monthly", payDays: [1] },
         now: NOW,
       });
 
@@ -469,7 +469,7 @@ describe("calculateContributions", () => {
         ],
         fundBalances: [],
         maxContributionPerCycle: null,
-        contributionCycleDays: 30,
+        cycleConfig: { type: "monthly", payDays: [1] },
         now: NOW,
       });
 
@@ -495,7 +495,7 @@ describe("calculateContributions", () => {
         ],
         fundBalances: [],
         maxContributionPerCycle: null,
-        contributionCycleDays: 30,
+        cycleConfig: { type: "monthly", payDays: [1] },
         now: NOW,
       });
 
@@ -509,7 +509,7 @@ describe("calculateContributions", () => {
         obligations: [],
         fundBalances: [],
         maxContributionPerCycle: null,
-        contributionCycleDays: 30,
+        cycleConfig: { type: "monthly", payDays: [1] },
         now: NOW,
       });
 
@@ -521,7 +521,7 @@ describe("calculateContributions", () => {
       expect(result.shortfallWarnings).toHaveLength(0);
     });
 
-    it("defaults to 30-day cycle when contributionCycleDays is null", () => {
+    it("uses monthly cycle config with pay day on the 1st", () => {
       const result = calculateContributions({
         obligations: [
           makeObligation({
@@ -531,12 +531,12 @@ describe("calculateContributions", () => {
         ],
         fundBalances: [],
         maxContributionPerCycle: null,
-        contributionCycleDays: null,
+        cycleConfig: { type: "monthly", payDays: [1] },
         now: NOW,
       });
 
       const c = result.contributions[0];
-      // Same as 30-day cycle: 90 days / 30 = 3 cycles
+      // Monthly pay day on 1st: Mar 1, Apr 1, May 1 = 3 cycles
       expect(c.cyclesUntilDue).toBe(3);
       expect(c.contributionPerCycle).toBe(300);
     });
@@ -552,7 +552,7 @@ describe("calculateContributions", () => {
           { obligationId: "obl-2", currentBalance: 300 },
         ],
         maxContributionPerCycle: null,
-        contributionCycleDays: 30,
+        cycleConfig: { type: "monthly", payDays: [1] },
         now: NOW,
       });
 
@@ -580,7 +580,7 @@ describe("calculateContributions", () => {
         ],
         fundBalances: [],
         maxContributionPerCycle: null,
-        contributionCycleDays: 30,
+        cycleConfig: { type: "monthly", payDays: [1] },
         now: NOW,
       });
 
@@ -603,7 +603,7 @@ describe("calculateContributions", () => {
         ],
         fundBalances: [],
         maxContributionPerCycle: null,
-        contributionCycleDays: 7,
+        cycleConfig: { type: "weekly", payDays: [] },
         now: NOW,
       });
 
@@ -835,7 +835,7 @@ describe("calculateWithWhatIf", () => {
           obligations,
           fundBalances: [],
           maxContributionPerCycle: null,
-          contributionCycleDays: 30,
+          cycleConfig: { type: "monthly", payDays: [1] },
           now: NOW,
         },
         {
@@ -860,7 +860,7 @@ describe("calculateWithWhatIf", () => {
           obligations: [makeObligation({ id: "obl-1", amount: 500 })],
           fundBalances: [],
           maxContributionPerCycle: null,
-          contributionCycleDays: 30,
+          cycleConfig: { type: "monthly", payDays: [1] },
           now: NOW,
         },
         {
@@ -890,7 +890,7 @@ describe("calculateWithWhatIf", () => {
           ],
           fundBalances: [],
           maxContributionPerCycle: null,
-          contributionCycleDays: 30,
+          cycleConfig: { type: "monthly", payDays: [1] },
           now: NOW,
         },
         {
@@ -927,7 +927,7 @@ describe("calculateWithWhatIf", () => {
           ],
           fundBalances: [],
           maxContributionPerCycle: null,
-          contributionCycleDays: 30,
+          cycleConfig: { type: "monthly", payDays: [1] },
           now: NOW,
         },
         {
@@ -967,7 +967,7 @@ describe("calculateWithWhatIf", () => {
           ],
           fundBalances: [],
           maxContributionPerCycle: 500,
-          contributionCycleDays: 30,
+          cycleConfig: { type: "monthly", payDays: [1] },
           now: NOW,
         },
         {
@@ -993,7 +993,7 @@ describe("calculateWithWhatIf", () => {
           obligations: [makeObligation({ id: "obl-1", amount: 600 })],
           fundBalances: [],
           maxContributionPerCycle: null,
-          contributionCycleDays: 30,
+          cycleConfig: { type: "monthly", payDays: [1] },
           now: NOW,
         },
         emptyOverrides
@@ -1028,7 +1028,7 @@ describe("calculateWithWhatIf", () => {
           ],
           fundBalances: [],
           maxContributionPerCycle: null,
-          contributionCycleDays: 30,
+          cycleConfig: { type: "monthly", payDays: [1] },
           now: NOW,
         },
         {
@@ -1094,7 +1094,7 @@ describe("what-if escalation overrides", () => {
         ],
         fundBalances: [],
         maxContributionPerCycle: null,
-        contributionCycleDays: 30,
+        cycleConfig: { type: "monthly", payDays: [1] },
         now: NOW,
       },
       {
@@ -1133,7 +1133,7 @@ describe("what-if escalation overrides", () => {
         ],
         fundBalances: [],
         maxContributionPerCycle: null,
-        contributionCycleDays: 30,
+        cycleConfig: { type: "monthly", payDays: [1] },
         now: NOW,
       },
       {
@@ -1186,7 +1186,7 @@ describe("what-if escalation overrides", () => {
         ],
         fundBalances: [],
         maxContributionPerCycle: null,
-        contributionCycleDays: 30,
+        cycleConfig: { type: "monthly", payDays: [1] },
         now: NOW,
       },
       {
@@ -1227,7 +1227,7 @@ describe("what-if escalation overrides", () => {
         ],
         fundBalances: [],
         maxContributionPerCycle: null,
-        contributionCycleDays: 30,
+        cycleConfig: { type: "monthly", payDays: [1] },
         now: NOW,
       },
       {
@@ -1290,7 +1290,7 @@ describe("escalation integration", () => {
         ],
         fundBalances: [],
         maxContributionPerCycle: null,
-        contributionCycleDays: 30,
+        cycleConfig: { type: "monthly", payDays: [1] },
         now: NOW,
       });
 
@@ -1321,7 +1321,7 @@ describe("escalation integration", () => {
         ],
         fundBalances: [],
         maxContributionPerCycle: null,
-        contributionCycleDays: 30,
+        cycleConfig: { type: "monthly", payDays: [1] },
         now: NOW,
       });
 
@@ -1350,7 +1350,7 @@ describe("escalation integration", () => {
         ],
         fundBalances: [],
         maxContributionPerCycle: null,
-        contributionCycleDays: 30,
+        cycleConfig: { type: "monthly", payDays: [1] },
         now: NOW,
       });
 
@@ -1382,7 +1382,7 @@ describe("escalation integration", () => {
         ],
         fundBalances: [],
         maxContributionPerCycle: 800,
-        contributionCycleDays: 30,
+        cycleConfig: { type: "monthly", payDays: [1] },
         now: NOW,
       });
 
@@ -1420,7 +1420,7 @@ describe("escalation integration", () => {
         ],
         fundBalances: [],
         maxContributionPerCycle: 1900,
-        contributionCycleDays: 30,
+        cycleConfig: { type: "monthly", payDays: [1] },
         now: NOW,
       });
 
@@ -1448,7 +1448,7 @@ describe("escalation integration", () => {
         ],
         fundBalances: [],
         maxContributionPerCycle: null,
-        contributionCycleDays: 30,
+        cycleConfig: { type: "monthly", payDays: [1] },
         now: NOW,
       });
 
@@ -1468,7 +1468,7 @@ describe("escalation integration", () => {
         ],
         fundBalances: [],
         maxContributionPerCycle: null,
-        contributionCycleDays: 30,
+        cycleConfig: { type: "monthly", payDays: [1] },
         now: NOW,
       });
 

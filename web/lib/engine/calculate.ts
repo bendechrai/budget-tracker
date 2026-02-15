@@ -53,7 +53,7 @@ export interface EngineInput {
   obligations: ObligationInput[];
   fundBalances: FundBalanceInput[];
   maxContributionPerCycle: number | null;
-  contributionCycleDays: number | null;
+  cycleConfig: CycleConfig;
   now?: Date;
 }
 
@@ -223,9 +223,9 @@ export function countCyclesBetween(
 
 /**
  * Converts a legacy cycleDays value into a CycleConfig.
- * Used during the migration period while EngineInput still has contributionCycleDays.
+ * Used during the migration period while callers still read contributionCycleDays from the database.
  */
-function cycleDaysToConfig(cycleDays: number | null): CycleConfig {
+export function cycleDaysToConfig(cycleDays: number | null): CycleConfig {
   switch (cycleDays) {
     case 7:
       return { type: "weekly", payDays: [] };
@@ -350,12 +350,9 @@ export function calculateContributions(input: EngineInput): EngineResult {
     obligations,
     fundBalances,
     maxContributionPerCycle,
-    contributionCycleDays,
+    cycleConfig,
     now = new Date(),
   } = input;
-
-  // Derive CycleConfig from legacy contributionCycleDays
-  const cycleConfig = cycleDaysToConfig(contributionCycleDays);
 
   // Build a lookup for fund balances
   const balanceMap = new Map<string, number>();

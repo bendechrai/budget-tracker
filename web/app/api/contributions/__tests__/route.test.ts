@@ -327,7 +327,7 @@ describe("POST /api/contributions", () => {
         },
       ],
       maxContributionPerCycle: 500,
-      contributionCycleDays: 14,
+      cycleConfig: { type: "fortnightly", payDays: [] },
     });
 
     expect(mockEngineSnapshotCreate).toHaveBeenCalledWith({

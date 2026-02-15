@@ -25,10 +25,14 @@ vi.mock("@/lib/logging", () => ({
 }));
 
 const mockCalculateContributions = vi.fn();
-vi.mock("@/lib/engine/calculate", () => ({
-  calculateContributions: (...args: unknown[]) =>
-    mockCalculateContributions(...args),
-}));
+vi.mock("@/lib/engine/calculate", async () => {
+  const actual = await vi.importActual("@/lib/engine/calculate");
+  return {
+    ...actual,
+    calculateContributions: (...args: unknown[]) =>
+      mockCalculateContributions(...args),
+  };
+});
 
 const mockProjectTimeline = vi.fn();
 vi.mock("@/lib/engine/timeline", () => ({

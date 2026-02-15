@@ -244,7 +244,7 @@ describe("calculateAndSnapshot", () => {
       ],
       fundBalances: [],
       maxContributionPerCycle: null,
-      contributionCycleDays: 30,
+      cycleConfig: { type: "monthly", payDays: [1] },
       now: NOW,
     });
 
@@ -273,7 +273,7 @@ describe("calculateAndSnapshot", () => {
       ],
       fundBalances: [{ obligationId: "obl-1", currentBalance: 1200 }],
       maxContributionPerCycle: null,
-      contributionCycleDays: 30,
+      cycleConfig: { type: "monthly", payDays: [1] },
       now: NOW,
     });
 

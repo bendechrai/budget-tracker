@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth/getCurrentUser";
 import { logError } from "@/lib/logging";
-import { calculateWithWhatIf } from "@/lib/engine/calculate";
+import { calculateWithWhatIf, cycleDaysToConfig } from "@/lib/engine/calculate";
 import { generateSnapshot } from "@/lib/engine/snapshot";
 import { projectTimeline } from "@/lib/engine/timeline";
 import type {
@@ -114,7 +114,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       obligations: obligationInputs,
       fundBalances: fundBalanceInputs,
       maxContributionPerCycle: user.maxContributionPerCycle,
-      contributionCycleDays: user.contributionCycleDays,
+      cycleConfig: cycleDaysToConfig(user.contributionCycleDays),
     };
 
     const { scenario } = calculateWithWhatIf(engineInput, overrides);

@@ -768,7 +768,7 @@
   - Acceptance: New `countCyclesBetween(start, due, cycleType, payDays)` function. Weekly/fortnightly use day division (7/14). Twice-monthly counts actual pay date occurrences with end-of-month clamping. Monthly counts month occurrences. Returns at least 1 for future dates. `getCyclesUntilDue()` removed. `calculateContributions()` uses new function via `CycleConfig`.
   - Tests: Unit tests: weekly counts, fortnightly counts, twice-monthly Feb edge case (2 cycles not 1), monthly counts, end-of-month clamping (pay day 30 in Feb → 28th)
 
-- [ ] **Update `EngineInput` to accept `CycleConfig` instead of `contributionCycleDays`**
+- [x] **Update `EngineInput` to accept `CycleConfig` instead of `contributionCycleDays`**
   - Files: `web/lib/engine/calculate.ts`
   - Spec: `specs/07a-cycle-auto-detection.md`
   - Acceptance: `EngineInput` interface replaces `contributionCycleDays: number | null` with `cycleConfig: CycleConfig`. `CycleConfig` has `type` and `payDays` fields. `calculateContributions()` uses `cycleConfig` throughout. All callers updated.
