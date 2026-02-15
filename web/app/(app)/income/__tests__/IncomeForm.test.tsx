@@ -36,6 +36,7 @@ describe("IncomeForm", () => {
     expect(options).toEqual([
       "weekly",
       "fortnightly",
+      "twice_monthly",
       "monthly",
       "quarterly",
       "annual",

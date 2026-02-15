@@ -712,21 +712,17 @@
 
 ## In Progress
 
+## Completed (continued 4)
+
+- [x] **Add "Twice monthly" option to income source form**
+  - Files: `web/app/(app)/income/IncomeForm.tsx`
+  - Spec: `specs/03a-twice-monthly-frequency.md`
+  - Acceptance: Frequency dropdown includes "Twice monthly" as an option between "Fortnightly" and "Monthly". Selecting it sets frequency to `twice_monthly`.
+  - Tests: Component test: "Twice monthly" option renders in frequency dropdown
+
 ## Backlog
 
 ### Spec 03a — Add twice-monthly income frequency
-
-- [ ] **Add "Twice monthly" option to income source form**
-  - Files: `web/app/(app)/income/IncomeForm.tsx`
-  - Spec: `specs/03a-twice-monthly-frequency.md`
-  - Acceptance: Frequency dropdown includes "Twice monthly" as an option between "Fortnightly" and "Monthly". Selecting it sets frequency to `twice_monthly`.
-  - Tests: Component test: "Twice monthly" option renders in frequency dropdown
-
-- [ ] **Add "Twice monthly" option to income source form**
-  - Files: `web/app/(app)/income/IncomeForm.tsx`
-  - Spec: `specs/03a-twice-monthly-frequency.md`
-  - Acceptance: Frequency dropdown includes "Twice monthly" as an option between "Fortnightly" and "Monthly". Selecting it sets frequency to `twice_monthly`.
-  - Tests: Component test: "Twice monthly" option renders in frequency dropdown
 
 - [ ] **Add "Twice monthly" option to onboarding manual income form**
   - Files: `web/app/onboarding/manual/income/page.tsx`

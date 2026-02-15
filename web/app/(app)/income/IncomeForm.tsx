@@ -22,6 +22,7 @@ interface IncomeFormProps {
 const FREQUENCY_OPTIONS = [
   { value: "weekly", label: "Weekly" },
   { value: "fortnightly", label: "Fortnightly" },
+  { value: "twice_monthly", label: "Twice monthly" },
   { value: "monthly", label: "Monthly" },
   { value: "quarterly", label: "Quarterly" },
   { value: "annual", label: "Annual" },
