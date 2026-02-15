@@ -118,6 +118,7 @@ const mockObligationWithBalance = {
   id: "ob1",
   name: "Rent",
   amount: 1200,
+  nextDueDate: "2025-02-14T00:00:00.000Z",
   fundBalance: { currentBalance: 800 },
 };
 
@@ -530,5 +531,157 @@ describe("DashboardPage", () => {
     });
 
     expect(screen.queryByTestId("hero-mark-done")).toBeNull();
+  });
+
+  it("shows 'Catch up' button when multiple obligations are underfunded", async () => {
+    const underfundedObligations = [
+      {
+        id: "ob1",
+        name: "Rent",
+        amount: 1200,
+        nextDueDate: "2025-02-14T00:00:00.000Z",
+        fundBalance: { currentBalance: 800 },
+      },
+      {
+        id: "ob2",
+        name: "Insurance",
+        amount: 500,
+        nextDueDate: "2025-03-01T00:00:00.000Z",
+        fundBalance: { currentBalance: 100 },
+      },
+    ];
+
+    vi.mocked(global.fetch).mockImplementation((url) => {
+      if (typeof url === "string" && url.includes("/api/obligations")) {
+        return Promise.resolve(mockFetchResponse(underfundedObligations));
+      }
+      if (typeof url === "string" && url.includes("/api/engine/timeline")) {
+        return Promise.resolve(mockFetchResponse(mockTimelineData));
+      }
+      return Promise.resolve(mockFetchResponse(mockSnapshot));
+    });
+
+    render(<DashboardPage />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("catch-up-button")).toBeDefined();
+    });
+
+    expect(screen.getByTestId("catch-up-button").textContent).toBe("Catch up");
+  });
+
+  it("hides 'Catch up' button when all obligations are fully funded", async () => {
+    const fullyFundedObligations = [
+      {
+        id: "ob1",
+        name: "Rent",
+        amount: 1200,
+        nextDueDate: "2025-02-14T00:00:00.000Z",
+        fundBalance: { currentBalance: 1200 },
+      },
+      {
+        id: "ob2",
+        name: "Insurance",
+        amount: 500,
+        nextDueDate: "2025-03-01T00:00:00.000Z",
+        fundBalance: { currentBalance: 500 },
+      },
+    ];
+
+    vi.mocked(global.fetch).mockImplementation((url) => {
+      if (typeof url === "string" && url.includes("/api/obligations")) {
+        return Promise.resolve(mockFetchResponse(fullyFundedObligations));
+      }
+      if (typeof url === "string" && url.includes("/api/engine/timeline")) {
+        return Promise.resolve(mockFetchResponse(mockTimelineData));
+      }
+      return Promise.resolve(mockFetchResponse(mockFullyFundedSnapshot));
+    });
+
+    render(<DashboardPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("You're fully covered!")).toBeDefined();
+    });
+
+    expect(screen.queryByTestId("catch-up-button")).toBeNull();
+  });
+
+  it("hides 'Catch up' button when only one obligation is underfunded", async () => {
+    const singleUnderfunded = [
+      {
+        id: "ob1",
+        name: "Rent",
+        amount: 1200,
+        nextDueDate: "2025-02-14T00:00:00.000Z",
+        fundBalance: { currentBalance: 800 },
+      },
+      {
+        id: "ob2",
+        name: "Insurance",
+        amount: 500,
+        nextDueDate: "2025-03-01T00:00:00.000Z",
+        fundBalance: { currentBalance: 500 },
+      },
+    ];
+
+    vi.mocked(global.fetch).mockImplementation((url) => {
+      if (typeof url === "string" && url.includes("/api/obligations")) {
+        return Promise.resolve(mockFetchResponse(singleUnderfunded));
+      }
+      if (typeof url === "string" && url.includes("/api/engine/timeline")) {
+        return Promise.resolve(mockFetchResponse(mockTimelineData));
+      }
+      return Promise.resolve(mockFetchResponse(mockSnapshot));
+    });
+
+    render(<DashboardPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("$412.00")).toBeDefined();
+    });
+
+    expect(screen.queryByTestId("catch-up-button")).toBeNull();
+  });
+
+  it("opens CatchUpModal when 'Catch up' button is clicked", async () => {
+    const underfundedObligations = [
+      {
+        id: "ob1",
+        name: "Rent",
+        amount: 1200,
+        nextDueDate: "2025-02-14T00:00:00.000Z",
+        fundBalance: { currentBalance: 800 },
+      },
+      {
+        id: "ob2",
+        name: "Insurance",
+        amount: 500,
+        nextDueDate: "2025-03-01T00:00:00.000Z",
+        fundBalance: { currentBalance: 100 },
+      },
+    ];
+
+    vi.mocked(global.fetch).mockImplementation((url) => {
+      if (typeof url === "string" && url.includes("/api/obligations")) {
+        return Promise.resolve(mockFetchResponse(underfundedObligations));
+      }
+      if (typeof url === "string" && url.includes("/api/engine/timeline")) {
+        return Promise.resolve(mockFetchResponse(mockTimelineData));
+      }
+      return Promise.resolve(mockFetchResponse(mockSnapshot));
+    });
+
+    render(<DashboardPage />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("catch-up-button")).toBeDefined();
+    });
+
+    fireEvent.click(screen.getByTestId("catch-up-button"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("catchup-modal")).toBeDefined();
+    });
   });
 });

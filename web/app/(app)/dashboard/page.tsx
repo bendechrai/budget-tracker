@@ -11,6 +11,8 @@ import UpcomingObligations from "./UpcomingObligations";
 import NudgeCards from "./NudgeCards";
 import ScenarioBanner from "@/app/components/ScenarioBanner";
 import ContributionModal from "@/app/(app)/obligations/ContributionModal";
+import CatchUpModal from "./CatchUpModal";
+import type { CatchUpObligation } from "./CatchUpModal";
 
 interface EngineSnapshot {
   id: string;
@@ -27,6 +29,7 @@ interface ObligationData {
   id: string;
   name: string;
   amount: number;
+  nextDueDate: string;
   fundBalance: { currentBalance: number } | null;
 }
 
@@ -87,6 +90,7 @@ export default function DashboardPage() {
   const [scenarioTimeline, setScenarioTimeline] =
     useState<TimelineData | null>(null);
   const [showContributionModal, setShowContributionModal] = useState(false);
+  const [showCatchUpModal, setShowCatchUpModal] = useState(false);
 
   const { isActive, overrides } = useWhatIf();
   const scenarioAbortRef = useRef<AbortController | null>(null);
@@ -218,6 +222,22 @@ export default function DashboardPage() {
       ? obligations.find((o) => o.id === snapshot.nextActionObligationId) ?? null
       : null;
 
+  // Determine which obligations are underfunded (for catch-up button)
+  const underfundedObligations: CatchUpObligation[] = obligations
+    .filter((o) => {
+      const balance = o.fundBalance?.currentBalance ?? 0;
+      return balance < o.amount;
+    })
+    .map((o) => ({
+      id: o.id,
+      name: o.name,
+      amountNeeded: o.amount,
+      currentBalance: o.fundBalance?.currentBalance ?? 0,
+      nextDueDate: o.nextDueDate,
+    }));
+
+  const showCatchUpButton = underfundedObligations.length > 1 && !isActive;
+
   return (
     <div className={styles.page}>
       <div className={styles.container}>
@@ -294,16 +314,28 @@ export default function DashboardPage() {
                 <p className={styles.heroDeadline}>
                   Due by {formatDate(displaySnapshot.nextActionDate)}
                 </p>
-                {!isActive && snapshot?.nextActionObligationId && (
-                  <button
-                    type="button"
-                    className={styles.markDoneButton}
-                    onClick={() => setShowContributionModal(true)}
-                    data-testid="hero-mark-done"
-                  >
-                    Mark as done
-                  </button>
-                )}
+                <div className={styles.heroActions}>
+                  {!isActive && snapshot?.nextActionObligationId && (
+                    <button
+                      type="button"
+                      className={styles.markDoneButton}
+                      onClick={() => setShowContributionModal(true)}
+                      data-testid="hero-mark-done"
+                    >
+                      Mark as done
+                    </button>
+                  )}
+                  {showCatchUpButton && (
+                    <button
+                      type="button"
+                      className={styles.catchUpButton}
+                      onClick={() => setShowCatchUpModal(true)}
+                      data-testid="catch-up-button"
+                    >
+                      Catch up
+                    </button>
+                  )}
+                </div>
               </div>
             )}
 
@@ -349,6 +381,14 @@ export default function DashboardPage() {
           recommendedContribution={snapshot.nextActionAmount}
           onClose={() => setShowContributionModal(false)}
           onSaved={() => setShowContributionModal(false)}
+        />
+      )}
+
+      {showCatchUpModal && (
+        <CatchUpModal
+          obligations={underfundedObligations}
+          onClose={() => setShowCatchUpModal(false)}
+          onSaved={() => setShowCatchUpModal(false)}
         />
       )}
     </div>

@@ -904,7 +904,7 @@
   - Acceptance: Modal for entering a lump sum amount. Shows distribution preview: per-obligation allocation prioritized by nearest due date. User can adjust individual allocations (must sum to total). Confirms via POST /api/contributions/bulk. Shows "all funded" message if no shortfall exists.
   - Tests: Component test: renders amount input, shows distribution preview, adjustable allocations sum correctly, submits bulk
 
-- [ ] **Add "Catch up" button to dashboard**
+- [x] **Add "Catch up" button to dashboard**
   - Files: `web/app/(app)/dashboard/page.tsx` (update), `web/app/(app)/dashboard/dashboard.module.css` (update)
   - Spec: `specs/14-contributions.md`
   - Acceptance: Dashboard shows a "Catch up" button when multiple obligations are underfunded. Clicking it opens CatchUpModal. Hidden when all obligations are fully funded.
