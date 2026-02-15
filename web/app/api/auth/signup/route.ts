@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/auth/password";
 import { createSession } from "@/lib/auth/session";
 import { logError } from "@/lib/logging";
+import { sendWelcomeEmail } from "@/lib/email/send";
 
 interface SignupBody {
   email: string;
@@ -56,6 +57,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     });
 
     await createSession(user.id, user.onboardingComplete);
+
+    sendWelcomeEmail(user.email).catch(() => {});
 
     return NextResponse.json({ id: user.id, email: user.email }, { status: 201 });
   } catch (error) {

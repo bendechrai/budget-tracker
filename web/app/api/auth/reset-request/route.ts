@@ -2,6 +2,7 @@ import { randomBytes } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { logError } from "@/lib/logging";
+import { sendPasswordResetEmail } from "@/lib/email/send";
 
 interface ResetRequestBody {
   email: string;
@@ -38,10 +39,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         },
       });
 
-      if (process.env.NODE_ENV !== "production") {
-        const resetLink = `${request.nextUrl.origin}/reset-password/confirm?token=${token}`;
-        console.log(`[DEV] Password reset link for ${email}: ${resetLink}`);
-      }
+      const resetLink = `${request.nextUrl.origin}/reset-password/confirm?token=${token}`;
+      sendPasswordResetEmail(email, resetLink).catch(() => {});
     }
 
     // Always return 200 to prevent email enumeration
