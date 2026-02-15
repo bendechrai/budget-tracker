@@ -922,7 +922,7 @@
   - Acceptance: Each obligation has an "Adjust balance" link/button that opens AdjustBalanceModal. Available alongside the "Record contribution" button.
   - Tests: Component test: adjust balance button renders, opens modal
 
-- [ ] **Add contribution history to obligation detail**
+- [x] **Add contribution history to obligation detail**
   - Files: `web/app/api/contributions/[obligationId]/route.ts`, `web/app/(app)/obligations/ContributionHistory.tsx`, `web/app/(app)/obligations/contribution-history.module.css`
   - Spec: `specs/14-contributions.md`
   - Acceptance: GET /api/contributions/[obligationId] returns chronological list of contributions and adjustments for an obligation. UI component shows date, amount, type, and note for each entry. Displayed on the obligation edit/detail page.

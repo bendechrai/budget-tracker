@@ -1,0 +1,132 @@
+.section {
+  margin-top: 24px;
+}
+
+.sectionTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--foreground);
+  margin-bottom: 12px;
+}
+
+.list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.item {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 8px 10px;
+  background: #f7fafc;
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.itemInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.itemDate {
+  font-weight: 500;
+  color: var(--foreground);
+}
+
+.itemNote {
+  font-size: 12px;
+  color: #666;
+}
+
+.itemAmount {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.itemAmountPositive {
+  color: #38a169;
+}
+
+.itemAmountNegative {
+  color: #e53e3e;
+}
+
+.typeBadge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 500;
+  padding: 1px 5px;
+  border-radius: 3px;
+  margin-left: 6px;
+}
+
+.typeBadgeContribution {
+  color: #2b6cb0;
+  background: #ebf8ff;
+}
+
+.typeBadgeAdjustment {
+  color: #805ad5;
+  background: #faf5ff;
+}
+
+.empty {
+  font-size: 13px;
+  color: #999;
+}
+
+.loading {
+  font-size: 13px;
+  color: #666;
+}
+
+.error {
+  font-size: 13px;
+  color: #e53e3e;
+}
+
+@media (prefers-color-scheme: dark) {
+  .item {
+    background: #1a1a2e;
+  }
+
+  .itemNote {
+    color: #999;
+  }
+
+  .itemAmountPositive {
+    color: #68d391;
+  }
+
+  .itemAmountNegative {
+    color: #fc8181;
+  }
+
+  .typeBadgeContribution {
+    color: #63b3ed;
+    background: #1a365d;
+  }
+
+  .typeBadgeAdjustment {
+    color: #b794f4;
+    background: #2d1f4e;
+  }
+
+  .empty {
+    color: #666;
+  }
+
+  .loading {
+    color: #999;
+  }
+
+  .error {
+    color: #fc8181;
+  }
+}

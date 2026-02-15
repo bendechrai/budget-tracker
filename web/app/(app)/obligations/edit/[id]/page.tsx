@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import ObligationForm from "../../ObligationForm";
 import type { ObligationFormData } from "../../ObligationForm";
+import ContributionHistory from "../../ContributionHistory";
 import styles from "../../obligations.module.css";
 import { logError } from "@/lib/logging";
 
@@ -142,26 +143,29 @@ export default function EditObligationPage({
         <Link href="/obligations" className={styles.backLink}>← Back</Link>
         <h1 className={styles.title}>Edit Obligation</h1>
         {obligation && (
-          <ObligationForm
-            initialData={{
-              name: obligation.name,
-              type: obligation.type,
-              amount: obligation.amount,
-              frequency: obligation.frequency,
-              frequencyDays: obligation.frequencyDays,
-              startDate: formatDateForInput(obligation.startDate),
-              endDate: formatDateForInput(obligation.endDate),
-              nextDueDate: formatDateForInput(obligation.nextDueDate),
-              fundGroupId: obligation.fundGroupId,
-              customEntries: obligation.customEntries.map((e) => ({
-                dueDate: formatDateForInput(e.dueDate),
-                amount: e.amount,
-              })),
-            }}
-            fundGroups={fundGroups}
-            onSubmit={handleSubmit}
-            submitLabel="Save Changes"
-          />
+          <>
+            <ObligationForm
+              initialData={{
+                name: obligation.name,
+                type: obligation.type,
+                amount: obligation.amount,
+                frequency: obligation.frequency,
+                frequencyDays: obligation.frequencyDays,
+                startDate: formatDateForInput(obligation.startDate),
+                endDate: formatDateForInput(obligation.endDate),
+                nextDueDate: formatDateForInput(obligation.nextDueDate),
+                fundGroupId: obligation.fundGroupId,
+                customEntries: obligation.customEntries.map((e) => ({
+                  dueDate: formatDateForInput(e.dueDate),
+                  amount: e.amount,
+                })),
+              }}
+              fundGroups={fundGroups}
+              onSubmit={handleSubmit}
+              submitLabel="Save Changes"
+            />
+            <ContributionHistory obligationId={obligation.id} />
+          </>
         )}
       </div>
     </div>
