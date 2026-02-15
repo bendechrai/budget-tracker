@@ -842,7 +842,7 @@
   - Acceptance: Generates CSV files for transactions, obligations, income sources, and contribution records. Returns as a zip download. Scoped to authenticated user's data only.
   - Tests: Test export returns zip with correct CSV files, unauthenticated (401)
 
-- [ ] **Add `DELETE /api/user/account` route**
+- [x] **Add `DELETE /api/user/account` route**
   - Files: `web/app/api/user/account/route.ts`
   - Spec: `specs/13-settings.md`
   - Acceptance: Hard-deletes all user data (cascade). Requires confirmation token ("DELETE" string). Clears session. Returns 200.
