@@ -824,7 +824,7 @@
   - Acceptance: Updates user's contributionCycleType, contributionPayDays, currencySymbol, maxContributionPerCycle. Triggers engine recalculation after cycle or max contribution changes. Returns updated settings.
   - Tests: Test update cycle type (200), update currency (200), cycle change triggers recalculation, unauthenticated (401)
 
-- [ ] **Add `PUT /api/user/email` route**
+- [x] **Add `PUT /api/user/email` route**
   - Files: `web/app/api/user/email/route.ts`
   - Spec: `specs/13-settings.md`
   - Acceptance: Updates user's email. Requires current password confirmation. Validates email format. Rejects if new email already in use. Returns 200 on success.
