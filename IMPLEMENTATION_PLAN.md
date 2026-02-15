@@ -910,7 +910,7 @@
   - Acceptance: Dashboard shows a "Catch up" button when multiple obligations are underfunded. Clicking it opens CatchUpModal. Hidden when all obligations are fully funded.
   - Tests: Component test: button appears when underfunded, hidden when fully funded, opens modal
 
-- [ ] **Add balance adjustment modal to obligation detail**
+- [x] **Add balance adjustment modal to obligation detail**
   - Files: `web/app/(app)/obligations/AdjustBalanceModal.tsx`, `web/app/(app)/obligations/adjust-balance-modal.module.css`
   - Spec: `specs/14-contributions.md`
   - Acceptance: Modal shows current fund balance. User enters new exact balance. On save: calls PUT /api/fund-balances/[obligationId]. Supports both increasing and decreasing. Dispatches `budget-data-changed` event.
