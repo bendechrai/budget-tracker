@@ -3,6 +3,7 @@ import { describe, it, expect } from "vitest";
 import {
   calculateContributions,
   calculateWithWhatIf,
+  countCyclesBetween,
   getNextDueDateAfter,
   type ObligationInput,
   type WhatIfOverrides,
@@ -682,6 +683,133 @@ describe("getNextDueDateAfter", () => {
   it("returns null for null frequency", () => {
     const result = getNextDueDateAfter(new Date("2025-03-01"), null, null);
     expect(result).toBeNull();
+  });
+});
+
+describe("countCyclesBetween", () => {
+  describe("weekly counts", () => {
+    it("counts 4 cycles for 28 days", () => {
+      expect(
+        countCyclesBetween(new Date("2025-03-01"), new Date("2025-03-29"), "weekly", [])
+      ).toBe(4);
+    });
+
+    it("counts 1 cycle for less than 7 days", () => {
+      expect(
+        countCyclesBetween(new Date("2025-03-01"), new Date("2025-03-05"), "weekly", [])
+      ).toBe(1);
+    });
+
+    it("returns 0 when due is today", () => {
+      expect(
+        countCyclesBetween(new Date("2025-03-01"), new Date("2025-03-01"), "weekly", [])
+      ).toBe(0);
+    });
+
+    it("returns 0 when due is in the past", () => {
+      expect(
+        countCyclesBetween(new Date("2025-03-10"), new Date("2025-03-01"), "weekly", [])
+      ).toBe(0);
+    });
+  });
+
+  describe("fortnightly counts", () => {
+    it("counts 2 cycles for 28 days", () => {
+      expect(
+        countCyclesBetween(new Date("2025-03-01"), new Date("2025-03-29"), "fortnightly", [])
+      ).toBe(2);
+    });
+
+    it("counts 1 cycle for less than 14 days", () => {
+      expect(
+        countCyclesBetween(new Date("2025-03-01"), new Date("2025-03-10"), "fortnightly", [])
+      ).toBe(1);
+    });
+  });
+
+  describe("twice-monthly counts", () => {
+    it("counts 2 cycles from Feb 1 to Mar 1 (not 1 like day division)", () => {
+      // This is the key test from the spec: day division gives floor(28/15)=1
+      // but calendar counting gives 2 (Feb 1 and Feb 15)
+      expect(
+        countCyclesBetween(new Date("2025-02-01"), new Date("2025-03-01"), "twice_monthly", [1, 15])
+      ).toBe(2);
+    });
+
+    it("counts 4 cycles from Jan 1 to Mar 1", () => {
+      // Jan 1, Jan 15, Feb 1, Feb 15
+      expect(
+        countCyclesBetween(new Date("2025-01-01"), new Date("2025-03-01"), "twice_monthly", [1, 15])
+      ).toBe(4);
+    });
+
+    it("counts 6 cycles from Jan 1 to Apr 1", () => {
+      // Jan 1, Jan 15, Feb 1, Feb 15, Mar 1, Mar 15
+      expect(
+        countCyclesBetween(new Date("2025-01-01"), new Date("2025-04-01"), "twice_monthly", [1, 15])
+      ).toBe(6);
+    });
+
+    it("counts correctly when starting mid-month", () => {
+      // Start Jan 10, due Mar 1: Jan 15, Feb 1, Feb 15
+      expect(
+        countCyclesBetween(new Date("2025-01-10"), new Date("2025-03-01"), "twice_monthly", [1, 15])
+      ).toBe(3);
+    });
+
+    it("handles end-of-month clamping (pay day 30 in Feb → 28th)", () => {
+      // Pay days [15, 30]. Feb has 28 days, so day 30 clamps to 28.
+      // From Feb 1 to Mar 1: Feb 15 and Feb 28 → 2 cycles
+      expect(
+        countCyclesBetween(new Date("2025-02-01"), new Date("2025-03-01"), "twice_monthly", [15, 30])
+      ).toBe(2);
+    });
+
+    it("handles end-of-month clamping in leap year (pay day 30 in Feb → 29th)", () => {
+      // 2024 is a leap year: Feb has 29 days
+      // From Feb 1 to Mar 1: Feb 15 and Feb 29 → 2 cycles
+      expect(
+        countCyclesBetween(new Date("2024-02-01"), new Date("2024-03-01"), "twice_monthly", [15, 30])
+      ).toBe(2);
+    });
+
+    it("returns at least 1 for future due date with very short window", () => {
+      // Start Feb 14, due Feb 16, pay days [1, 15]: only Feb 15 in range
+      expect(
+        countCyclesBetween(new Date("2025-02-14"), new Date("2025-02-16"), "twice_monthly", [1, 15])
+      ).toBe(1);
+    });
+  });
+
+  describe("monthly counts", () => {
+    it("counts 3 cycles for Mar 1 to Jun 1", () => {
+      // Mar 1, Apr 1, May 1
+      expect(
+        countCyclesBetween(new Date("2025-03-01"), new Date("2025-06-01"), "monthly", [1])
+      ).toBe(3);
+    });
+
+    it("counts 1 cycle for short window", () => {
+      // Mar 1 to Apr 1: only Mar 1
+      expect(
+        countCyclesBetween(new Date("2025-03-01"), new Date("2025-04-01"), "monthly", [1])
+      ).toBe(1);
+    });
+
+    it("counts correctly with pay day mid-month", () => {
+      // Pay day 15, Mar 1 to Jun 1: Mar 15, Apr 15, May 15
+      expect(
+        countCyclesBetween(new Date("2025-03-01"), new Date("2025-06-01"), "monthly", [15])
+      ).toBe(3);
+    });
+
+    it("handles end-of-month clamping (pay day 31 in months with 30 days)", () => {
+      // Pay day 31, Apr 1 to Jul 1:
+      // Apr 30 (clamped from 31), May 31, Jun 30 (clamped)
+      expect(
+        countCyclesBetween(new Date("2025-04-01"), new Date("2025-07-01"), "monthly", [31])
+      ).toBe(3);
+    });
   });
 });
 

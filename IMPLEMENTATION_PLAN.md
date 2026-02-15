@@ -756,7 +756,7 @@
   - Acceptance: `ContributionCycleType` enum with values: `weekly`, `fortnightly`, `twice_monthly`, `monthly`. User model gains `contributionCycleType` (nullable ContributionCycleType) and `contributionPayDays` (Int[], default []). Existing `contributionCycleDays` column kept but deprecated. Migration runs cleanly.
   - Tests: Migration applies; Prisma generate succeeds
 
-- [ ] **Add `countCyclesBetween()` function replacing `getCyclesUntilDue()`**
+- [x] **Add `countCyclesBetween()` function replacing `getCyclesUntilDue()`**
   - Files: `web/lib/engine/calculate.ts`
   - Spec: `specs/07a-cycle-auto-detection.md`
   - Acceptance: New `countCyclesBetween(start, due, cycleType, payDays)` function. Weekly/fortnightly use day division (7/14). Twice-monthly counts actual pay date occurrences with end-of-month clamping. Monthly counts month occurrences. Returns at least 1 for future dates. `getCyclesUntilDue()` removed. `calculateContributions()` uses new function via `CycleConfig`.

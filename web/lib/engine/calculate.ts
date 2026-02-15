@@ -44,6 +44,11 @@ export interface FundBalanceInput {
   currentBalance: number;
 }
 
+export interface CycleConfig {
+  type: "weekly" | "fortnightly" | "twice_monthly" | "monthly";
+  payDays: number[]; // day-of-month for twice_monthly/monthly; ignored for weekly/fortnightly
+}
+
 export interface EngineInput {
   obligations: ObligationInput[];
   fundBalances: FundBalanceInput[];
@@ -144,21 +149,97 @@ function getNextCustomEntry(
 }
 
 /**
- * Calculates the number of contribution cycles between now and a due date.
- * Returns at least 1 if the due date is in the future (even if less than one full cycle).
- * Returns 0 if the due date is today or past.
+ * Returns the last day of a given month (1-indexed).
  */
-function getCyclesUntilDue(
-  now: Date,
-  dueDate: Date,
-  cycleDays: number
+function lastDayOfMonth(year: number, month: number): number {
+  return new Date(year, month, 0).getDate();
+}
+
+/**
+ * Counts actual pay date occurrences in [start, due) for monthly/twice_monthly.
+ * payDays: sorted array of day-of-month values (e.g. [1, 15]).
+ *
+ * Uses a closed-form O(1) approach: counts months from start to due (inclusive),
+ * then subtracts pay dates that fall before start day or on/after due day.
+ */
+function countPayDates(start: Date, due: Date, payDays: number[]): number {
+  const startYear = start.getFullYear();
+  const startMonth = start.getMonth(); // 0-based
+  const startDay = start.getDate();
+
+  const dueYear = due.getFullYear();
+  const dueMonth = due.getMonth();
+  const dueDay = due.getDate();
+
+  // Number of months from startMonth to dueMonth inclusive
+  const monthSpan =
+    (dueYear - startYear) * 12 + (dueMonth - startMonth) + 1;
+
+  let count = monthSpan * payDays.length;
+
+  for (const d of payDays) {
+    const clampedStart = Math.min(d, lastDayOfMonth(startYear, startMonth + 1));
+    // Pay dates strictly before the start day have already passed
+    if (clampedStart < startDay) count--;
+
+    const clampedDue = Math.min(d, lastDayOfMonth(dueYear, dueMonth + 1));
+    // Pay dates on or after the due day haven't arrived yet
+    if (clampedDue >= dueDay) count--;
+  }
+
+  return count;
+}
+
+/**
+ * Counts the number of contribution cycles between start and due.
+ *
+ * - Weekly/fortnightly: day division (7 or 14 days).
+ * - Twice_monthly/monthly: counts actual pay date occurrences with end-of-month clamping.
+ *
+ * Returns at least 1 for future dates. Returns 0 if due is today or past.
+ */
+export function countCyclesBetween(
+  start: Date,
+  due: Date,
+  cycleType: CycleConfig["type"],
+  payDays: number[],
 ): number {
   const daysUntilDue = Math.max(
     0,
-    Math.floor((dueDate.getTime() - now.getTime()) / MS_PER_DAY)
+    Math.floor((due.getTime() - start.getTime()) / MS_PER_DAY)
   );
   if (daysUntilDue <= 0) return 0;
-  return Math.max(1, Math.floor(daysUntilDue / cycleDays));
+
+  switch (cycleType) {
+    case "weekly":
+      return Math.max(1, Math.floor(daysUntilDue / 7));
+    case "fortnightly":
+      return Math.max(1, Math.floor(daysUntilDue / 14));
+    case "twice_monthly":
+    case "monthly":
+      return Math.max(1, countPayDates(start, due, payDays));
+  }
+}
+
+/**
+ * Converts a legacy cycleDays value into a CycleConfig.
+ * Used during the migration period while EngineInput still has contributionCycleDays.
+ */
+function cycleDaysToConfig(cycleDays: number | null): CycleConfig {
+  switch (cycleDays) {
+    case 7:
+      return { type: "weekly", payDays: [] };
+    case 14:
+      return { type: "fortnightly", payDays: [] };
+    case 15:
+      return { type: "twice_monthly", payDays: [1, 15] };
+    case null:
+    case 30:
+      return { type: "monthly", payDays: [1] };
+    default:
+      // For non-standard cycle days, approximate with monthly on the 1st
+      return { type: "monthly", payDays: [1] };
+  }
 }
 
 /**
@@ -177,7 +258,8 @@ export function calculateContributions(input: EngineInput): EngineResult {
     now = new Date(),
   } = input;
 
-  const cycleDays = contributionCycleDays ?? 30; // default to monthly
+  // Derive CycleConfig from legacy contributionCycleDays
+  const cycleConfig = cycleDaysToConfig(contributionCycleDays);
 
   // Build a lookup for fund balances
   const balanceMap = new Map<string, number>();
@@ -258,7 +340,7 @@ export function calculateContributions(input: EngineInput): EngineResult {
 
     const currentBalance = balanceMap.get(obligation.id) ?? 0;
     const remaining = Math.max(0, amountNeeded - currentBalance);
-    const cyclesUntilDue = getCyclesUntilDue(now, nextDueDate, cycleDays);
+    const cyclesUntilDue = countCyclesBetween(now, nextDueDate, cycleConfig.type, cycleConfig.payDays);
     const isFullyFunded = remaining <= 0;
 
     // Adaptive contribution: remaining divided by cycles
