@@ -65,7 +65,7 @@ async function getSessionData(
   }
 }
 
-export async function middleware(request: NextRequest): Promise<NextResponse> {
+export async function proxy(request: NextRequest): Promise<NextResponse> {
   const { pathname } = request.nextUrl;
 
   if (isStaticPath(pathname) || isPublicPath(pathname)) {

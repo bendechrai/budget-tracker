@@ -26,6 +26,8 @@ const mockObligations = [
     amount: 2000,
     nextDueDate: futureDate(5),
     isPaused: false,
+    type: "recurring",
+    frequency: "monthly",
     fundBalance: { currentBalance: 2000 },
   },
   {
@@ -34,6 +36,8 @@ const mockObligations = [
     amount: 22.99,
     nextDueDate: futureDate(10),
     isPaused: false,
+    type: "recurring",
+    frequency: "monthly",
     fundBalance: { currentBalance: 10 },
   },
   {
@@ -42,6 +46,8 @@ const mockObligations = [
     amount: 60,
     nextDueDate: futureDate(10),
     isPaused: false,
+    type: "recurring",
+    frequency: "monthly",
     fundBalance: null,
   },
   {
@@ -50,6 +56,8 @@ const mockObligations = [
     amount: 1200,
     nextDueDate: futureDate(45),
     isPaused: false,
+    type: "recurring",
+    frequency: "quarterly",
     fundBalance: { currentBalance: 600 },
   },
   {
@@ -58,6 +66,8 @@ const mockObligations = [
     amount: 50,
     nextDueDate: futureDate(3),
     isPaused: true,
+    type: "recurring",
+    frequency: "monthly",
     fundBalance: null,
   },
 ];
@@ -80,13 +90,13 @@ describe("UpcomingObligations", () => {
     render(<UpcomingObligations />);
 
     await waitFor(() => {
-      expect(screen.getByText("Rent")).toBeDefined();
+      expect(screen.getAllByText("Rent").length).toBeGreaterThanOrEqual(1);
     });
 
-    expect(screen.getByText("Netflix")).toBeDefined();
-    expect(screen.getByText("Gym")).toBeDefined();
-    // Car Insurance is 45 days out - beyond 30 day window
-    expect(screen.queryByText("Car Insurance")).toBeNull();
+    expect(screen.getAllByText("Netflix").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("Gym").length).toBeGreaterThanOrEqual(1);
+    // Car Insurance is 45 days out - within default 45 day window
+    expect(screen.getAllByText("Car Insurance").length).toBeGreaterThanOrEqual(1);
     // Paused Bill should be excluded
     expect(screen.queryByText("Paused Bill")).toBeNull();
   });
@@ -99,14 +109,14 @@ describe("UpcomingObligations", () => {
     render(<UpcomingObligations />);
 
     await waitFor(() => {
-      expect(screen.getByText("Netflix")).toBeDefined();
+      expect(screen.getAllByText("Netflix").length).toBeGreaterThanOrEqual(1);
     });
 
     // Netflix and Gym are on the same day (10 days from now)
-    // They should appear under the same date group
+    // With monthly recurrence, they also share recurrence dates
     const dateLabels = screen.getAllByRole("heading", { level: 3 });
-    // One group for Rent (5 days), one group for Netflix+Gym (10 days)
-    expect(dateLabels.length).toBe(2);
+    // More groups now due to projected recurrences
+    expect(dateLabels.length).toBeGreaterThanOrEqual(3);
   });
 
   it("shows fund status for each obligation", async () => {
@@ -117,11 +127,11 @@ describe("UpcomingObligations", () => {
     render(<UpcomingObligations />);
 
     await waitFor(() => {
-      expect(screen.getByText("Fully funded")).toBeDefined();
+      expect(screen.getAllByText("Fully funded").length).toBeGreaterThanOrEqual(1);
     });
 
-    expect(screen.getByText("Partially funded")).toBeDefined();
-    expect(screen.getByText("Unfunded")).toBeDefined();
+    expect(screen.getAllByText("Partially funded").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Unfunded").length).toBeGreaterThanOrEqual(1);
   });
 
   it("shows amounts for obligations", async () => {
@@ -132,21 +142,21 @@ describe("UpcomingObligations", () => {
     render(<UpcomingObligations />);
 
     await waitFor(() => {
-      expect(screen.getByText("$2000.00")).toBeDefined();
+      expect(screen.getAllByText("$2000.00").length).toBeGreaterThanOrEqual(1);
     });
 
-    expect(screen.getByText("$22.99")).toBeDefined();
-    expect(screen.getByText("$60.00")).toBeDefined();
+    expect(screen.getAllByText("$22.99").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("$60.00").length).toBeGreaterThanOrEqual(1);
   });
 
-  it("shows empty state when no obligations due in next 30 days", async () => {
+  it("shows empty state when no obligations due in default window", async () => {
     vi.mocked(global.fetch).mockResolvedValue(mockFetchResponse([]));
 
     render(<UpcomingObligations />);
 
     await waitFor(() => {
       expect(
-        screen.getByText("No obligations due in the next 30 days.")
+        screen.getByText("No obligations due in the next 45 days.")
       ).toBeDefined();
     });
   });
@@ -169,6 +179,64 @@ describe("UpcomingObligations", () => {
     vi.mocked(global.fetch).mockReturnValue(new Promise(() => {}));
     render(<UpcomingObligations />);
     expect(screen.getByText("Loading upcoming...")).toBeDefined();
+  });
+
+  it("projects recurring obligations multiple times within the window", async () => {
+    const weeklyObligation = [
+      {
+        id: "ob-weekly",
+        name: "Weekly Savings",
+        amount: 100,
+        nextDueDate: futureDate(3),
+        isPaused: false,
+        type: "recurring",
+        frequency: "weekly",
+        fundBalance: null,
+      },
+    ];
+
+    vi.mocked(global.fetch).mockResolvedValue(
+      mockFetchResponse(weeklyObligation)
+    );
+
+    render(<UpcomingObligations />);
+
+    await waitFor(() => {
+      expect(screen.getAllByText("Weekly Savings").length).toBeGreaterThanOrEqual(1);
+    });
+
+    // Default is 45 days. A weekly obligation starting 3 days out
+    // should appear ~6 times (days 3, 10, 17, 24, 31, 38)
+    const items = screen.getAllByText("Weekly Savings");
+    expect(items.length).toBeGreaterThanOrEqual(6);
+  });
+
+  it("does not project one-off obligations more than once", async () => {
+    const oneOffObligation = [
+      {
+        id: "ob-oneoff",
+        name: "One-Time Fee",
+        amount: 500,
+        nextDueDate: futureDate(10),
+        isPaused: false,
+        type: "one_off",
+        frequency: null,
+        fundBalance: null,
+      },
+    ];
+
+    vi.mocked(global.fetch).mockResolvedValue(
+      mockFetchResponse(oneOffObligation)
+    );
+
+    render(<UpcomingObligations />);
+
+    await waitFor(() => {
+      expect(screen.getByText("One-Time Fee")).toBeDefined();
+    });
+
+    const items = screen.getAllByText("One-Time Fee");
+    expect(items.length).toBe(1);
   });
 
   it("renders the section heading", async () => {

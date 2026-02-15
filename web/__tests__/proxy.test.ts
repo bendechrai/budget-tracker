@@ -30,41 +30,41 @@ function makeRequest(path: string, cookie?: string): NextRequest {
   return new NextRequest(url, { headers });
 }
 
-describe("auth middleware", () => {
+describe("auth proxy", () => {
   beforeEach(() => {
     vi.resetModules();
     process.env.SESSION_SECRET = TEST_SECRET;
   });
 
   it("allows access to the landing page without a session", async () => {
-    const { middleware } = await import("../middleware");
+    const { proxy } = await import("../proxy");
     const request = makeRequest("/");
-    const response = await middleware(request);
+    const response = await proxy(request);
 
     expect(response.status).toBe(200);
     expect(response.headers.get("location")).toBeNull();
   });
 
   it("allows access to /login without a session", async () => {
-    const { middleware } = await import("../middleware");
+    const { proxy } = await import("../proxy");
     const request = makeRequest("/login");
-    const response = await middleware(request);
+    const response = await proxy(request);
 
     expect(response.status).toBe(200);
     expect(response.headers.get("location")).toBeNull();
   });
 
   it("allows access to /signup without a session", async () => {
-    const { middleware } = await import("../middleware");
+    const { proxy } = await import("../proxy");
     const request = makeRequest("/signup");
-    const response = await middleware(request);
+    const response = await proxy(request);
 
     expect(response.status).toBe(200);
     expect(response.headers.get("location")).toBeNull();
   });
 
   it("allows access to /api/auth/* routes without a session", async () => {
-    const { middleware } = await import("../middleware");
+    const { proxy } = await import("../proxy");
 
     for (const path of [
       "/api/auth/signup",
@@ -72,7 +72,7 @@ describe("auth middleware", () => {
       "/api/auth/logout",
     ]) {
       const request = makeRequest(path);
-      const response = await middleware(request);
+      const response = await proxy(request);
 
       expect(response.status).toBe(200);
       expect(response.headers.get("location")).toBeNull();
@@ -80,9 +80,9 @@ describe("auth middleware", () => {
   });
 
   it("redirects unauthenticated requests to protected routes to /login", async () => {
-    const { middleware } = await import("../middleware");
+    const { proxy } = await import("../proxy");
     const request = makeRequest("/dashboard");
-    const response = await middleware(request);
+    const response = await proxy(request);
 
     expect(response.status).toBe(307);
     const location = new URL(response.headers.get("location")!);
@@ -91,9 +91,9 @@ describe("auth middleware", () => {
   });
 
   it("preserves the intended destination in the redirect query param", async () => {
-    const { middleware } = await import("../middleware");
+    const { proxy } = await import("../proxy");
     const request = makeRequest("/income/new");
-    const response = await middleware(request);
+    const response = await proxy(request);
 
     expect(response.status).toBe(307);
     const location = new URL(response.headers.get("location")!);
@@ -102,19 +102,19 @@ describe("auth middleware", () => {
   });
 
   it("allows authenticated requests to protected routes", async () => {
-    const { middleware } = await import("../middleware");
+    const { proxy } = await import("../proxy");
     const token = await createTestToken("user-123", true);
     const request = makeRequest("/dashboard", token);
-    const response = await middleware(request);
+    const response = await proxy(request);
 
     expect(response.status).toBe(200);
     expect(response.headers.get("location")).toBeNull();
   });
 
   it("redirects when session cookie has an invalid token", async () => {
-    const { middleware } = await import("../middleware");
+    const { proxy } = await import("../proxy");
     const request = makeRequest("/dashboard", "invalid-token");
-    const response = await middleware(request);
+    const response = await proxy(request);
 
     expect(response.status).toBe(307);
     const location = new URL(response.headers.get("location")!);
@@ -123,10 +123,10 @@ describe("auth middleware", () => {
 
   it("redirects when SESSION_SECRET is not set", async () => {
     delete process.env.SESSION_SECRET;
-    const { middleware } = await import("../middleware");
+    const { proxy } = await import("../proxy");
     const token = await createTestToken("user-123");
     const request = makeRequest("/dashboard", token);
-    const response = await middleware(request);
+    const response = await proxy(request);
 
     expect(response.status).toBe(307);
     const location = new URL(response.headers.get("location")!);
@@ -134,9 +134,9 @@ describe("auth middleware", () => {
   });
 
   it("redirects protected API routes without a session", async () => {
-    const { middleware } = await import("../middleware");
+    const { proxy } = await import("../proxy");
     const request = makeRequest("/api/income-sources");
-    const response = await middleware(request);
+    const response = await proxy(request);
 
     expect(response.status).toBe(307);
     const location = new URL(response.headers.get("location")!);
@@ -151,10 +151,10 @@ describe("onboarding redirect logic", () => {
   });
 
   it("redirects non-onboarded user from /dashboard to /onboarding", async () => {
-    const { middleware } = await import("../middleware");
+    const { proxy } = await import("../proxy");
     const token = await createTestToken("user-123", false);
     const request = makeRequest("/dashboard", token);
-    const response = await middleware(request);
+    const response = await proxy(request);
 
     expect(response.status).toBe(307);
     const location = new URL(response.headers.get("location")!);
@@ -162,10 +162,10 @@ describe("onboarding redirect logic", () => {
   });
 
   it("redirects non-onboarded user from any protected page to /onboarding", async () => {
-    const { middleware } = await import("../middleware");
+    const { proxy } = await import("../proxy");
     const token = await createTestToken("user-123", false);
     const request = makeRequest("/income", token);
-    const response = await middleware(request);
+    const response = await proxy(request);
 
     expect(response.status).toBe(307);
     const location = new URL(response.headers.get("location")!);
@@ -173,17 +173,17 @@ describe("onboarding redirect logic", () => {
   });
 
   it("allows non-onboarded user to access /onboarding", async () => {
-    const { middleware } = await import("../middleware");
+    const { proxy } = await import("../proxy");
     const token = await createTestToken("user-123", false);
     const request = makeRequest("/onboarding", token);
-    const response = await middleware(request);
+    const response = await proxy(request);
 
     expect(response.status).toBe(200);
     expect(response.headers.get("location")).toBeNull();
   });
 
   it("allows non-onboarded user to access /onboarding sub-routes", async () => {
-    const { middleware } = await import("../middleware");
+    const { proxy } = await import("../proxy");
     const token = await createTestToken("user-123", false);
 
     for (const path of [
@@ -193,7 +193,7 @@ describe("onboarding redirect logic", () => {
       "/onboarding/upload",
     ]) {
       const request = makeRequest(path, token);
-      const response = await middleware(request);
+      const response = await proxy(request);
 
       expect(response.status).toBe(200);
       expect(response.headers.get("location")).toBeNull();
@@ -201,20 +201,20 @@ describe("onboarding redirect logic", () => {
   });
 
   it("allows non-onboarded user to access API routes", async () => {
-    const { middleware } = await import("../middleware");
+    const { proxy } = await import("../proxy");
     const token = await createTestToken("user-123", false);
     const request = makeRequest("/api/user/onboarding", token);
-    const response = await middleware(request);
+    const response = await proxy(request);
 
     expect(response.status).toBe(200);
     expect(response.headers.get("location")).toBeNull();
   });
 
   it("redirects onboarded user from /onboarding to /dashboard", async () => {
-    const { middleware } = await import("../middleware");
+    const { proxy } = await import("../proxy");
     const token = await createTestToken("user-123", true);
     const request = makeRequest("/onboarding", token);
-    const response = await middleware(request);
+    const response = await proxy(request);
 
     expect(response.status).toBe(307);
     const location = new URL(response.headers.get("location")!);
@@ -222,10 +222,10 @@ describe("onboarding redirect logic", () => {
   });
 
   it("redirects onboarded user from /onboarding sub-routes to /dashboard", async () => {
-    const { middleware } = await import("../middleware");
+    const { proxy } = await import("../proxy");
     const token = await createTestToken("user-123", true);
     const request = makeRequest("/onboarding/manual/income", token);
-    const response = await middleware(request);
+    const response = await proxy(request);
 
     expect(response.status).toBe(307);
     const location = new URL(response.headers.get("location")!);
@@ -233,20 +233,20 @@ describe("onboarding redirect logic", () => {
   });
 
   it("allows onboarded user to access /dashboard", async () => {
-    const { middleware } = await import("../middleware");
+    const { proxy } = await import("../proxy");
     const token = await createTestToken("user-123", true);
     const request = makeRequest("/dashboard", token);
-    const response = await middleware(request);
+    const response = await proxy(request);
 
     expect(response.status).toBe(200);
     expect(response.headers.get("location")).toBeNull();
   });
 
   it("allows onboarded user to access API routes", async () => {
-    const { middleware } = await import("../middleware");
+    const { proxy } = await import("../proxy");
     const token = await createTestToken("user-123", true);
     const request = makeRequest("/api/income-sources", token);
-    const response = await middleware(request);
+    const response = await proxy(request);
 
     expect(response.status).toBe(200);
     expect(response.headers.get("location")).toBeNull();
