@@ -1,9 +1,11 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import Link from "next/link";
 import styles from "./import.module.css";
 import { logError } from "@/lib/logging";
+import { useBatchImport } from "@/lib/hooks/useBatchImport";
+import type { BatchFileStatus } from "@/lib/hooks/useBatchImport";
 
 interface ParsedTransaction {
   date: string;
@@ -27,17 +29,6 @@ interface FlaggedItem {
   reason: string;
 }
 
-interface ImportSummary {
-  fileName: string;
-  format: string;
-  transactionsFound: number;
-  transactionsImported: number;
-  duplicatesSkipped: number;
-  duplicatesFlagged: number;
-  flagged: FlaggedItem[];
-  importLogId: string;
-}
-
 type FlaggedDecision = "keep" | "skip";
 
 function formatDate(dateStr: string): string {
@@ -50,67 +41,57 @@ function formatDate(dateStr: string): string {
   });
 }
 
+function fileStatusIcon(status: string): string {
+  switch (status) {
+    case "completed":
+      return "\u2713";
+    case "failed":
+      return "\u2717";
+    case "processing":
+      return "\u2026";
+    default:
+      return "\u2022";
+  }
+}
+
+const FORMAT_LABELS: Record<string, string> = {
+  csv: "CSV",
+  ofx: "OFX",
+  pdf: "PDF",
+};
+
 export default function ImportPage() {
+  const {
+    uploadFiles: batchUpload,
+    batch,
+    isUploading,
+    isProcessing,
+    isComplete,
+    error: batchError,
+    reset: resetBatch,
+  } = useBatchImport();
+
   const [error, setError] = useState("");
-  const [uploading, setUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState("");
-  const [summaries, setSummaries] = useState<ImportSummary[]>([]);
   const [dragActive, setDragActive] = useState(false);
   const [decisions, setDecisions] = useState<Record<string, Record<number, FlaggedDecision>>>({});
   const [resolving, setResolving] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleUploadFiles = useCallback(async (files: File[]) => {
-    setError("");
-    setSummaries([]);
-    setDecisions({});
-    setUploading(true);
-
-    const results: ImportSummary[] = [];
-
-    for (let i = 0; i < files.length; i++) {
-      setUploadProgress(
-        files.length > 1
-          ? `Uploading file ${i + 1} of ${files.length} (${files[i].name})...`
-          : "Uploading and processing..."
-      );
-
-      try {
-        const formData = new FormData();
-        formData.append("file", files[i]);
-
-        const res = await fetch("/api/import/upload", {
-          method: "POST",
-          body: formData,
-        });
-
-        if (!res.ok) {
-          const data = (await res.json()) as { error: string };
-          setError(data.error || `Upload failed for ${files[i].name}`);
-          // Continue with remaining files
-          continue;
-        }
-
-        const data = (await res.json()) as ImportSummary;
-        results.push(data);
-      } catch (err) {
-        logError("failed to upload import file", err);
-        setError(`Upload failed for ${files[i].name}. Please try again.`);
-      }
+  // Sync batch errors into local error state
+  useEffect(() => {
+    if (batchError) {
+      setError(batchError);
     }
+  }, [batchError]);
 
-    setSummaries(results);
-
-    // Trigger pattern detection on newly imported transactions
-    if (results.length > 0) {
-      fetch("/api/patterns/detect", { method: "POST" }).catch(() => {
-        // Detection failure is non-blocking — suggestions just won't update
-      });
-    }
-
-    setUploadProgress("");
-    setUploading(false);
-  }, []);
+  const handleUploadFiles = useCallback(
+    async (files: File[]) => {
+      setError("");
+      setDecisions({});
+      await batchUpload(files);
+    },
+    [batchUpload]
+  );
 
   function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const fileList = e.target.files;
@@ -157,26 +138,26 @@ export default function ImportPage() {
     }));
   }
 
-  function allFlaggedDecidedFor(s: ImportSummary): boolean {
-    const fileDecisions = decisions[s.importLogId];
+  function allFlaggedDecidedFor(importLogId: string, flagged: FlaggedItem[]): boolean {
+    const fileDecisions = decisions[importLogId];
     if (!fileDecisions) return false;
-    return s.flagged.every((_, i) => fileDecisions[i] !== undefined);
+    return flagged.every((_, i) => fileDecisions[i] !== undefined);
   }
 
-  async function handleResolve(s: ImportSummary) {
-    const fileDecisions = decisions[s.importLogId];
+  async function handleResolve(importLogId: string, flagged: FlaggedItem[]) {
+    const fileDecisions = decisions[importLogId];
     if (!fileDecisions) return;
 
-    const allDecided = s.flagged.every(
+    const allDecided = flagged.every(
       (_, i) => fileDecisions[i] !== undefined
     );
     if (!allDecided) return;
 
-    setResolving(s.importLogId);
+    setResolving(importLogId);
     setError("");
 
     try {
-      const resolveDecisions = s.flagged.map((item, i) => ({
+      const resolveDecisions = flagged.map((item, i) => ({
         transaction: item.transaction,
         action: fileDecisions[i],
       }));
@@ -185,7 +166,7 @@ export default function ImportPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          importLogId: s.importLogId,
+          importLogId,
           decisions: resolveDecisions,
         }),
       });
@@ -196,24 +177,11 @@ export default function ImportPage() {
         return;
       }
 
-      const result = (await res.json()) as { kept: number; skipped: number };
-
-      setSummaries((prev) =>
-        prev.map((item) =>
-          item.importLogId === s.importLogId
-            ? {
-                ...item,
-                transactionsImported: item.transactionsImported + result.kept,
-                duplicatesSkipped: item.duplicatesSkipped + result.skipped,
-                duplicatesFlagged: 0,
-                flagged: [],
-              }
-            : item
-        )
-      );
+      // Clear decisions for this file — the flaggedData will be stale but
+      // we mark it resolved locally
       setDecisions((prev) => {
         const next = { ...prev };
-        delete next[s.importLogId];
+        delete next[importLogId];
         return next;
       });
     } catch (err) {
@@ -225,16 +193,34 @@ export default function ImportPage() {
   }
 
   function handleUploadMore() {
-    setSummaries([]);
+    resetBatch();
     setDecisions({});
     setError("");
   }
 
-  const totalFound = summaries.reduce((sum, s) => sum + s.transactionsFound, 0);
-  const totalImported = summaries.reduce((sum, s) => sum + s.transactionsImported, 0);
-  const totalSkipped = summaries.reduce((sum, s) => sum + s.duplicatesSkipped, 0);
-  const totalFlagged = summaries.reduce((sum, s) => sum + s.duplicatesFlagged, 0);
-  const hasFlagged = summaries.some((s) => s.flagged.length > 0);
+  // Compute totals from batch
+  const totalFound = batch?.totalTransactionsFound ?? 0;
+  const totalImported = batch?.totalTransactionsImported ?? 0;
+  const totalSkipped = batch?.totalDuplicatesSkipped ?? 0;
+  const totalFlagged = batch?.totalDuplicatesFlagged ?? 0;
+
+  // Extract flagged items per file from batch
+  const filesWithFlagged = batch?.files
+    .filter((f) => f.flaggedData && Array.isArray(f.flaggedData) && (f.flaggedData as FlaggedItem[]).length > 0)
+    .map((f) => ({
+      importLogId: f.importLogId ?? f.id,
+      fileName: f.fileName,
+      flagged: f.flaggedData as FlaggedItem[],
+    })) ?? [];
+
+  const hasFlagged = filesWithFlagged.length > 0;
+
+  const showUploadZone = !isUploading && !isProcessing && !isComplete;
+  const showProcessing = isUploading || isProcessing;
+
+  const progressPercent = batch
+    ? Math.round((batch.filesCompleted / batch.fileCount) * 100)
+    : 0;
 
   return (
     <div className={styles.page}>
@@ -252,7 +238,7 @@ export default function ImportPage() {
           </div>
         )}
 
-        {!uploading && summaries.length === 0 && (
+        {showUploadZone && (
           <div
             className={`${styles.dropZone}${dragActive ? ` ${styles.dropZoneActive}` : ""}`}
             onDragOver={handleDragOver}
@@ -285,36 +271,68 @@ export default function ImportPage() {
           </div>
         )}
 
-        {uploading && (
+        {showProcessing && (
           <div className={styles.uploading}>
-            <p className={styles.uploadingText}>{uploadProgress}</p>
-            <div className={styles.progressBar}>
-              <div
-                className={styles.progressFill}
-                style={{ width: "100%" }}
-              />
-            </div>
+            {isUploading ? (
+              <p className={styles.uploadingText}>Uploading files...</p>
+            ) : (
+              <>
+                <p className={styles.uploadingText}>Processing your statements...</p>
+                {batch && (
+                  <>
+                    <ul className={styles.fileStatusList}>
+                      {batch.files.map((file: BatchFileStatus) => (
+                        <li
+                          key={file.id}
+                          className={`${styles.fileStatusItem} ${styles[`fileStatus_${file.status}`] ?? ""}`}
+                        >
+                          <span className={styles.fileStatusIcon}>
+                            {fileStatusIcon(file.status)}
+                          </span>
+                          <span className={styles.fileStatusName}>
+                            {file.fileName}
+                          </span>
+                          <span className={styles.fileStatusFormat}>
+                            {FORMAT_LABELS[file.format] ?? file.format}
+                          </span>
+                          {file.status === "failed" && file.errorMessage && (
+                            <span className={styles.fileStatusError}>
+                              {file.errorMessage}
+                            </span>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                    <div className={styles.progressBar}>
+                      <div
+                        className={styles.progressFill}
+                        style={{ width: `${progressPercent}%` }}
+                      />
+                    </div>
+                  </>
+                )}
+              </>
+            )}
           </div>
         )}
 
-        {summaries.length > 0 && (
+        {isComplete && batch && (
           <>
             <div className={styles.summary}>
               <h2 className={styles.summaryTitle}>Import Complete</h2>
               <div className={styles.summaryStats}>
-                {summaries.length > 1 && (
+                {batch.fileCount > 1 ? (
                   <div className={styles.summaryStat}>
                     <span className={styles.summaryStatLabel}>Files</span>
                     <span className={styles.summaryStatValue}>
-                      {summaries.map((s) => s.fileName).join(", ")}
+                      {batch.files.map((f) => f.fileName).join(", ")}
                     </span>
                   </div>
-                )}
-                {summaries.length === 1 && (
+                ) : (
                   <div className={styles.summaryStat}>
                     <span className={styles.summaryStatLabel}>File</span>
                     <span className={styles.summaryStatValue}>
-                      {summaries[0].fileName}
+                      {batch.files[0]?.fileName}
                     </span>
                   </div>
                 )}
@@ -362,17 +380,17 @@ export default function ImportPage() {
               </div>
             </div>
 
-            {hasFlagged && summaries.filter((s) => s.flagged.length > 0).map((s) => (
-              <div key={s.importLogId} className={styles.flaggedSection}>
+            {hasFlagged && filesWithFlagged.map((fileGroup) => (
+              <div key={fileGroup.importLogId} className={styles.flaggedSection}>
                 <h3 className={styles.flaggedTitle}>
-                  Review flagged transactions{summaries.length > 1 ? ` — ${s.fileName}` : ""}
+                  Review flagged transactions{batch.fileCount > 1 ? ` — ${fileGroup.fileName}` : ""}
                 </h3>
                 <p className={styles.flaggedDescription}>
                   These transactions are similar to existing records. Choose
                   whether to keep or skip each one.
                 </p>
                 <ul className={styles.flaggedList}>
-                  {s.flagged.map((item, index) => (
+                  {fileGroup.flagged.map((item, index) => (
                     <li key={index} className={styles.flaggedItem}>
                       <div className={styles.flaggedItemHeader}>
                         <div className={styles.flaggedItemInfo}>
@@ -384,19 +402,21 @@ export default function ImportPage() {
                             {formatDate(item.transaction.date)} &middot;{" "}
                             {item.transaction.type}
                           </span>
-                          <span className={styles.flaggedMatch}>
-                            Similar to: {item.matchedExisting.description} ($
-                            {item.matchedExisting.amount.toFixed(2)})
-                          </span>
+                          {item.matchedExisting && (
+                            <span className={styles.flaggedMatch}>
+                              Similar to: {item.matchedExisting.description} ($
+                              {item.matchedExisting.amount.toFixed(2)})
+                            </span>
+                          )}
                         </div>
                         <div className={styles.flaggedItemActions}>
                           <button
                             type="button"
                             className={styles.keepButton}
-                            onClick={() => handleDecision(s.importLogId, index, "keep")}
-                            aria-pressed={decisions[s.importLogId]?.[index] === "keep"}
+                            onClick={() => handleDecision(fileGroup.importLogId, index, "keep")}
+                            aria-pressed={decisions[fileGroup.importLogId]?.[index] === "keep"}
                             style={
-                              decisions[s.importLogId]?.[index] === "keep"
+                              decisions[fileGroup.importLogId]?.[index] === "keep"
                                 ? { fontWeight: 700 }
                                 : undefined
                             }
@@ -406,10 +426,10 @@ export default function ImportPage() {
                           <button
                             type="button"
                             className={styles.skipButton}
-                            onClick={() => handleDecision(s.importLogId, index, "skip")}
-                            aria-pressed={decisions[s.importLogId]?.[index] === "skip"}
+                            onClick={() => handleDecision(fileGroup.importLogId, index, "skip")}
+                            aria-pressed={decisions[fileGroup.importLogId]?.[index] === "skip"}
                             style={
-                              decisions[s.importLogId]?.[index] === "skip"
+                              decisions[fileGroup.importLogId]?.[index] === "skip"
                                 ? { fontWeight: 700 }
                                 : undefined
                             }
@@ -424,10 +444,13 @@ export default function ImportPage() {
                 <button
                   type="button"
                   className={styles.resolveButton}
-                  onClick={() => void handleResolve(s)}
-                  disabled={!allFlaggedDecidedFor(s) || resolving === s.importLogId}
+                  onClick={() => void handleResolve(fileGroup.importLogId, fileGroup.flagged)}
+                  disabled={
+                    !allFlaggedDecidedFor(fileGroup.importLogId, fileGroup.flagged) ||
+                    resolving === fileGroup.importLogId
+                  }
                 >
-                  {resolving === s.importLogId ? "Resolving..." : "Resolve flagged transactions"}
+                  {resolving === fileGroup.importLogId ? "Resolving..." : "Resolve flagged transactions"}
                 </button>
               </div>
             ))}

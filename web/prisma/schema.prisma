@@ -38,6 +38,7 @@ model User {
   engineSnapshots         EngineSnapshot[]
   aiInteractionLogs       AIInteractionLog[]
   passwordResetTokens     PasswordResetToken[]
+  importBatches           ImportBatch[]
 }
 
 enum IncomeFrequency {
@@ -139,6 +140,20 @@ enum ImportFormat {
   pdf
   csv
   ofx
+}
+
+enum ImportBatchStatus {
+  pending
+  processing
+  completed
+  failed
+}
+
+enum ImportFileStatus {
+  pending
+  processing
+  completed
+  failed
 }
 
 model Transaction {
@@ -321,4 +336,49 @@ model Escalation {
   obligation     Obligation           @relation(fields: [obligationId], references: [id], onDelete: Cascade)
 
   @@index([obligationId])
+}
+
+model ImportBatch {
+  id                        String            @id @default(cuid())
+  userId                    String
+  status                    ImportBatchStatus  @default(pending)
+  fileCount                 Int
+  filesCompleted            Int               @default(0)
+  totalTransactionsFound    Int               @default(0)
+  totalTransactionsImported Int               @default(0)
+  totalDuplicatesSkipped    Int               @default(0)
+  totalDuplicatesFlagged    Int               @default(0)
+  patternDetectionComplete  Boolean           @default(false)
+  errorMessage              String?
+  startedAt                 DateTime?
+  completedAt               DateTime?
+  createdAt                 DateTime          @default(now())
+  updatedAt                 DateTime          @updatedAt
+  user                      User              @relation(fields: [userId], references: [id])
+  files                     ImportFile[]
+
+  @@index([userId])
+  @@index([status])
+}
+
+model ImportFile {
+  id                    String           @id @default(cuid())
+  batchId               String
+  position              Int
+  fileName              String
+  format                ImportFormat
+  fileData              Bytes?
+  status                ImportFileStatus @default(pending)
+  transactionsFound     Int              @default(0)
+  transactionsImported  Int              @default(0)
+  duplicatesSkipped     Int              @default(0)
+  duplicatesFlagged     Int              @default(0)
+  flaggedData           Json?
+  importLogId           String?
+  errorMessage          String?
+  processedAt           DateTime?
+  createdAt             DateTime         @default(now())
+  batch                 ImportBatch      @relation(fields: [batchId], references: [id], onDelete: Cascade)
+
+  @@index([batchId])
 }

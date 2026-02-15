@@ -1,22 +1,13 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import styles from "../onboarding.module.css";
 import uploadStyles from "./upload.module.css";
 import { logError } from "@/lib/logging";
-
-interface ImportSummary {
-  fileName: string;
-  format: string;
-  transactionsFound: number;
-  transactionsImported: number;
-  duplicatesSkipped: number;
-  duplicatesFlagged: number;
-  flagged: unknown[];
-  importLogId: string;
-}
+import { useBatchImport } from "@/lib/hooks/useBatchImport";
+import type { BatchFileStatus } from "@/lib/hooks/useBatchImport";
 
 interface SuggestionTransaction {
   transaction: {
@@ -42,7 +33,7 @@ interface Suggestion {
   suggestionTransactions: SuggestionTransaction[];
 }
 
-type Step = "upload" | "suggestions" | "done";
+type Step = "upload" | "processing" | "suggestions" | "done";
 
 const FREQUENCY_LABELS: Record<string, string> = {
   weekly: "Weekly",
@@ -81,13 +72,39 @@ function formatAmountRange(
   return formatAmount(amount);
 }
 
+function fileStatusIcon(status: string): string {
+  switch (status) {
+    case "completed":
+      return "\u2713";
+    case "failed":
+      return "\u2717";
+    case "processing":
+      return "\u2026";
+    default:
+      return "\u2022";
+  }
+}
+
+const FORMAT_LABELS: Record<string, string> = {
+  csv: "CSV",
+  ofx: "OFX",
+  pdf: "PDF",
+};
+
 export default function OnboardingUploadPage() {
   const router = useRouter();
+  const {
+    uploadFiles: batchUpload,
+    batch,
+    isUploading,
+    isProcessing,
+    isComplete,
+    error: batchError,
+    reset: resetBatch,
+  } = useBatchImport();
+
   const [step, setStep] = useState<Step>("upload");
   const [error, setError] = useState("");
-  const [uploading, setUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState("");
-  const [uploadProgressPercent, setUploadProgressPercent] = useState(0);
   const [dragActive, setDragActive] = useState(false);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
@@ -95,110 +112,74 @@ export default function OnboardingUploadPage() {
   const [tweakName, setTweakName] = useState("");
   const [tweakAmount, setTweakAmount] = useState("");
   const [tweakFrequency, setTweakFrequency] = useState("");
-  const [detecting, setDetecting] = useState(false);
+  const [fetchingSuggestions, setFetchingSuggestions] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleUploadFiles = useCallback(async (files: File[]) => {
-    setError("");
-    setUploading(true);
-    setUploadProgressPercent(0);
-
-    let totalImported = 0;
-    let successCount = 0;
-
-    try {
-      for (let i = 0; i < files.length; i++) {
-        setUploadProgress(
-          files.length > 1
-            ? `Processing file ${i + 1} of ${files.length} (${files[i].name})...`
-            : "Uploading and processing your statement..."
-        );
-        setUploadProgressPercent(Math.round((i / files.length) * 100));
-
-        const formData = new FormData();
-        formData.append("file", files[i]);
-
-        const res = await fetch("/api/import/upload", {
-          method: "POST",
-          body: formData,
-        });
-
-        if (!res.ok) {
-          const data = (await res.json()) as { error: string };
-          setError(data.error || `Upload failed for ${files[i].name}`);
-          continue;
-        }
-
-        const summary = (await res.json()) as ImportSummary;
-        totalImported += summary.transactionsImported;
-        successCount++;
-        setUploadProgressPercent(Math.round(((i + 1) / files.length) * 100));
-      }
-
-      if (successCount === 0) {
-        // All files errored — keep the last error message already set
-        setUploading(false);
-        setUploadProgress("");
-        setUploadProgressPercent(0);
-        return;
-      }
-
-      if (totalImported === 0) {
-        setError(
-          "No new transactions found. Try uploading different statements."
-        );
-        setUploading(false);
-        setUploadProgress("");
-        setUploadProgressPercent(0);
-        return;
-      }
-
-      // Run pattern detection after all files uploaded
-      setUploading(false);
-      setUploadProgress("");
-      setDetecting(true);
-
-      const detectRes = await fetch("/api/patterns/detect", {
-        method: "POST",
-      });
-
-      if (!detectRes.ok) {
-        // Pattern detection failed, but import succeeded — move on
-        setDetecting(false);
-        setStep("done");
-        return;
-      }
-
-      // Fetch suggestions
-      const suggestionsRes = await fetch("/api/suggestions");
-      if (!suggestionsRes.ok) {
-        setDetecting(false);
-        setStep("done");
-        return;
-      }
-
-      const suggestionsData = (await suggestionsRes.json()) as {
-        suggestions: Suggestion[];
-        count: number;
-      };
-
-      setDetecting(false);
-
-      if (suggestionsData.suggestions.length === 0) {
-        setStep("done");
-      } else {
-        setSuggestions(suggestionsData.suggestions);
-        setStep("suggestions");
-      }
-    } catch (err) {
-      logError("failed to upload during onboarding", err);
-      setError("Upload failed. Please try again.");
-      setUploading(false);
-      setUploadProgress("");
-      setUploadProgressPercent(0);
-      setDetecting(false);
+  // Sync batch errors into local error state
+  useEffect(() => {
+    if (batchError) {
+      setError(batchError);
     }
-  }, []);
+  }, [batchError]);
+
+  // Transition to processing step when upload starts
+  useEffect(() => {
+    if (isUploading || isProcessing) {
+      setStep("processing");
+    }
+  }, [isUploading, isProcessing]);
+
+  // When batch completes, fetch suggestions
+  useEffect(() => {
+    if (!isComplete || !batch) return;
+    if (fetchingSuggestions) return;
+
+    // Check if any transactions were imported
+    if (batch.totalTransactionsImported === 0) {
+      setError("No new transactions found. Try uploading different statements.");
+      setStep("upload");
+      resetBatch();
+      return;
+    }
+
+    // Pattern detection is done server-side in the batch processor
+    // Fetch suggestions
+    setFetchingSuggestions(true);
+
+    fetch("/api/suggestions")
+      .then(async (res) => {
+        if (!res.ok) {
+          setStep("done");
+          return;
+        }
+        const data = (await res.json()) as {
+          suggestions: Suggestion[];
+          count: number;
+        };
+
+        if (data.suggestions.length === 0) {
+          setStep("done");
+        } else {
+          setSuggestions(data.suggestions);
+          setStep("suggestions");
+        }
+      })
+      .catch((err) => {
+        logError("failed to fetch suggestions during onboarding", err);
+        setStep("done");
+      })
+      .finally(() => {
+        setFetchingSuggestions(false);
+      });
+  }, [isComplete, batch, fetchingSuggestions, resetBatch]);
+
+  const handleUploadFiles = useCallback(
+    async (files: File[]) => {
+      setError("");
+      await batchUpload(files);
+    },
+    [batchUpload]
+  );
 
   function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const fileList = e.target.files;
@@ -341,6 +322,10 @@ export default function OnboardingUploadPage() {
 
   const allSuggestionsHandled = suggestions.length === 0 && step === "suggestions";
 
+  const progressPercent = batch
+    ? Math.round((batch.filesCompleted / batch.fileCount) * 100)
+    : 0;
+
   return (
     <div className={styles.page}>
       <div className={styles.container}>
@@ -356,7 +341,7 @@ export default function OnboardingUploadPage() {
           </div>
         )}
 
-        {step === "upload" && !uploading && !detecting && (
+        {step === "upload" && (
           <>
             <div
               className={`${uploadStyles.dropZone}${dragActive ? ` ${uploadStyles.dropZoneActive}` : ""}`}
@@ -401,34 +386,62 @@ export default function OnboardingUploadPage() {
           </>
         )}
 
-        {uploading && (
+        {step === "processing" && (
           <div className={uploadStyles.processing}>
-            <p className={uploadStyles.processingText}>
-              {uploadProgress || "Uploading and processing your statement..."}
-            </p>
-            <p className={uploadStyles.processingHint}>
-              Each file is uploaded and processed individually. PDFs may take
-              longer.
-            </p>
-            <div className={uploadStyles.progressBar}>
-              <div
-                className={uploadStyles.progressFill}
-                style={{ width: `${uploadProgressPercent}%` }}
-              />
-            </div>
-          </div>
-        )}
-
-        {detecting && (
-          <div className={uploadStyles.processing}>
-            <p className={uploadStyles.processingText}>
-              Analyzing transactions for patterns...
-            </p>
-            <div className={uploadStyles.progressBar}>
-              <div
-                className={`${uploadStyles.progressFill} ${uploadStyles.progressIndeterminate}`}
-              />
-            </div>
+            {isUploading ? (
+              <p className={uploadStyles.processingText}>
+                Uploading files...
+              </p>
+            ) : (
+              <>
+                <p className={uploadStyles.processingText}>
+                  Processing your statements...
+                </p>
+                {batch && (
+                  <>
+                    <ul className={uploadStyles.fileStatusList}>
+                      {batch.files.map((file: BatchFileStatus) => (
+                        <li
+                          key={file.id}
+                          className={`${uploadStyles.fileStatusItem} ${uploadStyles[`fileStatus_${file.status}`] ?? ""}`}
+                        >
+                          <span className={uploadStyles.fileStatusIcon}>
+                            {fileStatusIcon(file.status)}
+                          </span>
+                          <span className={uploadStyles.fileStatusName}>
+                            {file.fileName}
+                          </span>
+                          <span className={uploadStyles.fileStatusFormat}>
+                            {FORMAT_LABELS[file.format] ?? file.format}
+                          </span>
+                          {file.status === "failed" && file.errorMessage && (
+                            <span className={uploadStyles.fileStatusError}>
+                              {file.errorMessage}
+                            </span>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                    <div className={uploadStyles.progressBar}>
+                      <div
+                        className={uploadStyles.progressFill}
+                        style={{ width: `${progressPercent}%` }}
+                      />
+                    </div>
+                    <p className={uploadStyles.processingHint}>
+                      {batch.filesCompleted} of {batch.fileCount} files processed
+                    </p>
+                  </>
+                )}
+                {!batch && (
+                  <div className={uploadStyles.progressBar}>
+                    <div
+                      className={`${uploadStyles.progressFill} ${uploadStyles.progressIndeterminate}`}
+                    />
+                  </div>
+                )}
+              </>
+            )}
           </div>
         )}
 
