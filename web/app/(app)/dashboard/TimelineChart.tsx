@@ -57,7 +57,7 @@ const RANGE_OPTIONS = [6, 9, 12] as const;
 
 function formatDateLabel(timestamp: number): string {
   const date = new Date(timestamp);
-  return date.toLocaleDateString(undefined, { month: "short", year: "2-digit" });
+  return date.toLocaleDateString(undefined, { month: "short", year: "2-digit", timeZone: "UTC" });
 }
 
 function formatCurrency(value: number): string {
@@ -77,6 +77,7 @@ function formatTooltipDate(timestamp: number): string {
     year: "numeric",
     month: "short",
     day: "numeric",
+    timeZone: "UTC",
   });
 }
 

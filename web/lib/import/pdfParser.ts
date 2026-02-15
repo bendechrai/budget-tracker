@@ -69,7 +69,7 @@ export async function parseTextWithAI(
   const anthropic = client ?? new Anthropic();
 
   const message = await anthropic.messages.create({
-    model: "claude-opus-4-6-20250929",
+    model: "claude-sonnet-4-5-20250929",
     max_tokens: 4096,
     system: SYSTEM_PROMPT,
     messages: [

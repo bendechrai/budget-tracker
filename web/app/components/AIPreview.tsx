@@ -251,7 +251,13 @@ function buildUpdateBody(intent: EditIntent): Record<string, unknown> {
   if (c.frequency !== undefined) body.frequency = c.frequency;
   if (c.frequencyDays !== undefined) body.frequencyDays = c.frequencyDays;
   if (c.isPaused !== undefined) body.isPaused = c.isPaused;
-  if (c.nextDueDate !== undefined) body.nextDueDate = c.nextDueDate;
+  if (c.nextDueDate !== undefined) {
+    if (intent.targetType === "income") {
+      body.nextExpectedDate = c.nextDueDate;
+    } else {
+      body.nextDueDate = c.nextDueDate;
+    }
+  }
 
   return body;
 }
@@ -305,6 +311,8 @@ export default function AIPreview({ intent, onDone, onCancel }: AIPreviewProps) 
       } catch {
         // Non-critical — don't fail the action
       }
+
+      window.dispatchEvent(new CustomEvent("budget-data-changed"));
 
       if (onDone) onDone();
     } catch (err) {

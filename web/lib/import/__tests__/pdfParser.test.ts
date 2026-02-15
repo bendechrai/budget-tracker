@@ -75,7 +75,7 @@ describe("parseTextWithAI", () => {
 
     expect(client.messages.create).toHaveBeenCalledWith(
       expect.objectContaining({
-        model: "claude-opus-4-6-20250929",
+        model: "claude-sonnet-4-5-20250929",
         max_tokens: 4096,
         messages: [
           {

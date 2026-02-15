@@ -85,7 +85,7 @@ describe("OnboardingUploadPage", () => {
       screen.getByRole("heading", { name: "Upload Bank Statements" })
     ).toBeDefined();
     expect(screen.getByText("Drop your statement file here")).toBeDefined();
-    expect(screen.getByText("Supports CSV and OFX formats")).toBeDefined();
+    expect(screen.getByText("Supports CSV, OFX, and PDF formats")).toBeDefined();
     expect(
       screen.getByRole("button", { name: "Browse files" })
     ).toBeDefined();
@@ -97,7 +97,7 @@ describe("OnboardingUploadPage", () => {
     const input = screen.getByTestId("file-input") as HTMLInputElement;
     expect(input).toBeDefined();
     expect(input.type).toBe("file");
-    expect(input.accept).toBe(".csv,.ofx,.qfx");
+    expect(input.accept).toBe(".csv,.ofx,.qfx,.pdf");
   });
 
   it("renders a skip link to fund setup", () => {

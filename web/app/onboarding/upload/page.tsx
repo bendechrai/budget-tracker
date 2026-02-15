@@ -337,7 +337,7 @@ export default function OnboardingUploadPage() {
                 Drop your statement file here
               </p>
               <p className={uploadStyles.dropZoneDescription}>
-                Supports CSV and OFX formats
+                Supports CSV, OFX, and PDF formats
               </p>
               <button
                 type="button"
@@ -349,7 +349,7 @@ export default function OnboardingUploadPage() {
               <input
                 ref={fileInputRef}
                 type="file"
-                accept=".csv,.ofx,.qfx"
+                accept=".csv,.ofx,.qfx,.pdf"
                 className={uploadStyles.hiddenInput}
                 onChange={handleFileSelect}
                 data-testid="file-input"

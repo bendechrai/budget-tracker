@@ -2,11 +2,48 @@
   margin-top: 24px;
 }
 
+.headingRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  gap: 12px;
+}
+
 .heading {
   font-size: 18px;
   font-weight: 600;
   color: var(--foreground);
-  margin-bottom: 16px;
+  margin: 0;
+}
+
+.dayFilters {
+  display: flex;
+  gap: 4px;
+}
+
+.dayButton {
+  padding: 4px 10px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  background: transparent;
+  color: #666;
+  transition: border-color 0.2s, color 0.2s;
+}
+
+.dayButton:hover {
+  border-color: var(--foreground);
+  color: var(--foreground);
+}
+
+.dayButtonActive {
+  border-color: var(--foreground);
+  color: var(--foreground);
+  background: var(--foreground);
+  color: var(--background);
 }
 
 .loading {
@@ -100,6 +137,22 @@
 }
 
 @media (prefers-color-scheme: dark) {
+  .dayButton {
+    border-color: #444;
+    color: #999;
+  }
+
+  .dayButton:hover {
+    border-color: var(--foreground);
+    color: var(--foreground);
+  }
+
+  .dayButtonActive {
+    border-color: var(--foreground);
+    background: var(--foreground);
+    color: var(--background);
+  }
+
   .loading {
     color: #999;
   }

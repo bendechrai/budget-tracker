@@ -3,8 +3,9 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import styles from "./sparkle.module.css";
 import { logError } from "@/lib/logging";
-import type { ParseResult } from "@/lib/ai/types";
-import EscalationForm from "@/app/obligations/EscalationForm";
+import type { ParseResult, CreateIntent, EditIntent, DeleteIntent } from "@/lib/ai/types";
+import EscalationForm from "@/app/(app)/obligations/EscalationForm";
+import AIPreview from "./AIPreview";
 
 type ItemType = "income" | "obligation";
 
@@ -113,6 +114,7 @@ export default function SparkleButton({ item, onAction }: SparkleButtonProps) {
   const [loading, setLoading] = useState(false);
   const [response, setResponse] = useState<{ text: string; isError: boolean } | null>(null);
   const [showEscalationForm, setShowEscalationForm] = useState(false);
+  const [previewIntent, setPreviewIntent] = useState<CreateIntent | EditIntent | DeleteIntent | null>(null);
   const modalRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -134,6 +136,7 @@ export default function SparkleButton({ item, onAction }: SparkleButtonProps) {
     setResponse(null);
     setLoading(false);
     setShowEscalationForm(false);
+    setPreviewIntent(null);
   }, []);
 
   useEffect(() => {
@@ -161,6 +164,10 @@ export default function SparkleButton({ item, onAction }: SparkleButtonProps) {
       return;
     }
     const intent = buildPresetIntent(item, field);
+    if (intent.type === "create" || intent.type === "edit" || intent.type === "delete") {
+      setPreviewIntent(intent);
+      return;
+    }
     setResponse({ text: formatIntent(intent), isError: false });
     if (onAction) {
       onAction(intent);
@@ -189,6 +196,13 @@ export default function SparkleButton({ item, onAction }: SparkleButtonProps) {
 
       const data = (await res.json()) as AIParseResponse;
       const intent = data.intent;
+
+      if (intent.type === "create" || intent.type === "edit" || intent.type === "delete") {
+        setPreviewIntent(intent);
+        setFreeText("");
+        return;
+      }
+
       setResponse({ text: formatIntent(intent), isError: false });
       setFreeText("");
       if (onAction) {
@@ -209,6 +223,18 @@ export default function SparkleButton({ item, onAction }: SparkleButtonProps) {
     }
   }
 
+  const handlePreviewDone = useCallback(() => {
+    setPreviewIntent(null);
+    handleClose();
+    if (onAction) {
+      onAction({ type: "edit", targetType: "expense", targetName: item.name, confidence: "high", changes: {} });
+    }
+  }, [handleClose, onAction, item.name]);
+
+  const handlePreviewCancel = useCallback(() => {
+    setPreviewIntent(null);
+  }, []);
+
   const frequencyLabel = item.frequency ?? "—";
 
   return (
@@ -223,7 +249,15 @@ export default function SparkleButton({ item, onAction }: SparkleButtonProps) {
         ✨
       </button>
 
-      {open && (
+      {previewIntent && (
+        <AIPreview
+          intent={previewIntent}
+          onDone={handlePreviewDone}
+          onCancel={handlePreviewCancel}
+        />
+      )}
+
+      {open && !previewIntent && (
         <div className={styles.overlay}>
           <div
             ref={modalRef}

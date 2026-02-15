@@ -63,6 +63,7 @@ function formatDate(dateStr: string): string {
     year: "numeric",
     month: "short",
     day: "numeric",
+    timeZone: "UTC",
   });
 }
 
@@ -110,6 +111,12 @@ export default function DashboardPage() {
 
   useEffect(() => {
     void fetchData();
+  }, [fetchData]);
+
+  useEffect(() => {
+    const handleDataChanged = () => void fetchData();
+    window.addEventListener("budget-data-changed", handleDataChanged);
+    return () => window.removeEventListener("budget-data-changed", handleDataChanged);
   }, [fetchData]);
 
   // Fetch scenario data when what-if overrides change
