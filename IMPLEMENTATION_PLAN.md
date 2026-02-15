@@ -836,7 +836,7 @@
   - Acceptance: Updates user's password. Requires current password. New password must be ≥8 chars and differ from current. Returns 200 on success.
   - Tests: Test update password (200), wrong current password (403), short new password (400), same password (400)
 
-- [ ] **Add `POST /api/user/export` route**
+- [x] **Add `POST /api/user/export` route**
   - Files: `web/app/api/user/export/route.ts`
   - Spec: `specs/13-settings.md`
   - Acceptance: Generates CSV files for transactions, obligations, income sources, and contribution records. Returns as a zip download. Scoped to authenticated user's data only.
