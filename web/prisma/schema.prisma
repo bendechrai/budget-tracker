@@ -25,6 +25,8 @@ model User {
   currentFundBalance      Float          @default(0)
   maxContributionPerCycle  Float?
   contributionCycleDays   Int?
+  contributionCycleType   ContributionCycleType?
+  contributionPayDays     Int[]          @default([])
   createdAt               DateTime       @default(now())
   updatedAt               DateTime       @updatedAt
   incomeSources           IncomeSource[]
@@ -223,6 +225,13 @@ model SuggestionTransaction {
 
   @@id([suggestionId, transactionId])
   @@index([transactionId])
+}
+
+enum ContributionCycleType {
+  weekly
+  fortnightly
+  twice_monthly
+  monthly
 }
 
 enum EscalationChangeType {

@@ -43,6 +43,8 @@ describe("getCurrentUser", () => {
       currentFundBalance: 0,
       maxContributionPerCycle: null,
       contributionCycleDays: null,
+      contributionCycleType: null,
+      contributionPayDays: [],
       createdAt: new Date(),
       updatedAt: new Date(),
     };

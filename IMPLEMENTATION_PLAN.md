@@ -326,6 +326,18 @@
   - Acceptance: Nav shows suggestions count badge when pending suggestions > 0. Badge updates after accept/dismiss actions.
   - Tests: Component test: badge shows count, hides when count is 0
 
+- [x] **Sort suggestions by confidence (high → medium → low)**
+  - Files: `web/app/api/suggestions/route.ts`
+  - Spec: `specs/06-pattern-detection.md`
+  - Acceptance: `GET /api/suggestions` returns suggestions ordered by confidence (high first) then by createdAt desc within each confidence level. PostgreSQL enum ordering used via Prisma `orderBy`.
+  - Tests: API route test verifies orderBy includes confidence asc and createdAt desc
+
+- [x] **Trigger pattern detection after CSV import**
+  - Files: `web/app/(app)/import/page.tsx`
+  - Spec: `specs/06-pattern-detection.md`
+  - Acceptance: After successful file upload on the import page, a fire-and-forget `POST /api/patterns/detect` call triggers pattern detection. Detection failure is non-blocking. Not called when all uploads fail.
+  - Tests: Component test: verifies `/api/patterns/detect` is called after successful upload, not called on failure
+
 - [x] **Add `FundBalance`, `ContributionRecord`, and `EngineSnapshot` models with Prisma migration**
   - Files: `web/prisma/schema.prisma`, new migration
   - Spec: `specs/07-sinking-fund-engine.md`
@@ -738,7 +750,7 @@
 
 ### Spec 07a — Calendar-based cycle counting & auto-detection
 
-- [ ] **Add `ContributionCycleType` enum and User model fields with Prisma migration**
+- [x] **Add `ContributionCycleType` enum and User model fields with Prisma migration**
   - Files: `web/prisma/schema.prisma`, new migration
   - Spec: `specs/07a-cycle-auto-detection.md`, `specs/13-settings.md`
   - Acceptance: `ContributionCycleType` enum with values: `weekly`, `fortnightly`, `twice_monthly`, `monthly`. User model gains `contributionCycleType` (nullable ContributionCycleType) and `contributionPayDays` (Int[], default []). Existing `contributionCycleDays` column kept but deprecated. Migration runs cleanly.
