@@ -1,4 +1,4 @@
-import { calculateContributions, type EngineInput, type EngineResult } from "./calculate";
+import { calculateContributions, type CycleConfig, type EngineInput, type EngineResult } from "./calculate";
 
 export interface SnapshotData {
   totalRequired: number;
@@ -9,13 +9,29 @@ export interface SnapshotData {
 }
 
 /**
+ * Returns a human-readable cycle period label for the given cycle type.
+ */
+function cyclePeriodLabel(cycleType: CycleConfig["type"]): string {
+  switch (cycleType) {
+    case "weekly":
+      return "this week";
+    case "fortnightly":
+      return "this fortnight";
+    case "twice_monthly":
+      return "this pay period";
+    case "monthly":
+      return "this month";
+  }
+}
+
+/**
  * Generates a snapshot from an EngineResult.
  *
  * The next action is the most urgent under-funded obligation (nearest due date).
  * If all obligations are fully funded, it shows a celebration state.
  * If there are no obligations, it prompts the user to add some.
  */
-export function generateSnapshot(engineResult: EngineResult): SnapshotData {
+export function generateSnapshot(engineResult: EngineResult, cycleConfig?: CycleConfig): SnapshotData {
   const { contributions, totalRequired, totalFunded, isFullyFunded } = engineResult;
 
   // No obligations — prompt user
@@ -56,7 +72,9 @@ export function generateSnapshot(engineResult: EngineResult): SnapshotData {
     totalFunded,
     nextActionAmount: nextAction.contributionPerCycle,
     nextActionDate: nextAction.nextDueDate,
-    nextActionDescription: `Set aside $${nextAction.contributionPerCycle.toFixed(2)} for ${nextAction.obligationName} by ${nextAction.nextDueDate.toISOString().split("T")[0]}`,
+    nextActionDescription: cycleConfig
+      ? `Set aside $${nextAction.contributionPerCycle.toFixed(2)} ${cyclePeriodLabel(cycleConfig.type)} for ${nextAction.obligationName}`
+      : `Set aside $${nextAction.contributionPerCycle.toFixed(2)} for ${nextAction.obligationName} by ${nextAction.nextDueDate.toISOString().split("T")[0]}`,
   };
 }
 
@@ -68,6 +86,6 @@ export function calculateAndSnapshot(input: EngineInput): {
   snapshot: SnapshotData;
 } {
   const result = calculateContributions(input);
-  const snapshot = generateSnapshot(result);
+  const snapshot = generateSnapshot(result, input.cycleConfig);
   return { result, snapshot };
 }

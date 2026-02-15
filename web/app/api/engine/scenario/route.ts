@@ -118,7 +118,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     };
 
     const { scenario } = calculateWithWhatIf(engineInput, overrides);
-    const scenarioSnapshot = generateSnapshot(scenario);
+    const scenarioSnapshot = generateSnapshot(scenario, engineInput.cycleConfig);
 
     // Build scenario obligation inputs for timeline projection
     const toggledOffSet = new Set(overrides.toggledOffIds);

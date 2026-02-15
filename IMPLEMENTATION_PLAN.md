@@ -326,6 +326,12 @@
   - Acceptance: Nav shows suggestions count badge when pending suggestions > 0. Badge updates after accept/dismiss actions.
   - Tests: Component test: badge shows count, hides when count is 0
 
+- [x] **Add SuggestionsCountContext for real-time badge updates**
+  - Files: `web/app/contexts/SuggestionsCountContext.tsx`, `web/app/Providers.tsx`, `web/app/components/Nav.tsx`, `web/app/(app)/suggestions/page.tsx`
+  - Spec: `specs/06-pattern-detection.md`
+  - Acceptance: Shared context provides suggestions count to Nav and SuggestionsPage. Accepting/dismissing a suggestion decrements the count immediately without page reload. Nav badge reflects the current count in real time.
+  - Tests: Nav test: badge renders from context. Suggestions page test: decrement called on accept/dismiss.
+
 - [x] **Sort suggestions by confidence (high → medium → low)**
   - Files: `web/app/api/suggestions/route.ts`
   - Spec: `specs/06-pattern-detection.md`
@@ -780,7 +786,7 @@
   - Acceptance: Route reads `user.contributionCycleType` and `user.contributionPayDays`. If null, queries income sources and derives cycle via `resolveCycleConfig()`. Passes resolved `CycleConfig` to engine calculation.
   - Tests: Test recalculation with explicit user cycle config; test auto-detection when no cycle set
 
-- [ ] **Update engine snapshot description to show cycle-aware text**
+- [x] **Update engine snapshot description to show cycle-aware text**
   - Files: `web/lib/engine/snapshot.ts`
   - Spec: `specs/07a-cycle-auto-detection.md`
   - Acceptance: Snapshot `nextActionDescription` reflects cycle type: "Set aside $X this week" / "this fortnight" / "this pay period" / "this month" based on the resolved cycle config. Snapshot generation accepts `CycleConfig` parameter.

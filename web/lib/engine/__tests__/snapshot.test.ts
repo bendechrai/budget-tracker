@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, it, expect } from "vitest";
 import { generateSnapshot, calculateAndSnapshot } from "../snapshot";
-import type { EngineResult, ObligationContribution } from "../calculate";
+import type { CycleConfig, EngineResult, ObligationContribution } from "../calculate";
 
 function makeContribution(
   overrides: Partial<ObligationContribution> = {}
@@ -203,7 +203,7 @@ describe("generateSnapshot", () => {
   });
 
   describe("description formatting", () => {
-    it("formats description with amount, name, and date", () => {
+    it("formats description with amount, name, and date when no cycleConfig", () => {
       const result = makeEngineResult({
         contributions: [
           makeContribution({
@@ -219,6 +219,52 @@ describe("generateSnapshot", () => {
 
       expect(snapshot.nextActionDescription).toBe(
         "Set aside $45.50 for Gym Membership by 2025-04-15"
+      );
+    });
+  });
+
+  describe("cycle-aware description", () => {
+    const baseResult = (name: string, amount: number) =>
+      makeEngineResult({
+        contributions: [
+          makeContribution({
+            obligationName: name,
+            contributionPerCycle: amount,
+            nextDueDate: new Date("2025-04-15"),
+            isFullyFunded: false,
+          }),
+        ],
+      });
+
+    it("shows 'this week' for weekly cycle", () => {
+      const config: CycleConfig = { type: "weekly", payDays: [] };
+      const snapshot = generateSnapshot(baseResult("Rent", 412), config);
+      expect(snapshot.nextActionDescription).toBe(
+        "Set aside $412.00 this week for Rent"
+      );
+    });
+
+    it("shows 'this fortnight' for fortnightly cycle", () => {
+      const config: CycleConfig = { type: "fortnightly", payDays: [] };
+      const snapshot = generateSnapshot(baseResult("Rent", 824), config);
+      expect(snapshot.nextActionDescription).toBe(
+        "Set aside $824.00 this fortnight for Rent"
+      );
+    });
+
+    it("shows 'this pay period' for twice_monthly cycle", () => {
+      const config: CycleConfig = { type: "twice_monthly", payDays: [1, 15] };
+      const snapshot = generateSnapshot(baseResult("Rent", 600), config);
+      expect(snapshot.nextActionDescription).toBe(
+        "Set aside $600.00 this pay period for Rent"
+      );
+    });
+
+    it("shows 'this month' for monthly cycle", () => {
+      const config: CycleConfig = { type: "monthly", payDays: [1] };
+      const snapshot = generateSnapshot(baseResult("Rent", 1200), config);
+      expect(snapshot.nextActionDescription).toBe(
+        "Set aside $1200.00 this month for Rent"
       );
     });
   });
@@ -252,6 +298,7 @@ describe("calculateAndSnapshot", () => {
     expect(result.contributions).toHaveLength(1);
     expect(snapshot.totalRequired).toBe(1200);
     expect(snapshot.nextActionDescription).toContain("Rent");
+    expect(snapshot.nextActionDescription).toContain("this month");
   });
 
   it("returns celebration snapshot when fully funded", () => {
