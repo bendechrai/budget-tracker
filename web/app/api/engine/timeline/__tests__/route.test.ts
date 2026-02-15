@@ -8,6 +8,7 @@ vi.mock("@/lib/auth/getCurrentUser", () => ({
 
 const mockObligationFindMany = vi.fn();
 const mockFundBalanceFindMany = vi.fn();
+const mockIncomeSourceFindMany = vi.fn();
 
 vi.mock("@/lib/prisma", () => ({
   prisma: {
@@ -17,6 +18,9 @@ vi.mock("@/lib/prisma", () => ({
     fundBalance: {
       findMany: (...args: unknown[]) => mockFundBalanceFindMany(...args),
     },
+    incomeSource: {
+      findMany: (...args: unknown[]) => mockIncomeSourceFindMany(...args),
+    },
   },
 }));
 
@@ -25,12 +29,15 @@ vi.mock("@/lib/logging", () => ({
 }));
 
 const mockCalculateContributions = vi.fn();
+const mockResolveCycleConfig = vi.fn();
 vi.mock("@/lib/engine/calculate", async () => {
   const actual = await vi.importActual("@/lib/engine/calculate");
   return {
     ...actual,
     calculateContributions: (...args: unknown[]) =>
       mockCalculateContributions(...args),
+    resolveCycleConfig: (...args: unknown[]) =>
+      mockResolveCycleConfig(...args),
   };
 });
 
@@ -46,6 +53,8 @@ const mockUser = {
   email: "test@example.com",
   maxContributionPerCycle: 500,
   contributionCycleDays: 14,
+  contributionCycleType: null,
+  contributionPayDays: [],
   currentFundBalance: 1000,
 };
 
@@ -101,6 +110,8 @@ const mockTimelineResult = {
   endDate: new Date("2025-07-01"),
 };
 
+const defaultCycleConfig = { type: "monthly" as const, payDays: [1] };
+
 function makeRequest(months?: number): NextRequest {
   const url = months !== undefined
     ? `http://localhost/api/engine/timeline?months=${months}`
@@ -114,8 +125,10 @@ describe("GET /api/engine/timeline", () => {
     mockGetCurrentUser.mockResolvedValue(mockUser);
     mockObligationFindMany.mockResolvedValue(mockObligations);
     mockFundBalanceFindMany.mockResolvedValue(mockFundBalances);
+    mockIncomeSourceFindMany.mockResolvedValue([]);
     mockCalculateContributions.mockReturnValue(mockEngineResult);
     mockProjectTimeline.mockReturnValue(mockTimelineResult);
+    mockResolveCycleConfig.mockReturnValue(defaultCycleConfig);
   });
 
   it("returns 401 when not authenticated", async () => {
@@ -185,6 +198,59 @@ describe("GET /api/engine/timeline", () => {
       expect.objectContaining({
         contributionPerCycle: 200,
       })
+    );
+  });
+
+  it("resolves cycle config with user settings and income sources", async () => {
+    const weeklyConfig = { type: "weekly" as const, payDays: [] };
+    mockResolveCycleConfig.mockReturnValue(weeklyConfig);
+
+    const userWithCycle = {
+      ...mockUser,
+      contributionCycleType: "weekly",
+      contributionPayDays: [],
+    };
+    mockGetCurrentUser.mockResolvedValue(userWithCycle);
+
+    await GET(makeRequest());
+
+    expect(mockResolveCycleConfig).toHaveBeenCalledWith(
+      { contributionCycleType: "weekly", contributionPayDays: [] },
+      [],
+    );
+    expect(mockCalculateContributions).toHaveBeenCalledWith(
+      expect.objectContaining({ cycleConfig: weeklyConfig })
+    );
+    expect(mockProjectTimeline).toHaveBeenCalledWith(
+      expect.objectContaining({ cycleConfig: weeklyConfig })
+    );
+  });
+
+  it("auto-detects cycle from income sources when user has no explicit setting", async () => {
+    const incomeSources = [
+      { frequency: "fortnightly", isIrregular: false, isActive: true, isPaused: false },
+    ];
+    mockIncomeSourceFindMany.mockResolvedValue(incomeSources);
+
+    const fortnightlyConfig = { type: "fortnightly" as const, payDays: [] };
+    mockResolveCycleConfig.mockReturnValue(fortnightlyConfig);
+
+    await GET(makeRequest());
+
+    expect(mockIncomeSourceFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { userId: "user_1", isActive: true },
+      })
+    );
+    expect(mockResolveCycleConfig).toHaveBeenCalledWith(
+      { contributionCycleType: null, contributionPayDays: [] },
+      incomeSources,
+    );
+    expect(mockCalculateContributions).toHaveBeenCalledWith(
+      expect.objectContaining({ cycleConfig: fortnightlyConfig })
+    );
+    expect(mockProjectTimeline).toHaveBeenCalledWith(
+      expect.objectContaining({ cycleConfig: fortnightlyConfig })
     );
   });
 

@@ -804,7 +804,7 @@
   - Acceptance: Scenario route resolves `CycleConfig` the same way as recalculate route and passes it to engine calculations.
   - Tests: Test scenario calculation with resolved cycle config
 
-- [ ] **Update timeline API route to resolve and pass `CycleConfig`**
+- [x] **Update timeline API route to resolve and pass `CycleConfig`**
   - Files: `web/app/api/engine/timeline/route.ts`
   - Spec: `specs/07a-cycle-auto-detection.md`
   - Acceptance: Timeline route resolves `CycleConfig` and passes it to timeline projection.

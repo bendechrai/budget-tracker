@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth/getCurrentUser";
 import { logError } from "@/lib/logging";
-import { calculateContributions, cycleDaysToConfig } from "@/lib/engine/calculate";
+import { calculateContributions, resolveCycleConfig } from "@/lib/engine/calculate";
 import { projectTimeline } from "@/lib/engine/timeline";
 import type { ObligationInput, FundBalanceInput } from "@/lib/engine/calculate";
 
@@ -17,6 +17,21 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const monthsAhead = Math.max(
       1,
       Math.min(12, parseInt(searchParams.get("months") ?? "6", 10) || 6)
+    );
+
+    // Fetch active income sources for cycle auto-detection
+    const incomeSources = await prisma.incomeSource.findMany({
+      where: { userId: user.id, isActive: true },
+      select: { frequency: true, isIrregular: true, isActive: true, isPaused: true },
+    });
+
+    // Resolve cycle config: explicit user setting > auto-detect from income > monthly default
+    const cycleConfig = resolveCycleConfig(
+      {
+        contributionCycleType: user.contributionCycleType ?? null,
+        contributionPayDays: user.contributionPayDays ?? [],
+      },
+      incomeSources,
     );
 
     const obligations = await prisma.obligation.findMany({
@@ -66,7 +81,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       obligations: obligationInputs,
       fundBalances: fundBalanceInputs,
       maxContributionPerCycle: user.maxContributionPerCycle,
-      cycleConfig: cycleDaysToConfig(user.contributionCycleDays),
+      cycleConfig,
     });
 
     const timeline = projectTimeline({
@@ -74,7 +89,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       fundBalances: fundBalanceInputs,
       currentFundBalance: user.currentFundBalance,
       contributionPerCycle: engineResult.totalContributionPerCycle,
-      cycleConfig: cycleDaysToConfig(user.contributionCycleDays),
+      cycleConfig,
       monthsAhead,
     });
 
