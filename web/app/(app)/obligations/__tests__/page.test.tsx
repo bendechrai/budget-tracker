@@ -23,6 +23,16 @@ vi.mock("../ContributionModal", () => ({
   ),
 }));
 
+vi.mock("../AdjustBalanceModal", () => ({
+  default: ({ obligationName, onClose, onSaved }: { obligationName: string; onClose: () => void; onSaved: () => void }) => (
+    <div data-testid="adjust-balance-modal">
+      <span data-testid="adjust-balance-modal-name">{obligationName}</span>
+      <button data-testid="adjust-balance-modal-close" onClick={onClose}>Close</button>
+      <button data-testid="adjust-balance-modal-save" onClick={onSaved}>Save</button>
+    </div>
+  ),
+}));
+
 const mockToggleObligation = vi.fn();
 const mockOverrideAmount = vi.fn();
 const mockAddHypothetical = vi.fn();
@@ -1378,6 +1388,82 @@ describe("ObligationsPage", () => {
     // Modal should close
     await waitFor(() => {
       expect(screen.queryByTestId("contribution-modal")).toBeNull();
+    });
+
+    // fetch should have been called again to refresh obligations
+    expect(vi.mocked(global.fetch).mock.calls.length).toBeGreaterThan(fetchCallsBefore);
+  });
+
+  // Adjust balance button tests
+
+  it("renders Adjust balance button for each obligation", async () => {
+    mockFetchResponses(mockObligations);
+
+    render(<ObligationsPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Netflix")).toBeDefined();
+    });
+
+    expect(screen.getByTestId("adjust-balance-button-1")).toBeDefined();
+    expect(screen.getByTestId("adjust-balance-button-2")).toBeDefined();
+    expect(screen.getByTestId("adjust-balance-button-3")).toBeDefined();
+  });
+
+  it("opens adjust balance modal when Adjust balance is clicked", async () => {
+    const user = userEvent.setup();
+    mockFetchResponses(mockObligations);
+
+    render(<ObligationsPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Netflix")).toBeDefined();
+    });
+
+    await user.click(screen.getByTestId("adjust-balance-button-1"));
+
+    expect(screen.getByTestId("adjust-balance-modal")).toBeDefined();
+    expect(screen.getByTestId("adjust-balance-modal-name").textContent).toBe("Netflix");
+  });
+
+  it("closes adjust balance modal when close is clicked", async () => {
+    const user = userEvent.setup();
+    mockFetchResponses(mockObligations);
+
+    render(<ObligationsPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Netflix")).toBeDefined();
+    });
+
+    await user.click(screen.getByTestId("adjust-balance-button-1"));
+    expect(screen.getByTestId("adjust-balance-modal")).toBeDefined();
+
+    await user.click(screen.getByTestId("adjust-balance-modal-close"));
+
+    await waitFor(() => {
+      expect(screen.queryByTestId("adjust-balance-modal")).toBeNull();
+    });
+  });
+
+  it("refreshes obligations after balance adjustment is saved", async () => {
+    const user = userEvent.setup();
+    mockFetchResponses(mockObligations);
+
+    render(<ObligationsPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Netflix")).toBeDefined();
+    });
+
+    const fetchCallsBefore = vi.mocked(global.fetch).mock.calls.length;
+
+    await user.click(screen.getByTestId("adjust-balance-button-1"));
+    await user.click(screen.getByTestId("adjust-balance-modal-save"));
+
+    // Modal should close
+    await waitFor(() => {
+      expect(screen.queryByTestId("adjust-balance-modal")).toBeNull();
     });
 
     // fetch should have been called again to refresh obligations

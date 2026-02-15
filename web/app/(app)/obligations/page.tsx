@@ -9,6 +9,7 @@ import { useWhatIf } from "@/app/contexts/WhatIfContext";
 import HypotheticalForm from "./HypotheticalForm";
 import EscalationForm from "./EscalationForm";
 import ContributionModal from "./ContributionModal";
+import AdjustBalanceModal from "./AdjustBalanceModal";
 
 interface FundGroup {
   id: string;
@@ -202,6 +203,7 @@ export default function ObligationsPage() {
   const [expandedEscalations, setExpandedEscalations] = useState<Set<string>>(new Set());
   const [escalationFormTarget, setEscalationFormTarget] = useState<string | null>(null);
   const [contributionTarget, setContributionTarget] = useState<Obligation | null>(null);
+  const [adjustBalanceTarget, setAdjustBalanceTarget] = useState<Obligation | null>(null);
   const { overrides, toggleObligation, overrideAmount, addHypothetical, removeHypothetical } = useWhatIf();
 
   const archiveObligation = useCallback(async (ob: Obligation) => {
@@ -487,6 +489,14 @@ export default function ObligationsPage() {
                               >
                                 Record contribution
                               </button>
+                              <button
+                                type="button"
+                                className={styles.contributeButton}
+                                onClick={() => setAdjustBalanceTarget(ob)}
+                                data-testid={`adjust-balance-button-${ob.id}`}
+                              >
+                                Adjust balance
+                              </button>
                             </div>
                           );
                         })()}
@@ -706,6 +716,19 @@ export default function ObligationsPage() {
             onClose={() => setContributionTarget(null)}
             onSaved={() => {
               setContributionTarget(null);
+              void fetchObligations();
+            }}
+          />
+        )}
+
+        {adjustBalanceTarget && (
+          <AdjustBalanceModal
+            obligationId={adjustBalanceTarget.id}
+            obligationName={adjustBalanceTarget.name}
+            currentBalance={adjustBalanceTarget.fundBalance?.currentBalance ?? 0}
+            onClose={() => setAdjustBalanceTarget(null)}
+            onSaved={() => {
+              setAdjustBalanceTarget(null);
               void fetchObligations();
             }}
           />

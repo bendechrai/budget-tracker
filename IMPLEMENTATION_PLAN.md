@@ -916,7 +916,7 @@
   - Acceptance: Modal shows current fund balance. User enters new exact balance. On save: calls PUT /api/fund-balances/[obligationId]. Supports both increasing and decreasing. Dispatches `budget-data-changed` event.
   - Tests: Component test: renders current balance, accepts new balance, submits adjustment
 
-- [ ] **Add "Adjust balance" action to obligations list**
+- [x] **Add "Adjust balance" action to obligations list**
   - Files: `web/app/(app)/obligations/page.tsx` (update)
   - Spec: `specs/14-contributions.md`
   - Acceptance: Each obligation has an "Adjust balance" link/button that opens AdjustBalanceModal. Available alongside the "Record contribution" button.
