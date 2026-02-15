@@ -818,7 +818,7 @@
   - Acceptance: Returns current user's email, contributionCycleType, contributionPayDays, currencySymbol, maxContributionPerCycle. Includes auto-detected cycle recommendation from income sources. Returns 401 if unauthenticated.
   - Tests: Test returns user settings (200), unauthenticated (401), includes auto-detected cycle
 
-- [ ] **Add `PUT /api/user/settings` route**
+- [x] **Add `PUT /api/user/settings` route**
   - Files: `web/app/api/user/settings/route.ts`
   - Spec: `specs/13-settings.md`
   - Acceptance: Updates user's contributionCycleType, contributionPayDays, currencySymbol, maxContributionPerCycle. Triggers engine recalculation after cycle or max contribution changes. Returns updated settings.
