@@ -3,6 +3,7 @@ import {
   type ObligationInput,
   type FundBalanceInput,
   type CustomEntryInput,
+  type CycleConfig,
 } from "./calculate";
 import { getAmountAtDate } from "./escalation";
 
@@ -13,8 +14,8 @@ export interface TimelineInput {
   currentFundBalance: number;
   /** Contribution amount per cycle (from engine calculation) */
   contributionPerCycle: number;
-  /** Days per contribution cycle (default 30) */
-  contributionCycleDays: number | null;
+  /** Cycle configuration for contribution date placement */
+  cycleConfig: CycleConfig;
   /** Projection window in months (default 6, max 12) */
   monthsAhead?: number;
   /** Reference date for the projection (default now) */
@@ -208,6 +209,69 @@ function collectDueDates(
 }
 
 /**
+ * Returns the last day of a given month (1-indexed month).
+ */
+function lastDayOfMonthTL(year: number, month: number): number {
+  return new Date(year, month, 0).getDate();
+}
+
+/**
+ * Generates actual cycle dates within [start, end] based on the CycleConfig.
+ *
+ * - Weekly/fortnightly: adds 7/14 day intervals from start.
+ * - Monthly/twice_monthly: generates actual pay dates from the payDays array,
+ *   clamped to end-of-month when a pay day doesn't exist in a given month.
+ *   The start date itself is excluded; only future cycle dates are returned.
+ */
+function generateCycleDates(
+  start: Date,
+  end: Date,
+  config: CycleConfig,
+): Date[] {
+  const dates: Date[] = [];
+  const startTime = start.getTime();
+  const endTime = end.getTime();
+
+  if (config.type === "weekly" || config.type === "fortnightly") {
+    const intervalDays = config.type === "weekly" ? 7 : 14;
+    let d = addDays(start, intervalDays);
+    while (d.getTime() <= endTime) {
+      dates.push(d);
+      d = addDays(d, intervalDays);
+    }
+    return dates;
+  }
+
+  // monthly or twice_monthly: iterate month by month, emitting each pay day
+  const payDays = config.payDays.length > 0 ? [...config.payDays].sort((a, b) => a - b) : [1];
+  const startYear = start.getUTCFullYear();
+  const startMonth = start.getUTCMonth(); // 0-based
+
+  // Walk from the start month through the end date's month
+  const endYear = end.getUTCFullYear();
+  const endMonth = end.getUTCMonth();
+  const totalMonths = (endYear - startYear) * 12 + (endMonth - startMonth);
+
+  for (let m = 0; m <= totalMonths; m++) {
+    const year = startYear + Math.floor((startMonth + m) / 12);
+    const month = (startMonth + m) % 12; // 0-based
+    const lastDay = lastDayOfMonthTL(year, month + 1);
+
+    for (const pd of payDays) {
+      const clampedDay = Math.min(pd, lastDay);
+      const d = new Date(Date.UTC(year, month, clampedDay));
+      const dTime = d.getTime();
+      // Exclude the start date itself and anything past end
+      if (dTime <= startTime) continue;
+      if (dTime > endTime) continue;
+      dates.push(d);
+    }
+  }
+
+  return dates;
+}
+
+/**
  * Projects fund balance over a configurable time window.
  *
  * Walks through time, applying contributions and expenses to produce
@@ -218,13 +282,12 @@ export function projectTimeline(input: TimelineInput): TimelineResult {
     obligations,
     currentFundBalance,
     contributionPerCycle,
-    contributionCycleDays,
+    cycleConfig,
     monthsAhead = 6,
     now = new Date(),
     overrides,
   } = input;
 
-  const cycleDays = contributionCycleDays ?? 30;
   const clampedMonths = Math.max(1, Math.min(12, monthsAhead));
   const startDate = startOfDay(now);
   const endDate = startOfDay(addMonths(startDate, clampedMonths));
@@ -258,13 +321,12 @@ export function projectTimeline(input: TimelineInput): TimelineResult {
   // Generate contribution dates within the window
   const contributionMarkers: ContributionMarker[] = [];
   if (contributionPerCycle > 0) {
-    let contributionDate = addDays(startDate, cycleDays);
-    while (contributionDate <= endDate) {
+    const cycleDates = generateCycleDates(startDate, endDate, cycleConfig);
+    for (const date of cycleDates) {
       contributionMarkers.push({
-        date: startOfDay(contributionDate),
+        date: startOfDay(date),
         amount: contributionPerCycle,
       });
-      contributionDate = addDays(contributionDate, cycleDays);
     }
   }
 

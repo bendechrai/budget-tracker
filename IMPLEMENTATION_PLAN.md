@@ -792,7 +792,7 @@
   - Acceptance: Snapshot `nextActionDescription` reflects cycle type: "Set aside $X this week" / "this fortnight" / "this pay period" / "this month" based on the resolved cycle config. Snapshot generation accepts `CycleConfig` parameter.
   - Tests: Unit test: snapshot description matches cycle type for each of the four types
 
-- [ ] **Update timeline projection to use `CycleConfig`**
+- [x] **Update timeline projection to use `CycleConfig`**
   - Files: `web/lib/engine/timeline.ts`
   - Spec: `specs/07a-cycle-auto-detection.md`
   - Acceptance: Timeline projection uses `CycleConfig` instead of `cycleDays`. Contribution markers placed at actual cycle dates (not fixed intervals for twice-monthly/monthly).

@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, it, expect } from "vitest";
 import { projectTimeline, type TimelineInput } from "../timeline";
-import type { ObligationInput } from "../calculate";
+import type { ObligationInput, CycleConfig } from "../calculate";
 import type { EscalationRule } from "../escalation";
 
 function makeObligation(
@@ -25,13 +25,15 @@ function makeObligation(
 
 const NOW = new Date("2025-03-01");
 
+const MONTHLY_CYCLE: CycleConfig = { type: "monthly", payDays: [1] };
+
 function makeInput(overrides: Partial<TimelineInput> = {}): TimelineInput {
   return {
     obligations: [makeObligation()],
     fundBalances: [],
     currentFundBalance: 0,
     contributionPerCycle: 400,
-    contributionCycleDays: 30,
+    cycleConfig: MONTHLY_CYCLE,
     monthsAhead: 6,
     now: NOW,
     ...overrides,
@@ -55,7 +57,7 @@ describe("projectTimeline", () => {
           obligations: [],
           currentFundBalance: 1000,
           contributionPerCycle: 200,
-          contributionCycleDays: 30,
+          cycleConfig: MONTHLY_CYCLE,
           monthsAhead: 2,
         })
       );
@@ -106,7 +108,7 @@ describe("projectTimeline", () => {
           ],
           currentFundBalance: 1000,
           contributionPerCycle: 400,
-          contributionCycleDays: 30,
+          cycleConfig: MONTHLY_CYCLE,
           monthsAhead: 3,
         })
       );
@@ -310,17 +312,17 @@ describe("projectTimeline", () => {
         makeInput({
           obligations: [],
           contributionPerCycle: 300,
-          contributionCycleDays: 30,
+          cycleConfig: MONTHLY_CYCLE,
           monthsAhead: 3,
         })
       );
 
-      // ~3 months = ~90 days, 30-day cycle = 3 contributions
+      // Monthly on the 1st, start=Mar 1: contributions at Apr 1, May 1, Jun 1
       expect(result.contributionMarkers).toHaveLength(3);
       expect(result.contributionMarkers[0].amount).toBe(300);
 
-      // First contribution is 30 days from start
-      const expectedFirst = new Date("2025-03-31T00:00:00.000Z");
+      // First contribution is on the next pay date after start
+      const expectedFirst = new Date("2025-04-01T00:00:00.000Z");
       expect(result.contributionMarkers[0].date).toEqual(expectedFirst);
     });
 
@@ -540,18 +542,25 @@ describe("projectTimeline", () => {
       expect(afterBoth).toBeDefined();
     });
 
-    it("defaults contributionCycleDays to 30 when null", () => {
+    it("places contribution markers at actual cycle dates for twice_monthly", () => {
       const result = projectTimeline(
         makeInput({
           obligations: [],
           contributionPerCycle: 100,
-          contributionCycleDays: null,
+          cycleConfig: { type: "twice_monthly", payDays: [1, 15] },
           monthsAhead: 2,
+          now: new Date("2025-03-01"),
         })
       );
 
-      // With 30-day cycle over ~2 months, expect 2 contributions
-      expect(result.contributionMarkers).toHaveLength(2);
+      // Mar 1 is start (excluded), next pay dates: Mar 15, Apr 1, Apr 15, May 1
+      expect(result.contributionMarkers).toHaveLength(4);
+      expect(result.contributionMarkers[0].date).toEqual(
+        new Date("2025-03-15T00:00:00.000Z")
+      );
+      expect(result.contributionMarkers[1].date).toEqual(
+        new Date("2025-04-01T00:00:00.000Z")
+      );
     });
   });
 

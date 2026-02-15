@@ -74,7 +74,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       fundBalances: fundBalanceInputs,
       currentFundBalance: user.currentFundBalance,
       contributionPerCycle: engineResult.totalContributionPerCycle,
-      contributionCycleDays: user.contributionCycleDays,
+      cycleConfig: cycleDaysToConfig(user.contributionCycleDays),
       monthsAhead,
     });
 

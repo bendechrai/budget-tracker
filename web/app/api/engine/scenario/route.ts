@@ -153,7 +153,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       fundBalances: fundBalanceInputs,
       currentFundBalance: user.currentFundBalance,
       contributionPerCycle: scenario.totalContributionPerCycle,
-      contributionCycleDays: user.contributionCycleDays,
+      cycleConfig: engineInput.cycleConfig,
       monthsAhead,
     });
 
