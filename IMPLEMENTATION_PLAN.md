@@ -830,7 +830,7 @@
   - Acceptance: Updates user's email. Requires current password confirmation. Validates email format. Rejects if new email already in use. Returns 200 on success.
   - Tests: Test update email (200), wrong password (403), duplicate email (409), invalid format (400)
 
-- [ ] **Add `PUT /api/user/password` route**
+- [x] **Add `PUT /api/user/password` route**
   - Files: `web/app/api/user/password/route.ts`
   - Spec: `specs/13-settings.md`
   - Acceptance: Updates user's password. Requires current password. New password must be ≥8 chars and differ from current. Returns 200 on success.
