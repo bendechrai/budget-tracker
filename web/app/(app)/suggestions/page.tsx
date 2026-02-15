@@ -63,6 +63,37 @@ function formatAmountRange(
   return formatAmount(amount);
 }
 
+function computeAverageCadence(dates: string[]): string | null {
+  if (dates.length < 2) return null;
+
+  const sorted = [...dates]
+    .map((d) => new Date(d).getTime())
+    .sort((a, b) => a - b);
+
+  let totalDays = 0;
+  for (let i = 1; i < sorted.length; i++) {
+    totalDays += (sorted[i] - sorted[i - 1]) / (1000 * 60 * 60 * 24);
+  }
+  const avgDays = totalDays / (sorted.length - 1);
+
+  if (avgDays < 10) {
+    return `~every ${Math.round(avgDays)} days`;
+  }
+  if (avgDays < 42) {
+    return `~every ${Math.round(avgDays / 7)} weeks`;
+  }
+  return `~every ${Math.round(avgDays / 30)} months`;
+}
+
+function formatTransactionDate(dateStr: string): string {
+  const date = new Date(dateStr);
+  return date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
 export default function SuggestionsPage() {
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [loading, setLoading] = useState(true);
@@ -72,6 +103,7 @@ export default function SuggestionsPage() {
   const [tweakName, setTweakName] = useState("");
   const [tweakAmount, setTweakAmount] = useState("");
   const [tweakFrequency, setTweakFrequency] = useState("");
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
 
   const fetchSuggestions = useCallback(async () => {
     try {
@@ -153,6 +185,18 @@ export default function SuggestionsPage() {
     setTweakName("");
     setTweakAmount("");
     setTweakFrequency("");
+  }
+
+  function toggleExpanded(id: string) {
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
   }
 
   async function handleSaveTweak(id: string) {
@@ -262,10 +306,48 @@ export default function SuggestionsPage() {
                   >
                     {suggestion.confidence} confidence
                   </span>
-                  <span className={styles.cardDetail}>
+                  <button
+                    type="button"
+                    className={styles.transactionToggle}
+                    onClick={() => toggleExpanded(suggestion.id)}
+                    aria-label={`Toggle transactions for ${suggestion.vendorPattern}`}
+                  >
+                    {expandedIds.has(suggestion.id) ? "▾" : "▸"}{" "}
                     {suggestion.matchingTransactionCount} transactions
-                  </span>
+                  </button>
                 </div>
+
+                {expandedIds.has(suggestion.id) && (
+                  <div className={styles.transactionList}>
+                    {suggestion.suggestionTransactions
+                      .slice()
+                      .sort(
+                        (a, b) =>
+                          new Date(a.transaction.date).getTime() -
+                          new Date(b.transaction.date).getTime()
+                      )
+                      .map((st) => (
+                        <div
+                          key={st.transaction.id}
+                          className={styles.transactionRow}
+                        >
+                          <span>{formatTransactionDate(st.transaction.date)}</span>
+                          <span>{st.transaction.description}</span>
+                          <span>{formatAmount(st.transaction.amount)}</span>
+                        </div>
+                      ))}
+                    {suggestion.detectedFrequency === "irregular" && (() => {
+                      const cadence = computeAverageCadence(
+                        suggestion.suggestionTransactions.map(
+                          (st) => st.transaction.date
+                        )
+                      );
+                      return cadence ? (
+                        <p className={styles.cadenceLine}>{cadence}</p>
+                      ) : null;
+                    })()}
+                  </div>
+                )}
 
                 {tweakingId === suggestion.id ? (
                   <div className={styles.tweakForm}>

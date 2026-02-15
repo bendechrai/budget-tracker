@@ -1,4 +1,4 @@
-import type { IncomeFrequency, ObligationType } from "@/app/generated/prisma/client";
+import type { ContributionCycleType, IncomeFrequency, ObligationType } from "@/app/generated/prisma/client";
 import { getAmountAtDate, type EscalationRule } from "./escalation";
 
 export interface WhatIfOverrides {
@@ -240,6 +240,102 @@ function cycleDaysToConfig(cycleDays: number | null): CycleConfig {
       // For non-standard cycle days, approximate with monthly on the 1st
       return { type: "monthly", payDays: [1] };
   }
+}
+
+/** Minimal user fields needed for cycle resolution */
+export interface CycleUserInput {
+  contributionCycleType: ContributionCycleType | null;
+  contributionPayDays: number[];
+}
+
+/** Minimal income source fields needed for cycle resolution */
+export interface CycleIncomeInput {
+  frequency: IncomeFrequency;
+  isIrregular: boolean;
+  isActive: boolean;
+  isPaused: boolean;
+}
+
+/**
+ * Priority ordering for income frequencies — lower index = shorter (more frequent) cycle.
+ * Only includes frequencies that map to a valid CycleConfig type.
+ */
+const FREQUENCY_PRIORITY: IncomeFrequency[] = [
+  "weekly",
+  "fortnightly",
+  "twice_monthly",
+  "monthly",
+];
+
+/**
+ * Maps an IncomeFrequency to a CycleConfig.
+ * Returns null for frequencies that don't map to a contribution cycle type.
+ */
+function incomeFrequencyToCycleConfig(frequency: IncomeFrequency): CycleConfig | null {
+  switch (frequency) {
+    case "weekly":
+      return { type: "weekly", payDays: [] };
+    case "fortnightly":
+      return { type: "fortnightly", payDays: [] };
+    case "twice_monthly":
+      return { type: "twice_monthly", payDays: [1, 15] };
+    case "monthly":
+      return { type: "monthly", payDays: [1] };
+    case "quarterly":
+    case "annual":
+    case "custom":
+    case "irregular":
+      return null;
+  }
+}
+
+/**
+ * Resolves the active CycleConfig for engine calculations.
+ *
+ * Priority:
+ * 1. User's explicit contributionCycleType + contributionPayDays
+ * 2. Derive from the most frequent non-irregular, active income source
+ * 3. Default to monthly on the 1st
+ */
+export function resolveCycleConfig(
+  user: CycleUserInput,
+  incomeSources: CycleIncomeInput[],
+): CycleConfig {
+  // 1. Explicit user setting
+  if (user.contributionCycleType !== null) {
+    const type = user.contributionCycleType as CycleConfig["type"];
+    const payDays = user.contributionPayDays.length > 0
+      ? user.contributionPayDays
+      : type === "twice_monthly"
+        ? [1, 15]
+        : type === "monthly"
+          ? [1]
+          : [];
+    return { type, payDays };
+  }
+
+  // 2. Auto-detect from income sources
+  const eligible = incomeSources.filter(
+    (s) => s.isActive && !s.isPaused && !s.isIrregular,
+  );
+
+  let bestPriority = FREQUENCY_PRIORITY.length; // sentinel: worse than any valid
+  let bestConfig: CycleConfig | null = null;
+
+  for (const source of eligible) {
+    const idx = FREQUENCY_PRIORITY.indexOf(source.frequency);
+    if (idx !== -1 && idx < bestPriority) {
+      bestPriority = idx;
+      bestConfig = incomeFrequencyToCycleConfig(source.frequency);
+    }
+  }
+
+  if (bestConfig) {
+    return bestConfig;
+  }
+
+  // 3. Fallback
+  return { type: "monthly", payDays: [1] };
 }
 
 /**

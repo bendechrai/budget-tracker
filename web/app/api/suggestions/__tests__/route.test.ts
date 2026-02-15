@@ -151,11 +151,21 @@ describe("GET /api/suggestions", () => {
       {
         id: "sug_1",
         vendorPattern: "Netflix",
+        confidence: "high",
+        detectedAmount: 14.99,
+        detectedAmountMin: null,
+        detectedAmountMax: null,
+        createdAt: new Date("2024-03-01"),
         suggestionTransactions: [],
       },
       {
         id: "sug_2",
         vendorPattern: "Spotify",
+        confidence: "high",
+        detectedAmount: 9.99,
+        detectedAmountMin: null,
+        detectedAmountMax: null,
+        createdAt: new Date("2024-03-01"),
         suggestionTransactions: [],
       },
     ];
@@ -168,15 +178,94 @@ describe("GET /api/suggestions", () => {
     expect(data.count).toBe(2);
   });
 
-  it("orders suggestions by createdAt desc", async () => {
+  it("orders suggestions by confidence then createdAt desc", async () => {
     await GET();
 
     expect(mockSuggestionFindMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        orderBy: {
-          createdAt: "desc",
-        },
+        orderBy: [
+          { confidence: "asc" },
+          { createdAt: "desc" },
+        ],
       })
     );
+  });
+
+  it("sorts by amount consistency within same confidence tier", async () => {
+    const now = new Date("2024-03-01");
+    const mockSuggestions = [
+      {
+        id: "sug_variable",
+        confidence: "high",
+        detectedAmount: 100,
+        detectedAmountMin: 68,
+        detectedAmountMax: 132,
+        createdAt: now,
+        suggestionTransactions: [],
+      },
+      {
+        id: "sug_fixed",
+        confidence: "high",
+        detectedAmount: 14.99,
+        detectedAmountMin: null,
+        detectedAmountMax: null,
+        createdAt: now,
+        suggestionTransactions: [],
+      },
+      {
+        id: "sug_narrow",
+        confidence: "high",
+        detectedAmount: 50,
+        detectedAmountMin: 48,
+        detectedAmountMax: 52,
+        createdAt: now,
+        suggestionTransactions: [],
+      },
+    ];
+    mockSuggestionFindMany.mockResolvedValue(mockSuggestions);
+
+    const res = await GET();
+    const data = await res.json();
+
+    // Fixed amount first, then narrow range (8%), then wide range (64%)
+    expect(data.suggestions.map((s: { id: string }) => s.id)).toEqual([
+      "sug_fixed",
+      "sug_narrow",
+      "sug_variable",
+    ]);
+  });
+
+  it("sorts lower confidence after higher regardless of amount consistency", async () => {
+    const now = new Date("2024-03-01");
+    const mockSuggestions = [
+      {
+        id: "sug_medium_fixed",
+        confidence: "medium",
+        detectedAmount: 10,
+        detectedAmountMin: null,
+        detectedAmountMax: null,
+        createdAt: now,
+        suggestionTransactions: [],
+      },
+      {
+        id: "sug_high_variable",
+        confidence: "high",
+        detectedAmount: 100,
+        detectedAmountMin: 80,
+        detectedAmountMax: 120,
+        createdAt: now,
+        suggestionTransactions: [],
+      },
+    ];
+    mockSuggestionFindMany.mockResolvedValue(mockSuggestions);
+
+    const res = await GET();
+    const data = await res.json();
+
+    // High confidence first even though it has variable amount
+    expect(data.suggestions.map((s: { id: string }) => s.id)).toEqual([
+      "sug_high_variable",
+      "sug_medium_fixed",
+    ]);
   });
 });

@@ -47,6 +47,7 @@ flowchart TD
   - **Accept**: creates an income source or obligation with the detected parameters
   - **Tweak**: opens a pre-filled form where the user can adjust any field before saving
   - **Dismiss**: hides the suggestion; same pattern won't be re-suggested unless significant new transaction data strengthens the case
+- Suggestions are sorted by confidence (high first, then medium, then low), with newest first within each confidence level
 - Suggestions feed is accessible via a nav item with a badge showing the count of pending suggestions
 - High-confidence suggestions may also appear as smart nudge cards on the dashboard
 - Already-tracked income sources and obligations are not re-suggested (matched by vendor pattern and amount similarity)
@@ -80,4 +81,5 @@ flowchart TD
 - [ ] Nav shows badge count for pending suggestions
 - [ ] High-confidence suggestions appear as dashboard nudge cards
 - [ ] Already-tracked patterns are excluded from suggestions
+- [x] Suggestions are sorted by confidence (high first), then by recency
 - [ ] Fuzzy vendor name matching works across common variations

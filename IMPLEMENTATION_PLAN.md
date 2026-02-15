@@ -726,6 +726,12 @@
 
 ## Completed (continued 4)
 
+- [x] **Add cycle auto-detection from income sources**
+  - Files: `web/lib/engine/calculate.ts`
+  - Spec: `specs/07a-cycle-auto-detection.md`
+  - Acceptance: New `resolveCycleConfig(user, incomeSources)` function. Priority: (1) user's explicit `contributionCycleType` + `contributionPayDays`, (2) derive from most frequent non-irregular income source, (3) default to monthly on the 1st. Maps income frequency to cycle type.
+  - Tests: Unit tests: explicit user config used, auto-detect from weekly income, auto-detect from twice-monthly income, fallback to monthly when no income
+
 - [x] **Add "Twice monthly" option to income source form**
   - Files: `web/app/(app)/income/IncomeForm.tsx`
   - Spec: `specs/03a-twice-monthly-frequency.md`
@@ -761,12 +767,6 @@
   - Spec: `specs/07a-cycle-auto-detection.md`
   - Acceptance: New `countCyclesBetween(start, due, cycleType, payDays)` function. Weekly/fortnightly use day division (7/14). Twice-monthly counts actual pay date occurrences with end-of-month clamping. Monthly counts month occurrences. Returns at least 1 for future dates. `getCyclesUntilDue()` removed. `calculateContributions()` uses new function via `CycleConfig`.
   - Tests: Unit tests: weekly counts, fortnightly counts, twice-monthly Feb edge case (2 cycles not 1), monthly counts, end-of-month clamping (pay day 30 in Feb → 28th)
-
-- [ ] **Add cycle auto-detection from income sources**
-  - Files: `web/lib/engine/calculate.ts`
-  - Spec: `specs/07a-cycle-auto-detection.md`
-  - Acceptance: New `resolveCycleConfig(user, incomeSources)` function. Priority: (1) user's explicit `contributionCycleType` + `contributionPayDays`, (2) derive from most frequent non-irregular income source, (3) default to monthly on the 1st. Maps income frequency to cycle type.
-  - Tests: Unit tests: explicit user config used, auto-detect from weekly income, auto-detect from twice-monthly income, fallback to monthly when no income
 
 - [ ] **Update `EngineInput` to accept `CycleConfig` instead of `contributionCycleDays`**
   - Files: `web/lib/engine/calculate.ts`

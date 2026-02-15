@@ -5,6 +5,9 @@ import {
   calculateWithWhatIf,
   countCyclesBetween,
   getNextDueDateAfter,
+  resolveCycleConfig,
+  type CycleIncomeInput,
+  type CycleUserInput,
   type ObligationInput,
   type WhatIfOverrides,
 } from "../calculate";
@@ -1470,6 +1473,191 @@ describe("escalation integration", () => {
       });
 
       expect(result.contributions[0].amountNeeded).toBe(1000);
+    });
+  });
+});
+
+describe("resolveCycleConfig", () => {
+  function makeUser(overrides: Partial<CycleUserInput> = {}): CycleUserInput {
+    return {
+      contributionCycleType: null,
+      contributionPayDays: [],
+      ...overrides,
+    };
+  }
+
+  function makeIncome(overrides: Partial<CycleIncomeInput> = {}): CycleIncomeInput {
+    return {
+      frequency: "monthly",
+      isIrregular: false,
+      isActive: true,
+      isPaused: false,
+      ...overrides,
+    };
+  }
+
+  describe("explicit user config used", () => {
+    it("uses user's explicit weekly cycle type", () => {
+      const result = resolveCycleConfig(
+        makeUser({ contributionCycleType: "weekly" }),
+        [],
+      );
+      expect(result).toEqual({ type: "weekly", payDays: [] });
+    });
+
+    it("uses user's explicit fortnightly cycle type", () => {
+      const result = resolveCycleConfig(
+        makeUser({ contributionCycleType: "fortnightly" }),
+        [],
+      );
+      expect(result).toEqual({ type: "fortnightly", payDays: [] });
+    });
+
+    it("uses user's explicit twice_monthly with custom pay days", () => {
+      const result = resolveCycleConfig(
+        makeUser({ contributionCycleType: "twice_monthly", contributionPayDays: [5, 20] }),
+        [],
+      );
+      expect(result).toEqual({ type: "twice_monthly", payDays: [5, 20] });
+    });
+
+    it("uses default pay days [1, 15] for twice_monthly when no pay days set", () => {
+      const result = resolveCycleConfig(
+        makeUser({ contributionCycleType: "twice_monthly", contributionPayDays: [] }),
+        [],
+      );
+      expect(result).toEqual({ type: "twice_monthly", payDays: [1, 15] });
+    });
+
+    it("uses user's explicit monthly with custom pay day", () => {
+      const result = resolveCycleConfig(
+        makeUser({ contributionCycleType: "monthly", contributionPayDays: [25] }),
+        [],
+      );
+      expect(result).toEqual({ type: "monthly", payDays: [25] });
+    });
+
+    it("uses default pay day [1] for monthly when no pay days set", () => {
+      const result = resolveCycleConfig(
+        makeUser({ contributionCycleType: "monthly", contributionPayDays: [] }),
+        [],
+      );
+      expect(result).toEqual({ type: "monthly", payDays: [1] });
+    });
+
+    it("explicit user config overrides income sources", () => {
+      const result = resolveCycleConfig(
+        makeUser({ contributionCycleType: "monthly", contributionPayDays: [15] }),
+        [makeIncome({ frequency: "weekly" })],
+      );
+      expect(result).toEqual({ type: "monthly", payDays: [15] });
+    });
+  });
+
+  describe("auto-detect from income sources", () => {
+    it("detects weekly from weekly income", () => {
+      const result = resolveCycleConfig(
+        makeUser(),
+        [makeIncome({ frequency: "weekly" })],
+      );
+      expect(result).toEqual({ type: "weekly", payDays: [] });
+    });
+
+    it("detects fortnightly from fortnightly income", () => {
+      const result = resolveCycleConfig(
+        makeUser(),
+        [makeIncome({ frequency: "fortnightly" })],
+      );
+      expect(result).toEqual({ type: "fortnightly", payDays: [] });
+    });
+
+    it("detects twice_monthly from twice-monthly income", () => {
+      const result = resolveCycleConfig(
+        makeUser(),
+        [makeIncome({ frequency: "twice_monthly" })],
+      );
+      expect(result).toEqual({ type: "twice_monthly", payDays: [1, 15] });
+    });
+
+    it("detects monthly from monthly income", () => {
+      const result = resolveCycleConfig(
+        makeUser(),
+        [makeIncome({ frequency: "monthly" })],
+      );
+      expect(result).toEqual({ type: "monthly", payDays: [1] });
+    });
+
+    it("picks shortest frequency when multiple income sources exist", () => {
+      const result = resolveCycleConfig(
+        makeUser(),
+        [
+          makeIncome({ frequency: "monthly" }),
+          makeIncome({ frequency: "weekly" }),
+          makeIncome({ frequency: "fortnightly" }),
+        ],
+      );
+      expect(result).toEqual({ type: "weekly", payDays: [] });
+    });
+
+    it("ignores irregular income sources", () => {
+      const result = resolveCycleConfig(
+        makeUser(),
+        [
+          makeIncome({ frequency: "irregular", isIrregular: true }),
+          makeIncome({ frequency: "monthly" }),
+        ],
+      );
+      expect(result).toEqual({ type: "monthly", payDays: [1] });
+    });
+
+    it("ignores inactive income sources", () => {
+      const result = resolveCycleConfig(
+        makeUser(),
+        [
+          makeIncome({ frequency: "weekly", isActive: false }),
+          makeIncome({ frequency: "monthly" }),
+        ],
+      );
+      expect(result).toEqual({ type: "monthly", payDays: [1] });
+    });
+
+    it("ignores paused income sources", () => {
+      const result = resolveCycleConfig(
+        makeUser(),
+        [
+          makeIncome({ frequency: "weekly", isPaused: true }),
+          makeIncome({ frequency: "monthly" }),
+        ],
+      );
+      expect(result).toEqual({ type: "monthly", payDays: [1] });
+    });
+
+    it("ignores quarterly/annual/custom frequencies (no cycle type mapping)", () => {
+      const result = resolveCycleConfig(
+        makeUser(),
+        [
+          makeIncome({ frequency: "quarterly" }),
+          makeIncome({ frequency: "annual" }),
+          makeIncome({ frequency: "custom" }),
+        ],
+      );
+      // Falls through to default
+      expect(result).toEqual({ type: "monthly", payDays: [1] });
+    });
+  });
+
+  describe("fallback to monthly on the 1st", () => {
+    it("defaults when no income and no user override", () => {
+      const result = resolveCycleConfig(makeUser(), []);
+      expect(result).toEqual({ type: "monthly", payDays: [1] });
+    });
+
+    it("defaults when all income sources are irregular", () => {
+      const result = resolveCycleConfig(
+        makeUser(),
+        [makeIncome({ frequency: "irregular", isIrregular: true })],
+      );
+      expect(result).toEqual({ type: "monthly", payDays: [1] });
     });
   });
 });

@@ -100,6 +100,14 @@ export default function ImportPage() {
     }
 
     setSummaries(results);
+
+    // Trigger pattern detection on newly imported transactions
+    if (results.length > 0) {
+      fetch("/api/patterns/detect", { method: "POST" }).catch(() => {
+        // Detection failure is non-blocking — suggestions just won't update
+      });
+    }
+
     setUploadProgress("");
     setUploading(false);
   }, []);

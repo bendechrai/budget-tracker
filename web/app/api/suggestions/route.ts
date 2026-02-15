@@ -30,9 +30,28 @@ export async function GET(): Promise<NextResponse> {
           },
         },
       },
-      orderBy: {
-        createdAt: "desc",
-      },
+      orderBy: [
+        { confidence: "asc" },
+        { createdAt: "desc" },
+      ],
+    });
+
+    // Within each confidence tier, sort by amount consistency:
+    // fixed-amount suggestions first, then by ascending range spread %
+    const confidenceOrder: Record<string, number> = { high: 0, medium: 1, low: 2 };
+    suggestions.sort((a, b) => {
+      const confDiff = (confidenceOrder[a.confidence] ?? 3) - (confidenceOrder[b.confidence] ?? 3);
+      if (confDiff !== 0) return confDiff;
+
+      const spreadA = a.detectedAmountMin != null && a.detectedAmountMax != null && a.detectedAmount > 0
+        ? (a.detectedAmountMax - a.detectedAmountMin) / a.detectedAmount
+        : 0;
+      const spreadB = b.detectedAmountMin != null && b.detectedAmountMax != null && b.detectedAmount > 0
+        ? (b.detectedAmountMax - b.detectedAmountMin) / b.detectedAmount
+        : 0;
+      if (spreadA !== spreadB) return spreadA - spreadB;
+
+      return b.createdAt.getTime() - a.createdAt.getTime();
     });
 
     return NextResponse.json({

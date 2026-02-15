@@ -19,7 +19,35 @@ const mockSuggestions = [
     confidence: "high",
     matchingTransactionCount: 6,
     status: "pending",
-    suggestionTransactions: [],
+    suggestionTransactions: [
+      {
+        transaction: {
+          id: "t1",
+          date: "2025-12-01",
+          description: "NETFLIX.COM",
+          amount: 22.99,
+          type: "expense",
+        },
+      },
+      {
+        transaction: {
+          id: "t2",
+          date: "2025-11-01",
+          description: "NETFLIX.COM",
+          amount: 22.99,
+          type: "expense",
+        },
+      },
+      {
+        transaction: {
+          id: "t3",
+          date: "2025-10-01",
+          description: "NETFLIX.COM",
+          amount: 22.99,
+          type: "expense",
+        },
+      },
+    ],
   },
   {
     id: "s2",
@@ -32,7 +60,67 @@ const mockSuggestions = [
     confidence: "medium",
     matchingTransactionCount: 3,
     status: "pending",
-    suggestionTransactions: [],
+    suggestionTransactions: [
+      {
+        transaction: {
+          id: "t4",
+          date: "2025-12-15",
+          description: "EMPLOYER INC PAYROLL",
+          amount: 5000,
+          type: "income",
+        },
+      },
+      {
+        transaction: {
+          id: "t5",
+          date: "2025-11-15",
+          description: "EMPLOYER INC PAYROLL",
+          amount: 4800,
+          type: "income",
+        },
+      },
+    ],
+  },
+  {
+    id: "s3",
+    type: "expense",
+    vendorPattern: "Random Shop",
+    detectedAmount: 50,
+    detectedAmountMin: 30,
+    detectedAmountMax: 80,
+    detectedFrequency: "irregular",
+    confidence: "low",
+    matchingTransactionCount: 3,
+    status: "pending",
+    suggestionTransactions: [
+      {
+        transaction: {
+          id: "t6",
+          date: "2025-12-20",
+          description: "RANDOM SHOP",
+          amount: 80,
+          type: "expense",
+        },
+      },
+      {
+        transaction: {
+          id: "t7",
+          date: "2025-11-01",
+          description: "RANDOM SHOP",
+          amount: 30,
+          type: "expense",
+        },
+      },
+      {
+        transaction: {
+          id: "t8",
+          date: "2025-09-13",
+          description: "RANDOM SHOP",
+          amount: 50,
+          type: "expense",
+        },
+      },
+    ],
   },
 ];
 
@@ -73,12 +161,12 @@ describe("SuggestionsPage", () => {
     expect(screen.getByText("Employer Inc")).toBeDefined();
     expect(screen.getByText("$22.99")).toBeDefined();
     expect(screen.getByText("$4800.00 – $5200.00")).toBeDefined();
-    expect(screen.getByText("Expense")).toBeDefined();
+    expect(screen.getAllByText("Expense")).toHaveLength(2);
     expect(screen.getByText("Income")).toBeDefined();
     expect(screen.getByText("high confidence")).toBeDefined();
     expect(screen.getByText("medium confidence")).toBeDefined();
-    expect(screen.getByText("6 transactions")).toBeDefined();
-    expect(screen.getByText("3 transactions")).toBeDefined();
+    expect(screen.getByText(/6 transactions/)).toBeDefined();
+    expect(screen.getAllByText(/3 transactions/)).toHaveLength(2);
   });
 
   it("shows empty state when no suggestions exist", async () => {
@@ -261,7 +349,7 @@ describe("SuggestionsPage", () => {
       expect(screen.queryByLabelText("Name")).toBeNull();
     });
 
-    expect(screen.getAllByRole("button", { name: "Tweak" })).toHaveLength(2);
+    expect(screen.getAllByRole("button", { name: "Tweak" })).toHaveLength(3);
   });
 
   it("shows the page title", async () => {
@@ -307,7 +395,7 @@ describe("SuggestionsPage", () => {
 
   it("displays frequency labels correctly", async () => {
     vi.mocked(global.fetch).mockResolvedValueOnce(
-      mockFetchResponse({ suggestions: mockSuggestions, count: 2 })
+      mockFetchResponse({ suggestions: mockSuggestions, count: 3 })
     );
 
     render(<SuggestionsPage />);
@@ -315,5 +403,95 @@ describe("SuggestionsPage", () => {
     await waitFor(() => {
       expect(screen.getAllByText("Monthly")).toHaveLength(2);
     });
+
+    expect(screen.getByText("Irregular")).toBeDefined();
+  });
+
+  it("expands transaction list when clicking toggle button", async () => {
+    const user = userEvent.setup();
+    vi.mocked(global.fetch).mockResolvedValueOnce(
+      mockFetchResponse({ suggestions: mockSuggestions, count: 3 })
+    );
+
+    render(<SuggestionsPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Netflix")).toBeDefined();
+    });
+
+    const toggleButton = screen.getByRole("button", {
+      name: /Toggle transactions for Netflix/,
+    });
+    await user.click(toggleButton);
+
+    expect(screen.getAllByText("NETFLIX.COM")).toHaveLength(3);
+    expect(screen.getByText("Oct 1, 2025")).toBeDefined();
+    expect(screen.getByText("Nov 1, 2025")).toBeDefined();
+    expect(screen.getByText("Dec 1, 2025")).toBeDefined();
+  });
+
+  it("collapses transaction list when clicking toggle again", async () => {
+    const user = userEvent.setup();
+    vi.mocked(global.fetch).mockResolvedValueOnce(
+      mockFetchResponse({ suggestions: mockSuggestions, count: 3 })
+    );
+
+    render(<SuggestionsPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Netflix")).toBeDefined();
+    });
+
+    const toggleButton = screen.getByRole("button", {
+      name: /Toggle transactions for Netflix/,
+    });
+
+    await user.click(toggleButton);
+    expect(screen.getAllByText("NETFLIX.COM")).toHaveLength(3);
+
+    await user.click(toggleButton);
+    expect(screen.queryByText("NETFLIX.COM")).toBeNull();
+  });
+
+  it("shows cadence for irregular frequency suggestions", async () => {
+    const user = userEvent.setup();
+    vi.mocked(global.fetch).mockResolvedValueOnce(
+      mockFetchResponse({ suggestions: mockSuggestions, count: 3 })
+    );
+
+    render(<SuggestionsPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Random Shop")).toBeDefined();
+    });
+
+    const toggleButton = screen.getByRole("button", {
+      name: /Toggle transactions for Random Shop/,
+    });
+    await user.click(toggleButton);
+
+    expect(screen.getByText("RANDOM SHOP")).toBeDefined();
+    expect(screen.getByText(/~every 7 weeks/)).toBeDefined();
+  });
+
+  it("does not show cadence for regular frequency suggestions", async () => {
+    const user = userEvent.setup();
+    vi.mocked(global.fetch).mockResolvedValueOnce(
+      mockFetchResponse({ suggestions: mockSuggestions, count: 3 })
+    );
+
+    render(<SuggestionsPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Netflix")).toBeDefined();
+    });
+
+    const toggleButton = screen.getByRole("button", {
+      name: /Toggle transactions for Netflix/,
+    });
+    await user.click(toggleButton);
+
+    expect(screen.getAllByText("NETFLIX.COM")).toHaveLength(3);
+    expect(screen.queryByText(/~every/)).toBeNull();
   });
 });

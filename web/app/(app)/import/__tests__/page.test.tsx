@@ -58,7 +58,9 @@ function createMockFile(name: string, content: string): File {
 describe("ImportPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    global.fetch = vi.fn();
+    global.fetch = vi.fn().mockResolvedValue(
+      new Response("{}", { status: 200, headers: { "Content-Type": "application/json" } })
+    );
   });
 
   afterEach(() => {
@@ -203,6 +205,9 @@ describe("ImportPage", () => {
         })
       )
       .mockResolvedValueOnce(
+        new Response("{}", { status: 200, headers: { "Content-Type": "application/json" } })
+      ) // pattern detect (fire-and-forget)
+      .mockResolvedValueOnce(
         new Response(JSON.stringify({ resolved: 1, kept: 1, skipped: 0 }), {
           status: 200,
           headers: { "Content-Type": "application/json" },
@@ -228,10 +233,58 @@ describe("ImportPage", () => {
       expect(screen.queryByText("Review flagged transactions")).toBeNull();
     });
 
-    // Verify resolve API was called
-    expect(global.fetch).toHaveBeenCalledTimes(2);
-    const resolveCall = vi.mocked(global.fetch).mock.calls[1];
+    // Verify resolve API was called (upload + pattern detect + resolve = 3)
+    expect(global.fetch).toHaveBeenCalledTimes(3);
+    const resolveCall = vi.mocked(global.fetch).mock.calls[2];
     expect(resolveCall[0]).toBe("/api/import/resolve");
+  });
+
+  it("calls /api/patterns/detect after successful upload", async () => {
+    const user = userEvent.setup();
+    vi.mocked(global.fetch).mockResolvedValueOnce(
+      new Response(JSON.stringify(mockSummaryNoFlagged), {
+        status: 201,
+        headers: { "Content-Type": "application/json" },
+      })
+    );
+
+    render(<ImportPage />);
+
+    const input = screen.getByTestId("file-input") as HTMLInputElement;
+    const file = createMockFile("statement.ofx", "<OFX>data</OFX>");
+    await user.upload(input, file);
+
+    await waitFor(() => {
+      expect(screen.getByText("Import Complete")).toBeDefined();
+    });
+
+    expect(global.fetch).toHaveBeenCalledTimes(2);
+    const detectCall = vi.mocked(global.fetch).mock.calls[1];
+    expect(detectCall[0]).toBe("/api/patterns/detect");
+    expect(detectCall[1]).toEqual({ method: "POST" });
+  });
+
+  it("does not call /api/patterns/detect when upload fails", async () => {
+    const user = userEvent.setup();
+    vi.mocked(global.fetch).mockResolvedValueOnce(
+      new Response(JSON.stringify({ error: "unsupported file format" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      })
+    );
+
+    render(<ImportPage />);
+
+    const input = screen.getByTestId("file-input") as HTMLInputElement;
+    const file = createMockFile("test.csv", "bad,data");
+    await user.upload(input, file);
+
+    await waitFor(() => {
+      expect(screen.getByRole("alert")).toBeDefined();
+    });
+
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(global.fetch).mock.calls[0][0]).toBe("/api/import/upload");
   });
 
   it("shows error when upload fails", async () => {
@@ -291,6 +344,9 @@ describe("ImportPage", () => {
           headers: { "Content-Type": "application/json" },
         })
       )
+      .mockResolvedValueOnce(
+        new Response("{}", { status: 200, headers: { "Content-Type": "application/json" } })
+      ) // pattern detect (fire-and-forget)
       .mockResolvedValueOnce(
         new Response(JSON.stringify({ error: "internal server error" }), {
           status: 500,
