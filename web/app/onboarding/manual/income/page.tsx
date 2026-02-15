@@ -12,6 +12,15 @@ interface IncomeEntry {
   frequency: string;
 }
 
+const FREQUENCY_LABELS: Record<string, string> = {
+  weekly: "Weekly",
+  fortnightly: "Fortnightly",
+  twice_monthly: "Twice monthly",
+  monthly: "Monthly",
+  quarterly: "Quarterly",
+  annually: "Annually",
+};
+
 export default function OnboardingManualIncomePage() {
   const router = useRouter();
   const [entries, setEntries] = useState<IncomeEntry[]>([]);
@@ -65,7 +74,7 @@ export default function OnboardingManualIncomePage() {
                 <div className={incomeStyles.listItemInfo}>
                   <span className={incomeStyles.listItemName}>{entry.name}</span>
                   <span className={incomeStyles.listItemDetail}>
-                    ${entry.amount} / {entry.frequency}
+                    ${entry.amount} / {FREQUENCY_LABELS[entry.frequency] ?? entry.frequency}
                   </span>
                 </div>
                 <button

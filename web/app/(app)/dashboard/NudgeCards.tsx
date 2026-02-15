@@ -20,6 +20,7 @@ interface Suggestion {
 const FREQUENCY_LABELS: Record<string, string> = {
   weekly: "weekly",
   fortnightly: "fortnightly",
+  twice_monthly: "twice-monthly",
   monthly: "monthly",
   quarterly: "quarterly",
   annual: "annual",

@@ -21,6 +21,7 @@ interface IncomeSource {
 const FREQUENCY_LABELS: Record<string, string> = {
   weekly: "Weekly",
   fortnightly: "Fortnightly",
+  twice_monthly: "Twice monthly",
   monthly: "Monthly",
   quarterly: "Quarterly",
   annual: "Annual",

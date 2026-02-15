@@ -113,6 +113,7 @@ export default function HypotheticalForm({ onAdd, onCancel }: HypotheticalFormPr
             <option value="">Select...</option>
             <option value="weekly">Weekly</option>
             <option value="fortnightly">Fortnightly</option>
+            <option value="twice_monthly">Twice monthly</option>
             <option value="monthly">Monthly</option>
             <option value="quarterly">Quarterly</option>
             <option value="annual">Annual</option>
