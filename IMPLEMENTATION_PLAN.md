@@ -724,7 +724,7 @@
 
 ### Spec 03a — Add twice-monthly income frequency
 
-- [ ] **Add "Twice monthly" option to onboarding manual income form**
+- [x] **Add "Twice monthly" option to onboarding manual income form**
   - Files: `web/app/onboarding/manual/income/page.tsx`
   - Spec: `specs/03a-twice-monthly-frequency.md`
   - Acceptance: Onboarding income form frequency dropdown includes "Twice monthly" option.

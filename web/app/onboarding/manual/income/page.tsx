@@ -131,6 +131,7 @@ export default function OnboardingManualIncomePage() {
               >
                 <option value="weekly">Weekly</option>
                 <option value="fortnightly">Fortnightly</option>
+                <option value="twice_monthly">Twice monthly</option>
                 <option value="monthly">Monthly</option>
                 <option value="quarterly">Quarterly</option>
                 <option value="annually">Annually</option>

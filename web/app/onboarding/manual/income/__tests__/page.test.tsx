@@ -134,4 +134,17 @@ describe("OnboardingManualIncomePage", () => {
 
     expect(screen.getByText("$2000 / weekly")).toBeDefined();
   });
+
+  it("renders 'Twice monthly' option in frequency dropdown", () => {
+    render(<OnboardingManualIncomePage />);
+
+    const frequencySelect = screen.getByLabelText("Frequency") as HTMLSelectElement;
+    const options = Array.from(frequencySelect.options).map((o) => o.value);
+    expect(options).toContain("twice_monthly");
+
+    const twiceMonthlyOption = Array.from(frequencySelect.options).find(
+      (o) => o.value === "twice_monthly"
+    );
+    expect(twiceMonthlyOption?.textContent).toBe("Twice monthly");
+  });
 });
