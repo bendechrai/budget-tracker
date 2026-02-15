@@ -697,23 +697,30 @@
   - Acceptance: When parse API returns the missing-API-key error type, AIBar displays "AI features require an API key — you can still use the app normally" instead of a generic error. Message is persistent (not dismissed on next input). Rest of app continues to function. SparkleButton preset actions (which generate structured intents directly) still work without API key.
   - Tests: Component test: missing API key error shows friendly message; app remains usable
 
-## In Progress
-
-- [ ] **Add `twice_monthly` to `IncomeFrequency` enum with Prisma migration**
+- [x] **Add `twice_monthly` to `IncomeFrequency` enum with Prisma migration**
   - Files: `web/prisma/schema.prisma`, new migration
   - Spec: `specs/03a-twice-monthly-frequency.md`
   - Acceptance: `IncomeFrequency` enum includes `twice_monthly`. Migration applies cleanly without data loss. Prisma generate succeeds.
   - Tests: Migration applies; Prisma generate succeeds
 
-## Backlog
-
-### Spec 03a — Add twice-monthly income frequency
-
-- [ ] **Add `twice_monthly` mapping in engine `frequencyToDays()`**
+- [x] **Add `twice_monthly` mapping in engine `frequencyToDays()`**
   - Files: `web/lib/engine/calculate.ts`
   - Spec: `specs/03a-twice-monthly-frequency.md`
   - Acceptance: `frequencyToDays("twice_monthly", null)` returns `15`. No other frequency mappings change.
   - Tests: Unit test: `frequencyToDays("twice_monthly", null)` returns 15
+  - Note: Completed alongside enum migration because tsc required exhaustive switch coverage.
+
+## In Progress
+
+## Backlog
+
+### Spec 03a — Add twice-monthly income frequency
+
+- [ ] **Add "Twice monthly" option to income source form**
+  - Files: `web/app/(app)/income/IncomeForm.tsx`
+  - Spec: `specs/03a-twice-monthly-frequency.md`
+  - Acceptance: Frequency dropdown includes "Twice monthly" as an option between "Fortnightly" and "Monthly". Selecting it sets frequency to `twice_monthly`.
+  - Tests: Component test: "Twice monthly" option renders in frequency dropdown
 
 - [ ] **Add "Twice monthly" option to income source form**
   - Files: `web/app/(app)/income/IncomeForm.tsx`

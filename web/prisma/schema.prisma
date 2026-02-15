@@ -41,6 +41,7 @@ model User {
 enum IncomeFrequency {
   weekly
   fortnightly
+  twice_monthly
   monthly
   quarterly
   annual

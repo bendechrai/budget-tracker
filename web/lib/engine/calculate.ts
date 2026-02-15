@@ -101,6 +101,8 @@ function frequencyToDays(
       return 7;
     case "fortnightly":
       return 14;
+    case "twice_monthly":
+      return 15;
     case "monthly":
       return 30;
     case "quarterly":
