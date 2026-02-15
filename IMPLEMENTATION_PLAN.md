@@ -866,7 +866,7 @@
   - Acceptance: Account section with "Export data" button (triggers download) and "Delete account" button (requires typing "DELETE" to confirm). Export calls POST /api/user/export. Delete calls DELETE /api/user/account and redirects to landing page.
   - Tests: Component test: export button triggers download, delete requires confirmation, delete redirects
 
-- [ ] **Add Settings link to navigation**
+- [x] **Add Settings link to navigation**
   - Files: `web/app/components/Nav.tsx`
   - Spec: `specs/13-settings.md`
   - Acceptance: Nav component includes a "Settings" link that navigates to `/settings`. Highlights when active.

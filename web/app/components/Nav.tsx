@@ -16,6 +16,7 @@ export default function Nav() {
     { href: "/import", label: "Import" },
     { href: "/transactions", label: "Transactions" },
     { href: "/suggestions", label: "Suggestions" },
+    { href: "/settings", label: "Settings" },
   ];
 
   return (

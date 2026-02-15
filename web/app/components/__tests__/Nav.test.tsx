@@ -53,6 +53,7 @@ describe("Nav", () => {
     expect(screen.getByText("Import")).toBeDefined();
     expect(screen.getByText("Transactions")).toBeDefined();
     expect(screen.getByText("Suggestions")).toBeDefined();
+    expect(screen.getByText("Settings")).toBeDefined();
   });
 
   it("shows badge when pending suggestions count is greater than 0", () => {
@@ -109,5 +110,16 @@ describe("Nav", () => {
 
     const dashboardLink = screen.getByText("Dashboard").closest("a");
     expect(dashboardLink?.getAttribute("aria-current")).toBeNull();
+  });
+
+  it("Settings link renders and highlights when active", () => {
+    vi.mocked(usePathname).mockReturnValue("/settings");
+
+    render(<Nav />);
+
+    const settingsLink = screen.getByText("Settings").closest("a");
+    expect(settingsLink).toBeDefined();
+    expect(settingsLink?.getAttribute("href")).toBe("/settings");
+    expect(settingsLink?.getAttribute("aria-current")).toBe("page");
   });
 });
