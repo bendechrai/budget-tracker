@@ -874,7 +874,7 @@
 
 ### Spec 14 — Contributions & catch-up
 
-- [ ] **Add `POST /api/contributions/bulk` route for lump sum**
+- [x] **Add `POST /api/contributions/bulk` route for lump sum**
   - Files: `web/app/api/contributions/bulk/route.ts`
   - Spec: `specs/14-contributions.md`
   - Acceptance: Accepts array of `{ obligationId, amount }`. Creates ContributionRecord for each with type `contribution` and note "Lump sum catch-up". Updates FundBalance for each. Triggers one engine recalculation at the end. Validates: all obligations belong to user, no zero amounts. Returns 201 with updated balances.
