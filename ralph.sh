@@ -32,8 +32,10 @@ gather_status() {
   echo "--- TASK PROGRESS ---"
   if [[ -f "$PLAN" ]]; then
     local completed backlog total pct
-    completed=$(grep -c '^\- \[x\]' "$PLAN" 2>/dev/null || echo 0)
-    backlog=$(grep -c '^\- \[ \]' "$PLAN" 2>/dev/null || echo 0)
+    completed=$(grep -c '^\- \[x\]' "$PLAN" 2>/dev/null || true)
+    completed=${completed:-0}
+    backlog=$(grep -c '^\- \[ \]' "$PLAN" 2>/dev/null || true)
+    backlog=${backlog:-0}
     total=$((completed + backlog))
     if [[ $total -gt 0 ]]; then
       pct=$((completed * 100 / total))
@@ -118,7 +120,8 @@ gather_status() {
   echo "--- FILES CHANGED BY RALPH ---"
   local ralph_files ralph_file_count
   ralph_files=$(git -C "$ROOT" log --author="Ralph" --pretty=format: --name-only 2>/dev/null | sort -u | grep -v '^$' || true)
-  ralph_file_count=$(echo "$ralph_files" | grep -c . 2>/dev/null || echo 0)
+  ralph_file_count=$(echo "$ralph_files" | grep -c . 2>/dev/null || true)
+  ralph_file_count=${ralph_file_count:-0}
   echo "total_files_touched: $ralph_file_count"
   echo "$ralph_files" | head -30 | sed 's/^/  /'
   if [[ $ralph_file_count -gt 30 ]]; then
