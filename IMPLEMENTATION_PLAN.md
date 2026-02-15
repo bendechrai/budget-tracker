@@ -854,7 +854,7 @@
   - Acceptance: Hard-deletes all user data (cascade). Requires confirmation token ("DELETE" string). Clears session. Returns 200.
   - Tests: Test delete with correct confirmation (200), wrong confirmation (400), unauthenticated (401)
 
-- [ ] **Add settings page — budget preferences section**
+- [x] **Add settings page — budget preferences section**
   - Files: `web/app/(app)/settings/page.tsx` (update), `web/app/(app)/settings/settings.module.css` (update)
   - Spec: `specs/13-settings.md`
   - Acceptance: Budget section with: contribution cycle selector (weekly/fortnightly/twice monthly/monthly) showing auto-detected recommendation, currency symbol with quick picks ($, £, €, ¥, A$, NZ$) and free text input, max contribution per cycle input with clear option. Changes save via PUT /api/user/settings. Cycle changes trigger engine recalculation.

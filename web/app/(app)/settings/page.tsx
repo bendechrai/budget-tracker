@@ -4,8 +4,31 @@ import { useState, useEffect, useCallback, FormEvent } from "react";
 import { logError } from "@/lib/logging";
 import styles from "./settings.module.css";
 
+interface AutoDetectedCycle {
+  type: "weekly" | "fortnightly" | "twice_monthly" | "monthly";
+  payDays: number[];
+}
+
 interface UserSettings {
   email: string;
+  contributionCycleType: "weekly" | "fortnightly" | "twice_monthly" | "monthly" | null;
+  contributionPayDays: number[];
+  currencySymbol: string;
+  maxContributionPerCycle: number | null;
+  autoDetectedCycle: AutoDetectedCycle;
+}
+
+const CYCLE_OPTIONS: { value: string; label: string }[] = [
+  { value: "weekly", label: "Weekly" },
+  { value: "fortnightly", label: "Fortnightly" },
+  { value: "twice_monthly", label: "Twice monthly" },
+  { value: "monthly", label: "Monthly" },
+];
+
+const CURRENCY_QUICK_PICKS = ["$", "\u00a3", "\u20ac", "\u00a5", "A$", "NZ$"];
+
+function cycleLabel(type: string): string {
+  return CYCLE_OPTIONS.find((o) => o.value === type)?.label ?? type;
 }
 
 export default function SettingsPage() {
@@ -27,6 +50,11 @@ export default function SettingsPage() {
   const [passwordError, setPasswordError] = useState("");
   const [passwordSuccess, setPasswordSuccess] = useState("");
   const [passwordSubmitting, setPasswordSubmitting] = useState(false);
+
+  // Budget preferences form state
+  const [budgetError, setBudgetError] = useState("");
+  const [budgetSuccess, setBudgetSuccess] = useState("");
+  const [budgetSubmitting, setBudgetSubmitting] = useState(false);
 
   const fetchSettings = useCallback(async () => {
     try {
@@ -153,6 +181,91 @@ export default function SettingsPage() {
       setPasswordSubmitting(false);
     }
   }
+
+  async function handleBudgetSave(field: string, value: unknown) {
+    setBudgetError("");
+    setBudgetSuccess("");
+    setBudgetSubmitting(true);
+
+    try {
+      const res = await fetch("/api/user/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ [field]: value }),
+      });
+
+      if (!res.ok) {
+        const data = (await res.json()) as { error: string };
+        setBudgetError(data.error || "Failed to save");
+        return;
+      }
+
+      const data = (await res.json()) as {
+        contributionCycleType: UserSettings["contributionCycleType"];
+        contributionPayDays: number[];
+        currencySymbol: string;
+        maxContributionPerCycle: number | null;
+      };
+      setSettings((prev) =>
+        prev
+          ? {
+              ...prev,
+              contributionCycleType: data.contributionCycleType,
+              contributionPayDays: data.contributionPayDays,
+              currencySymbol: data.currencySymbol,
+              maxContributionPerCycle: data.maxContributionPerCycle,
+            }
+          : prev,
+      );
+      setBudgetSuccess("Saved");
+    } catch (err) {
+      logError("failed to save budget setting", err);
+      setBudgetError("Failed to save");
+    } finally {
+      setBudgetSubmitting(false);
+    }
+  }
+
+  function handleCycleChange(value: string) {
+    if (value === "auto") {
+      void handleBudgetSave("contributionCycleType", null);
+    } else {
+      void handleBudgetSave("contributionCycleType", value);
+    }
+  }
+
+  function handleCurrencyPick(symbol: string) {
+    void handleBudgetSave("currencySymbol", symbol);
+  }
+
+  function handleCurrencyInput(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const form = e.currentTarget;
+    const input = form.elements.namedItem("currency-custom") as HTMLInputElement;
+    const value = input.value.trim();
+    if (value) {
+      void handleBudgetSave("currencySymbol", value);
+    }
+  }
+
+  function handleMaxContributionSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const form = e.currentTarget;
+    const input = form.elements.namedItem("max-contribution") as HTMLInputElement;
+    const value = input.value.trim();
+    if (value === "") {
+      void handleBudgetSave("maxContributionPerCycle", null);
+    } else {
+      const num = parseFloat(value);
+      if (isNaN(num) || num <= 0) {
+        setBudgetError("Max contribution must be a positive number");
+        return;
+      }
+      void handleBudgetSave("maxContributionPerCycle", num);
+    }
+  }
+
+  const activeCycle = settings?.contributionCycleType ?? "auto";
 
   return (
     <div className={styles.page}>
@@ -298,6 +411,154 @@ export default function SettingsPage() {
                   {passwordSubmitting ? "Updating..." : "Update Password"}
                 </button>
               </form>
+            </div>
+
+            <div className={styles.section}>
+              <h2 className={styles.sectionTitle}>Budget Preferences</h2>
+
+              {budgetError && (
+                <div className={styles.formError} role="alert">
+                  {budgetError}
+                </div>
+              )}
+
+              {budgetSuccess && (
+                <div className={styles.formSuccess} role="status">
+                  {budgetSuccess}
+                </div>
+              )}
+
+              <div className={styles.form}>
+                <h3 className={styles.formTitle}>Contribution Cycle</h3>
+
+                {settings.autoDetectedCycle && (
+                  <p className={styles.recommendation}>
+                    Recommended: <strong>{cycleLabel(settings.autoDetectedCycle.type)}</strong> (based on your income sources)
+                  </p>
+                )}
+
+                <div className={styles.cycleOptions} role="radiogroup" aria-label="Contribution cycle">
+                  <label
+                    className={`${styles.cycleOption} ${activeCycle === "auto" ? styles.cycleOptionActive : ""}`}
+                  >
+                    <input
+                      type="radio"
+                      name="cycle"
+                      value="auto"
+                      checked={activeCycle === "auto"}
+                      onChange={() => handleCycleChange("auto")}
+                      disabled={budgetSubmitting}
+                      className={styles.radioInput}
+                    />
+                    Auto-detect
+                  </label>
+                  {CYCLE_OPTIONS.map((opt) => (
+                    <label
+                      key={opt.value}
+                      className={`${styles.cycleOption} ${activeCycle === opt.value ? styles.cycleOptionActive : ""}`}
+                    >
+                      <input
+                        type="radio"
+                        name="cycle"
+                        value={opt.value}
+                        checked={activeCycle === opt.value}
+                        onChange={() => handleCycleChange(opt.value)}
+                        disabled={budgetSubmitting}
+                        className={styles.radioInput}
+                      />
+                      {opt.label}
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div className={styles.form}>
+                <h3 className={styles.formTitle}>Currency Symbol</h3>
+
+                <div className={styles.currencyPicks}>
+                  {CURRENCY_QUICK_PICKS.map((sym) => (
+                    <button
+                      key={sym}
+                      type="button"
+                      className={`${styles.currencyPick} ${settings.currencySymbol === sym ? styles.currencyPickActive : ""}`}
+                      onClick={() => handleCurrencyPick(sym)}
+                      disabled={budgetSubmitting}
+                    >
+                      {sym}
+                    </button>
+                  ))}
+                </div>
+
+                <form
+                  className={styles.inlineForm}
+                  onSubmit={(e) => handleCurrencyInput(e)}
+                >
+                  <input
+                    id="currency-custom"
+                    name="currency-custom"
+                    className={styles.input}
+                    type="text"
+                    defaultValue={
+                      CURRENCY_QUICK_PICKS.includes(settings.currencySymbol)
+                        ? ""
+                        : settings.currencySymbol
+                    }
+                    placeholder="Custom symbol"
+                    maxLength={5}
+                  />
+                  <button
+                    type="submit"
+                    className={styles.submitButton}
+                    disabled={budgetSubmitting}
+                  >
+                    Set
+                  </button>
+                </form>
+              </div>
+
+              <div className={styles.form}>
+                <h3 className={styles.formTitle}>Max Contribution Per Cycle</h3>
+                <p className={styles.hint}>
+                  Optional cap on how much to set aside each cycle. Leave empty for no limit.
+                </p>
+
+                <form
+                  className={styles.inlineForm}
+                  onSubmit={(e) => handleMaxContributionSubmit(e)}
+                >
+                  <input
+                    id="max-contribution"
+                    name="max-contribution"
+                    className={styles.input}
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    defaultValue={
+                      settings.maxContributionPerCycle != null
+                        ? String(settings.maxContributionPerCycle)
+                        : ""
+                    }
+                    placeholder="No limit"
+                  />
+                  <button
+                    type="submit"
+                    className={styles.submitButton}
+                    disabled={budgetSubmitting}
+                  >
+                    Save
+                  </button>
+                  {settings.maxContributionPerCycle != null && (
+                    <button
+                      type="button"
+                      className={styles.clearButton}
+                      onClick={() => void handleBudgetSave("maxContributionPerCycle", null)}
+                      disabled={budgetSubmitting}
+                    >
+                      Clear
+                    </button>
+                  )}
+                </form>
+              </div>
             </div>
           </>
         )}

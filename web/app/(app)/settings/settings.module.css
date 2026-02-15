@@ -148,6 +148,114 @@
   cursor: not-allowed;
 }
 
+.recommendation {
+  font-size: 13px;
+  color: #666;
+  margin: 0;
+}
+
+.recommendation strong {
+  color: var(--foreground);
+}
+
+.cycleOptions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.cycleOption {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: border-color 0.15s, background-color 0.15s;
+}
+
+.cycleOption:hover {
+  border-color: #999;
+}
+
+.cycleOptionActive {
+  border-color: var(--foreground);
+  background-color: rgba(0, 0, 0, 0.04);
+}
+
+.radioInput {
+  accent-color: var(--foreground);
+}
+
+.currencyPicks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.currencyPick {
+  padding: 8px 14px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+  background: var(--background);
+  color: var(--foreground);
+  transition: border-color 0.15s, background-color 0.15s;
+}
+
+.currencyPick:hover {
+  border-color: #999;
+}
+
+.currencyPickActive {
+  border-color: var(--foreground);
+  background-color: rgba(0, 0, 0, 0.04);
+}
+
+.currencyPick:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.inlineForm {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.inlineForm .input {
+  flex: 1;
+}
+
+.hint {
+  font-size: 13px;
+  color: #666;
+  margin: 0;
+}
+
+.clearButton {
+  padding: 10px 16px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+  background: var(--background);
+  color: #666;
+  transition: border-color 0.15s;
+}
+
+.clearButton:hover {
+  border-color: #999;
+}
+
+.clearButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 @media (prefers-color-scheme: dark) {
   .error {
     color: #fc8181;
@@ -189,6 +297,49 @@
     color: #68d391;
     background: #002200;
     border-color: #1a4a1a;
+  }
+
+  .recommendation {
+    color: #999;
+  }
+
+  .cycleOption {
+    border-color: #333;
+  }
+
+  .cycleOption:hover {
+    border-color: #666;
+  }
+
+  .cycleOptionActive {
+    border-color: var(--foreground);
+    background-color: rgba(255, 255, 255, 0.06);
+  }
+
+  .currencyPick {
+    border-color: #333;
+  }
+
+  .currencyPick:hover {
+    border-color: #666;
+  }
+
+  .currencyPickActive {
+    border-color: var(--foreground);
+    background-color: rgba(255, 255, 255, 0.06);
+  }
+
+  .hint {
+    color: #999;
+  }
+
+  .clearButton {
+    border-color: #333;
+    color: #999;
+  }
+
+  .clearButton:hover {
+    border-color: #666;
   }
 }
 

@@ -428,4 +428,245 @@ describe("SettingsPage", () => {
       );
     });
   });
+
+  // --- Budget Preferences ---
+
+  it("renders cycle selector with auto-detected recommendation", async () => {
+    vi.mocked(global.fetch).mockResolvedValueOnce(
+      new Response(JSON.stringify(mockSettings), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      })
+    );
+
+    render(<SettingsPage />);
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("heading", { name: "Budget Preferences" })
+      ).toBeDefined();
+    });
+
+    // Auto-detect radio should be checked (contributionCycleType is null)
+    const autoRadio = screen.getByRole("radio", { name: "Auto-detect" });
+    expect((autoRadio as HTMLInputElement).checked).toBe(true);
+
+    // Recommendation text shown
+    expect(screen.getByText(/Recommended:/)).toBeDefined();
+
+    // All cycle options rendered
+    expect(screen.getByRole("radio", { name: "Weekly" })).toBeDefined();
+    expect(screen.getByRole("radio", { name: "Fortnightly" })).toBeDefined();
+    expect(screen.getByRole("radio", { name: "Twice monthly" })).toBeDefined();
+    expect(screen.getByRole("radio", { name: "Monthly" })).toBeDefined();
+  });
+
+  it("renders cycle selector with explicit selection highlighted", async () => {
+    const settingsWithCycle = {
+      ...mockSettings,
+      contributionCycleType: "fortnightly" as const,
+    };
+
+    vi.mocked(global.fetch).mockResolvedValueOnce(
+      new Response(JSON.stringify(settingsWithCycle), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      })
+    );
+
+    render(<SettingsPage />);
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("heading", { name: "Contribution Cycle" })
+      ).toBeDefined();
+    });
+
+    const fortnightlyRadio = screen.getByRole("radio", { name: "Fortnightly" });
+    expect((fortnightlyRadio as HTMLInputElement).checked).toBe(true);
+
+    const autoRadio = screen.getByRole("radio", { name: "Auto-detect" });
+    expect((autoRadio as HTMLInputElement).checked).toBe(false);
+  });
+
+  it("saves cycle selection via PUT /api/user/settings", async () => {
+    const user = userEvent.setup();
+    vi.mocked(global.fetch)
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify(mockSettings), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        })
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            contributionCycleType: "weekly",
+            contributionPayDays: [],
+            currencySymbol: "$",
+            maxContributionPerCycle: null,
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } }
+        )
+      );
+
+    render(<SettingsPage />);
+
+    await waitFor(() => {
+      expect(screen.getByRole("radio", { name: "Weekly" })).toBeDefined();
+    });
+
+    await user.click(screen.getByRole("radio", { name: "Weekly" }));
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledWith("/api/user/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ contributionCycleType: "weekly" }),
+      });
+    });
+  });
+
+  it("renders currency quick picks with active state", async () => {
+    vi.mocked(global.fetch).mockResolvedValueOnce(
+      new Response(JSON.stringify(mockSettings), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      })
+    );
+
+    render(<SettingsPage />);
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("heading", { name: "Currency Symbol" })
+      ).toBeDefined();
+    });
+
+    // All quick picks rendered
+    const quickPicks = ["$", "\u00a3", "\u20ac", "\u00a5", "A$", "NZ$"];
+    for (const sym of quickPicks) {
+      expect(screen.getByRole("button", { name: sym })).toBeDefined();
+    }
+  });
+
+  it("saves currency pick via PUT /api/user/settings", async () => {
+    const user = userEvent.setup();
+    vi.mocked(global.fetch)
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify(mockSettings), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        })
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            contributionCycleType: null,
+            contributionPayDays: [],
+            currencySymbol: "\u00a3",
+            maxContributionPerCycle: null,
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } }
+        )
+      );
+
+    render(<SettingsPage />);
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "\u00a3" })).toBeDefined();
+    });
+
+    await user.click(screen.getByRole("button", { name: "\u00a3" }));
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledWith("/api/user/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ currencySymbol: "\u00a3" }),
+      });
+    });
+  });
+
+  it("saves max contribution via form submit", async () => {
+    const user = userEvent.setup();
+    vi.mocked(global.fetch)
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify(mockSettings), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        })
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            contributionCycleType: null,
+            contributionPayDays: [],
+            currencySymbol: "$",
+            maxContributionPerCycle: 500,
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } }
+        )
+      );
+
+    render(<SettingsPage />);
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("heading", { name: "Max Contribution Per Cycle" })
+      ).toBeDefined();
+    });
+
+    const maxInput = screen.getByPlaceholderText("No limit");
+    await user.type(maxInput, "500");
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledWith("/api/user/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ maxContributionPerCycle: 500 }),
+      });
+    });
+  });
+
+  it("clears max contribution when Clear button is clicked", async () => {
+    const user = userEvent.setup();
+    const settingsWithMax = { ...mockSettings, maxContributionPerCycle: 500 };
+
+    vi.mocked(global.fetch)
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify(settingsWithMax), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        })
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            contributionCycleType: null,
+            contributionPayDays: [],
+            currencySymbol: "$",
+            maxContributionPerCycle: null,
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } }
+        )
+      );
+
+    render(<SettingsPage />);
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Clear" })).toBeDefined();
+    });
+
+    await user.click(screen.getByRole("button", { name: "Clear" }));
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledWith("/api/user/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ maxContributionPerCycle: null }),
+      });
+    });
+  });
 });
