@@ -880,7 +880,7 @@
   - Acceptance: Accepts array of `{ obligationId, amount }`. Creates ContributionRecord for each with type `contribution` and note "Lump sum catch-up". Updates FundBalance for each. Triggers one engine recalculation at the end. Validates: all obligations belong to user, no zero amounts. Returns 201 with updated balances.
   - Tests: Test bulk create (201), ownership check, zero amount rejected, single recalculation triggered
 
-- [ ] **Add contribution modal component**
+- [x] **Add contribution modal component**
   - Files: `web/app/(app)/obligations/ContributionModal.tsx`, `web/app/(app)/obligations/contribution-modal.module.css`
   - Spec: `specs/14-contributions.md`
   - Acceptance: Modal shows obligation name, current balance, amount needed, and engine's recommended contribution pre-filled. User can accept or enter custom amount. On save: calls POST /api/contributions, dispatches `budget-data-changed` event. Validates: no zero or negative amounts.
