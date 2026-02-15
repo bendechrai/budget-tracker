@@ -47,6 +47,7 @@ type Step = "upload" | "suggestions" | "done";
 const FREQUENCY_LABELS: Record<string, string> = {
   weekly: "Weekly",
   fortnightly: "Fortnightly",
+  twice_monthly: "Twice monthly",
   monthly: "Monthly",
   quarterly: "Quarterly",
   annual: "Annual",
@@ -57,6 +58,7 @@ const FREQUENCY_LABELS: Record<string, string> = {
 const FREQUENCY_OPTIONS = [
   { value: "weekly", label: "Weekly" },
   { value: "fortnightly", label: "Fortnightly" },
+  { value: "twice_monthly", label: "Twice monthly" },
   { value: "monthly", label: "Monthly" },
   { value: "quarterly", label: "Quarterly" },
   { value: "annual", label: "Annual" },
@@ -84,6 +86,8 @@ export default function OnboardingUploadPage() {
   const [step, setStep] = useState<Step>("upload");
   const [error, setError] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState("");
+  const [uploadProgressPercent, setUploadProgressPercent] = useState(0);
   const [dragActive, setDragActive] = useState(false);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
@@ -94,38 +98,64 @@ export default function OnboardingUploadPage() {
   const [detecting, setDetecting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleUpload = useCallback(async (file: File) => {
+  const handleUploadFiles = useCallback(async (files: File[]) => {
     setError("");
     setUploading(true);
+    setUploadProgressPercent(0);
+
+    let totalImported = 0;
+    let successCount = 0;
 
     try {
-      const formData = new FormData();
-      formData.append("file", file);
+      for (let i = 0; i < files.length; i++) {
+        setUploadProgress(
+          files.length > 1
+            ? `Processing file ${i + 1} of ${files.length} (${files[i].name})...`
+            : "Uploading and processing your statement..."
+        );
+        setUploadProgressPercent(Math.round((i / files.length) * 100));
 
-      const res = await fetch("/api/import/upload", {
-        method: "POST",
-        body: formData,
-      });
+        const formData = new FormData();
+        formData.append("file", files[i]);
 
-      if (!res.ok) {
-        const data = (await res.json()) as { error: string };
-        setError(data.error || "Upload failed");
+        const res = await fetch("/api/import/upload", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (!res.ok) {
+          const data = (await res.json()) as { error: string };
+          setError(data.error || `Upload failed for ${files[i].name}`);
+          continue;
+        }
+
+        const summary = (await res.json()) as ImportSummary;
+        totalImported += summary.transactionsImported;
+        successCount++;
+        setUploadProgressPercent(Math.round(((i + 1) / files.length) * 100));
+      }
+
+      if (successCount === 0) {
+        // All files errored — keep the last error message already set
         setUploading(false);
+        setUploadProgress("");
+        setUploadProgressPercent(0);
         return;
       }
 
-      const summary = (await res.json()) as ImportSummary;
-
-      if (summary.transactionsImported === 0) {
+      if (totalImported === 0) {
         setError(
-          "No new transactions found. Try uploading a different statement."
+          "No new transactions found. Try uploading different statements."
         );
         setUploading(false);
+        setUploadProgress("");
+        setUploadProgressPercent(0);
         return;
       }
 
-      // Run pattern detection
+      // Run pattern detection after all files uploaded
       setUploading(false);
+      setUploadProgress("");
       setDetecting(true);
 
       const detectRes = await fetch("/api/patterns/detect", {
@@ -164,14 +194,16 @@ export default function OnboardingUploadPage() {
       logError("failed to upload during onboarding", err);
       setError("Upload failed. Please try again.");
       setUploading(false);
+      setUploadProgress("");
+      setUploadProgressPercent(0);
       setDetecting(false);
     }
   }, []);
 
   function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (file) {
-      void handleUpload(file);
+    const fileList = e.target.files;
+    if (fileList && fileList.length > 0) {
+      void handleUploadFiles(Array.from(fileList));
     }
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
@@ -195,9 +227,9 @@ export default function OnboardingUploadPage() {
     e.stopPropagation();
     setDragActive(false);
 
-    const file = e.dataTransfer.files[0];
-    if (file) {
-      void handleUpload(file);
+    const fileList = e.dataTransfer.files;
+    if (fileList.length > 0) {
+      void handleUploadFiles(Array.from(fileList));
     }
   }
 
@@ -334,10 +366,11 @@ export default function OnboardingUploadPage() {
               data-testid="drop-zone"
             >
               <p className={uploadStyles.dropZoneTitle}>
-                Drop your statement file here
+                Drop your statement files here
               </p>
               <p className={uploadStyles.dropZoneDescription}>
-                Supports CSV, OFX, and PDF formats
+                Supports CSV, OFX, and PDF formats. You can select multiple
+                files.
               </p>
               <button
                 type="button"
@@ -350,6 +383,7 @@ export default function OnboardingUploadPage() {
                 ref={fileInputRef}
                 type="file"
                 accept=".csv,.ofx,.qfx,.pdf"
+                multiple
                 className={uploadStyles.hiddenInput}
                 onChange={handleFileSelect}
                 data-testid="file-input"
@@ -370,12 +404,16 @@ export default function OnboardingUploadPage() {
         {uploading && (
           <div className={uploadStyles.processing}>
             <p className={uploadStyles.processingText}>
-              Uploading and processing your statement...
+              {uploadProgress || "Uploading and processing your statement..."}
+            </p>
+            <p className={uploadStyles.processingHint}>
+              Each file is uploaded and processed individually. PDFs may take
+              longer.
             </p>
             <div className={uploadStyles.progressBar}>
               <div
                 className={uploadStyles.progressFill}
-                style={{ width: "100%" }}
+                style={{ width: `${uploadProgressPercent}%` }}
               />
             </div>
           </div>
@@ -388,8 +426,7 @@ export default function OnboardingUploadPage() {
             </p>
             <div className={uploadStyles.progressBar}>
               <div
-                className={uploadStyles.progressFill}
-                style={{ width: "100%" }}
+                className={`${uploadStyles.progressFill} ${uploadStyles.progressIndeterminate}`}
               />
             </div>
           </div>

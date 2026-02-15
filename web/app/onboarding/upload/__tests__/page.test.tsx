@@ -84,8 +84,8 @@ describe("OnboardingUploadPage", () => {
     expect(
       screen.getByRole("heading", { name: "Upload Bank Statements" })
     ).toBeDefined();
-    expect(screen.getByText("Drop your statement file here")).toBeDefined();
-    expect(screen.getByText("Supports CSV, OFX, and PDF formats")).toBeDefined();
+    expect(screen.getByText("Drop your statement files here")).toBeDefined();
+    expect(screen.getByText(/Supports CSV, OFX, and PDF formats/)).toBeDefined();
     expect(
       screen.getByRole("button", { name: "Browse files" })
     ).toBeDefined();
@@ -227,7 +227,7 @@ describe("OnboardingUploadPage", () => {
 
     await waitFor(() => {
       expect(screen.getByRole("alert").textContent).toBe(
-        "No new transactions found. Try uploading a different statement."
+        "No new transactions found. Try uploading different statements."
       );
     });
   });
@@ -422,6 +422,103 @@ describe("OnboardingUploadPage", () => {
     });
     expect(skipLink).toBeDefined();
     expect(skipLink.getAttribute("href")).toBe("/onboarding/fund-setup");
+  });
+
+  it("uploads multiple files sequentially", async () => {
+    const user = userEvent.setup();
+
+    const secondSummary = {
+      ...mockImportSummary,
+      fileName: "statement2.csv",
+      importLogId: "import-3",
+    };
+
+    vi.mocked(global.fetch)
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify(mockImportSummary), {
+          status: 201,
+          headers: { "Content-Type": "application/json" },
+        })
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify(secondSummary), {
+          status: 201,
+          headers: { "Content-Type": "application/json" },
+        })
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ count: 2 }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        })
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({ suggestions: mockSuggestions, count: 2 }),
+          {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          }
+        )
+      );
+
+    render(<OnboardingUploadPage />);
+
+    const input = screen.getByTestId("file-input") as HTMLInputElement;
+    const file1 = createMockFile("statement1.csv", "data1");
+    const file2 = createMockFile("statement2.csv", "data2");
+    await user.upload(input, [file1, file2]);
+
+    await waitFor(() => {
+      expect(screen.getByText("Netflix")).toBeDefined();
+    });
+
+    // Two upload calls + pattern detect + suggestions fetch
+    expect(vi.mocked(global.fetch)).toHaveBeenCalledTimes(4);
+  });
+
+  it("continues uploading remaining files when one fails", async () => {
+    const user = userEvent.setup();
+
+    vi.mocked(global.fetch)
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ error: "bad format" }), {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        })
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify(mockImportSummary), {
+          status: 201,
+          headers: { "Content-Type": "application/json" },
+        })
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ count: 0 }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        })
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ suggestions: [], count: 0 }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        })
+      );
+
+    render(<OnboardingUploadPage />);
+
+    const input = screen.getByTestId("file-input") as HTMLInputElement;
+    const file1 = createMockFile("bad.csv", "bad");
+    const file2 = createMockFile("good.csv", "good");
+    await user.upload(input, [file1, file2]);
+
+    // Should still proceed to done state since second file succeeded
+    await waitFor(() => {
+      expect(
+        screen.getByText(/didn.t detect clear patterns/)
+      ).toBeDefined();
+    });
   });
 
   it("shows error when upload fails", async () => {
