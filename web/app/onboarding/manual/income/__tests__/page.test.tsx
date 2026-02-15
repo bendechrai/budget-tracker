@@ -41,7 +41,7 @@ describe("OnboardingManualIncomePage", () => {
     await user.click(screen.getByRole("button", { name: "Add income source" }));
 
     expect(screen.getByText("Salary")).toBeDefined();
-    expect(screen.getByText("$5000 / monthly")).toBeDefined();
+    expect(screen.getByText("$5000 / Monthly")).toBeDefined();
   });
 
   it("shows an error when name is empty", async () => {
@@ -132,7 +132,7 @@ describe("OnboardingManualIncomePage", () => {
     await user.selectOptions(screen.getByLabelText("Frequency"), "weekly");
     await user.click(screen.getByRole("button", { name: "Add income source" }));
 
-    expect(screen.getByText("$2000 / weekly")).toBeDefined();
+    expect(screen.getByText("$2000 / Weekly")).toBeDefined();
   });
 
   it("renders 'Twice monthly' option in frequency dropdown", () => {
