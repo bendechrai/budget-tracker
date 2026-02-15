@@ -27,7 +27,7 @@ flowchart TD
     G --> G3[Crunch points highlighted]
     G --> G4[What-if overlay when active]
 
-    H --> H1[Next 30 days of obligations]
+    H --> H1[Next 45 days of obligations, filterable]
     H --> H2[Each: name, amount, date, fund status]
 
     D --> I[Nav: Suggestions badge]
@@ -63,7 +63,7 @@ flowchart TD
 
 ### Upcoming Obligations
 
-- Lists obligations due in the next 30 days
+- Lists obligations due in the next 45 days (default), with filter buttons for 15, 30, 45, and 90 days
 - Each item shows: obligation name, amount, due date, and fund status (fully funded / partially funded / unfunded)
 - Sorted by due date (nearest first)
 - Tapping/clicking an item navigates to the obligation detail
@@ -108,7 +108,7 @@ flowchart TD
 - [ ] Crunch points are visually highlighted
 - [ ] Timeline supports what-if overlay (solid vs. dashed line)
 - [ ] Time range is adjustable
-- [ ] Upcoming obligations list shows next 30 days
+- [ ] Upcoming obligations list defaults to 45 days with 15/30/45/90 day filter buttons
 - [ ] Each upcoming item shows name, amount, date, and fund status
 - [ ] Smart nudge cards appear for high-confidence suggestions
 - [ ] Dashboard is responsive (desktop and mobile layouts)

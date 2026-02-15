@@ -32,7 +32,7 @@ flowchart TD
 
 - User can create income sources via NL input, traditional form, or by accepting suggestions from bank statement analysis
 - Each income source has: name, expected amount, frequency, variability flag
-- Supported frequency types: weekly, fortnightly, monthly, quarterly, annual, custom (every N days), irregular/ad-hoc
+- Supported frequency types: weekly, fortnightly, twice monthly, monthly, quarterly, annual, custom (every N days), irregular/ad-hoc
 - **Regular income**: system knows the next expected date and amount
 - **Irregular income**: system calculates average amount per period from transaction history; uses minimum expected amount for conservative sinking fund calculations
 - **Variable amounts**: even regular income can vary (e.g. two monthly paychecks with different amounts). System tracks expected amount but allows for variation.
@@ -43,7 +43,7 @@ flowchart TD
 
 ## Data Model
 
-- `IncomeSource`: id, userId, name, expectedAmount, frequency (enum: weekly, fortnightly, monthly, quarterly, annual, custom, irregular), frequencyDays (nullable — for custom frequency), isIrregular (boolean), minimumExpected (nullable — for irregular income), nextExpectedDate (nullable), isPaused (boolean, default false), isActive (boolean, default true), createdAt, updatedAt
+- `IncomeSource`: id, userId, name, expectedAmount, frequency (enum: weekly, fortnightly, twice_monthly, monthly, quarterly, annual, custom, irregular), frequencyDays (nullable — for custom frequency), isIrregular (boolean), minimumExpected (nullable — for irregular income), nextExpectedDate (nullable), isPaused (boolean, default false), isActive (boolean, default true), createdAt, updatedAt
 
 ## Edge Cases
 
