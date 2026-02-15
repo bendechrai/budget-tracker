@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, it, expect } from "vitest";
-import { generateSnapshot, calculateAndSnapshot } from "../snapshot";
+import { generateSnapshot, calculateAndSnapshot, perCycleLabel } from "../snapshot";
 import type { CycleConfig, EngineResult, ObligationContribution } from "../calculate";
 
 function makeContribution(
@@ -41,16 +41,19 @@ const NOW = new Date("2025-03-01");
 
 describe("generateSnapshot", () => {
   describe("snapshot contains correct totals", () => {
-    it("includes totalRequired and totalFunded from engine result", () => {
+    it("includes totalRequired, totalFunded, and totalContributionPerCycle from engine result", () => {
       const result = makeEngineResult({
         totalRequired: 2500,
         totalFunded: 800,
+        totalContributionPerCycle: 450,
       });
 
       const snapshot = generateSnapshot(result);
 
       expect(snapshot.totalRequired).toBe(2500);
       expect(snapshot.totalFunded).toBe(800);
+      expect(snapshot.totalContributionPerCycle).toBe(450);
+      expect(snapshot.cyclePeriodLabel).toBe("per cycle");
     });
 
     it("sets next action to the most urgent under-funded obligation", () => {
@@ -171,12 +174,14 @@ describe("generateSnapshot", () => {
         ],
         totalRequired: 800,
         totalFunded: 800,
+        totalContributionPerCycle: 0,
         isFullyFunded: true,
       });
 
       const snapshot = generateSnapshot(result);
 
       expect(snapshot.nextActionAmount).toBe(0);
+      expect(snapshot.totalContributionPerCycle).toBe(0);
       expect(snapshot.nextActionDescription).toBe("You're fully covered!");
       // Next action date should be the nearest due date
       expect(snapshot.nextActionDate).toEqual(new Date("2025-04-01"));
@@ -192,6 +197,7 @@ describe("generateSnapshot", () => {
         contributions: [],
         totalRequired: 0,
         totalFunded: 0,
+        totalContributionPerCycle: 0,
         isFullyFunded: false,
       });
 
@@ -199,6 +205,7 @@ describe("generateSnapshot", () => {
 
       expect(snapshot.totalRequired).toBe(0);
       expect(snapshot.totalFunded).toBe(0);
+      expect(snapshot.totalContributionPerCycle).toBe(0);
       expect(snapshot.nextActionAmount).toBe(0);
       expect(snapshot.nextActionDescription).toContain("Add your first obligation");
       expect(snapshot.nextActionObligationId).toBeNull();
@@ -245,6 +252,7 @@ describe("generateSnapshot", () => {
       expect(snapshot.nextActionDescription).toBe(
         "Set aside $412.00 this week for Rent"
       );
+      expect(snapshot.cyclePeriodLabel).toBe("per week");
     });
 
     it("shows 'this fortnight' for fortnightly cycle", () => {
@@ -253,6 +261,7 @@ describe("generateSnapshot", () => {
       expect(snapshot.nextActionDescription).toBe(
         "Set aside $824.00 this fortnight for Rent"
       );
+      expect(snapshot.cyclePeriodLabel).toBe("per fortnight");
     });
 
     it("shows 'this pay period' for twice_monthly cycle", () => {
@@ -261,6 +270,7 @@ describe("generateSnapshot", () => {
       expect(snapshot.nextActionDescription).toBe(
         "Set aside $600.00 this pay period for Rent"
       );
+      expect(snapshot.cyclePeriodLabel).toBe("per pay period");
     });
 
     it("shows 'this month' for monthly cycle", () => {
@@ -269,6 +279,7 @@ describe("generateSnapshot", () => {
       expect(snapshot.nextActionDescription).toBe(
         "Set aside $1200.00 this month for Rent"
       );
+      expect(snapshot.cyclePeriodLabel).toBe("per month");
     });
   });
 });
@@ -329,7 +340,26 @@ describe("calculateAndSnapshot", () => {
     });
 
     expect(snapshot.nextActionAmount).toBe(0);
+    expect(snapshot.totalContributionPerCycle).toBe(0);
     expect(snapshot.nextActionDescription).toBe("You're fully covered!");
     expect(snapshot.nextActionObligationId).toBeNull();
+  });
+});
+
+describe("perCycleLabel", () => {
+  it("returns 'per week' for weekly", () => {
+    expect(perCycleLabel("weekly")).toBe("per week");
+  });
+
+  it("returns 'per fortnight' for fortnightly", () => {
+    expect(perCycleLabel("fortnightly")).toBe("per fortnight");
+  });
+
+  it("returns 'per pay period' for twice_monthly", () => {
+    expect(perCycleLabel("twice_monthly")).toBe("per pay period");
+  });
+
+  it("returns 'per month' for monthly", () => {
+    expect(perCycleLabel("monthly")).toBe("per month");
   });
 });

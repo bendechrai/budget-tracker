@@ -38,7 +38,8 @@ flowchart TD
 
 ### Hero Card
 
-- Displays the single most actionable item: "You need to set aside $412 by Friday"
+- Displays the total contribution needed per pay cycle across all obligations (e.g. "$587.50 per fortnight") as the primary figure
+- Below the total, shows the most urgent single obligation: "Set aside $412.00 this fortnight for Rent"
 - The deadline is based on when funds are needed (nearest under-funded obligation due date), not when income arrives
 - Updates in real time as contributions are marked done
 - If all obligations are fully funded for the foreseeable future: celebration/confirmation state
@@ -96,6 +97,7 @@ flowchart TD
 
 ## Acceptance Criteria
 
+- [x] Hero card shows total contribution per cycle across all obligations
 - [ ] Hero card shows next action with amount and deadline
 - [ ] Hero card updates when contributions are marked done
 - [ ] Hero card shows celebration state when fully funded

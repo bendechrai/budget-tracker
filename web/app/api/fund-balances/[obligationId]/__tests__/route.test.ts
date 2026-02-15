@@ -75,6 +75,8 @@ const mockExistingFundBalance = {
 const mockSnapshotData = {
   totalRequired: 1500,
   totalFunded: 750,
+  totalContributionPerCycle: 107.14,
+  cyclePeriodLabel: "per fortnight",
   nextActionAmount: 107.14,
   nextActionDate: new Date("2025-06-15"),
   nextActionDescription: "Set aside $107.14 for Rent by 2025-06-15",

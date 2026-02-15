@@ -18,6 +18,8 @@ interface EngineSnapshot {
   id: string;
   totalRequired: number;
   totalFunded: number;
+  totalContributionPerCycle: number;
+  cyclePeriodLabel: string;
   nextActionAmount: number;
   nextActionDate: string;
   nextActionDescription: string;
@@ -36,6 +38,8 @@ interface ObligationData {
 interface ScenarioSnapshot {
   totalRequired: number;
   totalFunded: number;
+  totalContributionPerCycle: number;
+  cyclePeriodLabel: string;
   nextActionAmount: number;
   nextActionDate: string;
   nextActionDescription: string;
@@ -304,8 +308,18 @@ export default function DashboardPage() {
                     What-if scenario
                   </div>
                 )}
-                <p className={styles.heroLabel}>Next action</p>
-                <p className={styles.heroAmount}>
+                <p className={styles.heroLabel}>
+                  Total contribution {displaySnapshot.cyclePeriodLabel}
+                </p>
+                <p className={styles.heroAmount} data-testid="total-per-cycle">
+                  {formatCurrency(displaySnapshot.totalContributionPerCycle)}
+                </p>
+                <p className={styles.heroDescription}>
+                  across all obligations
+                </p>
+                <div className={styles.heroDivider} />
+                <p className={styles.heroLabel}>Most urgent</p>
+                <p className={styles.heroSubAmount}>
                   {formatCurrency(displaySnapshot.nextActionAmount)}
                 </p>
                 <p className={styles.heroDescription}>

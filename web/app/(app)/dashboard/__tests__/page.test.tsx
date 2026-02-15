@@ -85,6 +85,8 @@ const mockSnapshot = {
   id: "snap1",
   totalRequired: 4100,
   totalFunded: 3200,
+  totalContributionPerCycle: 587.5,
+  cyclePeriodLabel: "per fortnight",
   nextActionAmount: 412,
   nextActionDate: "2025-02-14T00:00:00.000Z",
   nextActionDescription: "Set aside $412.00 for Rent by 2025-02-14",
@@ -96,6 +98,8 @@ const mockFullyFundedSnapshot = {
   id: "snap2",
   totalRequired: 4100,
   totalFunded: 4100,
+  totalContributionPerCycle: 0,
+  cyclePeriodLabel: "per fortnight",
   nextActionAmount: 0,
   nextActionDate: "2025-03-01T00:00:00.000Z",
   nextActionDescription: "You're fully covered!",
@@ -107,6 +111,8 @@ const mockEmptySnapshot = {
   id: "snap3",
   totalRequired: 0,
   totalFunded: 0,
+  totalContributionPerCycle: 0,
+  cyclePeriodLabel: "per fortnight",
   nextActionAmount: 0,
   nextActionDate: "2025-02-01T00:00:00.000Z",
   nextActionDescription: "Add your first obligation to get started",
@@ -126,6 +132,8 @@ const mockScenarioResponse = {
   snapshot: {
     totalRequired: 2100,
     totalFunded: 2100,
+    totalContributionPerCycle: 0,
+    cyclePeriodLabel: "per fortnight",
     nextActionAmount: 0,
     nextActionDate: "2025-03-01T00:00:00.000Z",
     nextActionDescription: "You're fully covered!",
@@ -164,7 +172,7 @@ describe("DashboardPage", () => {
     expect(screen.getByText("Loading...")).toBeDefined();
   });
 
-  it("renders the next action hero card", async () => {
+  it("renders the hero card with total per-cycle contribution and most urgent obligation", async () => {
     vi.mocked(global.fetch).mockImplementation((url) => {
       if (typeof url === "string" && url.includes("/api/obligations")) {
         return Promise.resolve(
@@ -180,10 +188,17 @@ describe("DashboardPage", () => {
     render(<DashboardPage />);
 
     await waitFor(() => {
-      expect(screen.getByText("$412.00")).toBeDefined();
+      expect(screen.getByTestId("total-per-cycle")).toBeDefined();
     });
 
-    expect(screen.getByText("Next action")).toBeDefined();
+    // Total contribution per cycle is shown prominently
+    expect(screen.getByTestId("total-per-cycle").textContent).toBe("$587.50");
+    expect(screen.getByText("Total contribution per fortnight")).toBeDefined();
+    expect(screen.getByText("across all obligations")).toBeDefined();
+
+    // Most urgent obligation shown below
+    expect(screen.getByText("Most urgent")).toBeDefined();
+    expect(screen.getByText("$412.00")).toBeDefined();
     expect(
       screen.getByText("Set aside $412.00 for Rent by 2025-02-14")
     ).toBeDefined();
@@ -309,11 +324,11 @@ describe("DashboardPage", () => {
     const { container } = render(<DashboardPage />);
 
     await waitFor(() => {
-      expect(screen.getByText("$412.00")).toBeDefined();
+      expect(screen.getByTestId("total-per-cycle")).toBeDefined();
     });
 
     // Hero card and health bar are inside the top row grid container
-    const heroCard = screen.getByText("Next action").closest("div");
+    const heroCard = screen.getByText("Most urgent").closest("div");
     expect(heroCard).toBeDefined();
     const topRow = heroCard?.parentElement;
     expect(topRow).toBeDefined();
@@ -399,6 +414,8 @@ describe("DashboardPage", () => {
       snapshot: {
         totalRequired: 2100,
         totalFunded: 1000,
+        totalContributionPerCycle: 350,
+        cyclePeriodLabel: "per fortnight",
         nextActionAmount: 200,
         nextActionDate: "2025-03-15T00:00:00.000Z",
         nextActionDescription: "Set aside $200.00 for Insurance by 2025-03-15",
@@ -428,6 +445,8 @@ describe("DashboardPage", () => {
       expect(screen.getByText("$200.00")).toBeDefined();
     });
 
+    // Should show scenario total per-cycle, not actual
+    expect(screen.getByTestId("total-per-cycle").textContent).toBe("$350.00");
     expect(
       screen.getByText("Set aside $200.00 for Insurance by 2025-03-15")
     ).toBeDefined();
@@ -498,10 +517,12 @@ describe("DashboardPage", () => {
       escalationOverrides: new Map(),
     };
 
-    const scenarioWithNextAction = {
+    const scenarioWithNextAction2 = {
       snapshot: {
         totalRequired: 2100,
         totalFunded: 1000,
+        totalContributionPerCycle: 350,
+        cyclePeriodLabel: "per fortnight",
         nextActionAmount: 200,
         nextActionDate: "2025-03-15T00:00:00.000Z",
         nextActionDescription: "Set aside $200.00 for Insurance by 2025-03-15",
@@ -516,7 +537,7 @@ describe("DashboardPage", () => {
         );
       }
       if (typeof url === "string" && url.includes("/api/engine/scenario")) {
-        return Promise.resolve(mockFetchResponse(scenarioWithNextAction));
+        return Promise.resolve(mockFetchResponse(scenarioWithNextAction2));
       }
       if (typeof url === "string" && url.includes("/api/engine/timeline")) {
         return Promise.resolve(mockFetchResponse(mockTimelineData));

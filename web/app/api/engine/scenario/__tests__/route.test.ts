@@ -99,6 +99,8 @@ const mockScenarioResult = {
 const mockSnapshotData = {
   totalRequired: 1500,
   totalFunded: 300,
+  totalContributionPerCycle: 171.43,
+  cyclePeriodLabel: "per fortnight",
   nextActionAmount: 171.43,
   nextActionDate: futureDate,
   nextActionDescription: "Set aside $171.43 this fortnight for Rent",

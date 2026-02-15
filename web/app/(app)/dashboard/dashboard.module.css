@@ -45,10 +45,23 @@
   margin-bottom: 4px;
 }
 
+.heroSubAmount {
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--foreground);
+  margin-bottom: 4px;
+}
+
 .heroDescription {
   font-size: 15px;
   color: #666;
   margin-bottom: 16px;
+}
+
+.heroDivider {
+  border: none;
+  border-top: 1px solid #eee;
+  margin: 4px 0 16px;
 }
 
 .heroDeadline {
@@ -230,6 +243,10 @@
 
   .heroDescription {
     color: #999;
+  }
+
+  .heroDivider {
+    border-top-color: #333;
   }
 
   .heroDeadline {

@@ -86,6 +86,8 @@ const mockFundBalances = [
 const mockSnapshotData = {
   totalRequired: 1500,
   totalFunded: 300,
+  totalContributionPerCycle: 171.43,
+  cyclePeriodLabel: "per fortnight",
   nextActionAmount: 171.43,
   nextActionDate: futureDate,
   nextActionDescription: "Set aside $171.43 for Rent by 2025-06-15",
@@ -256,6 +258,9 @@ describe("POST /api/engine/recalculate", () => {
     expect(data.userId).toBe("user_1");
     expect(data.totalRequired).toBe(1500);
     expect(data.totalFunded).toBe(300);
+    // Computed per-cycle fields returned alongside persisted snapshot
+    expect(data.totalContributionPerCycle).toBe(171.43);
+    expect(data.cyclePeriodLabel).toBe("per fortnight");
   });
 
   it("handles no obligations (empty state)", async () => {
@@ -266,6 +271,8 @@ describe("POST /api/engine/recalculate", () => {
       snapshot: {
         totalRequired: 0,
         totalFunded: 0,
+        totalContributionPerCycle: 0,
+        cyclePeriodLabel: "per cycle",
         nextActionAmount: 0,
         nextActionDate: new Date(),
         nextActionDescription: "Add your first obligation to get started",

@@ -95,13 +95,13 @@
 - [x] **Add onboarding fund setup step page**
   - Files: `web/app/onboarding/fund-setup/page.tsx`, `web/app/onboarding/fund-setup/fund-setup.module.css`
   - Spec: `specs/02-onboarding.md`
-  - Acceptance: Collects current fund balance, max contribution per cycle, contribution cycle days, and currency symbol. "I'm not sure" option for contribution capacity. Marks onboarding complete on finish. Redirects to dashboard.
+  - Acceptance: Collects current fund balance, max contribution per cycle, contribution cycle type (radio buttons: Weekly/Fortnightly/Twice monthly/Monthly), and currency symbol (quick-pick buttons + custom input). "I'm not sure" option for contribution capacity. Marks onboarding complete on finish. Redirects to dashboard.
   - Tests: Component test: all fields render, "I'm not sure" option works, submit marks onboarding complete
 
 - [x] **Add `PUT /api/user/onboarding` route for fund setup**
   - Files: `web/app/api/user/onboarding/route.ts`
   - Spec: `specs/02-onboarding.md`
-  - Acceptance: Updates user's fund balance, max contribution, cycle days, currency symbol, and sets onboardingComplete = true. Returns updated user.
+  - Acceptance: Updates user's fund balance, max contribution, cycle type (enum), currency symbol, and sets onboardingComplete = true. Returns updated user.
   - Tests: Test valid update (200), missing auth (401)
 
 - [x] **Add onboarding completion redirect logic**
@@ -927,3 +927,9 @@
   - Spec: `specs/14-contributions.md`
   - Acceptance: GET /api/contributions/[obligationId] returns chronological list of contributions and adjustments for an obligation. UI component shows date, amount, type, and note for each entry. Displayed on the obligation edit/detail page.
   - Tests: API test: returns contributions for user's obligation only. Component test: renders history list
+
+- [x] **Show total contribution per cycle on dashboard hero card** (ad-hoc)
+  - Files: `web/lib/engine/snapshot.ts`, `web/app/(app)/dashboard/page.tsx`, `web/app/(app)/dashboard/dashboard.module.css`, `web/app/api/engine/recalculate/route.ts`
+  - Spec: `specs/08-dashboard.md`
+  - Acceptance: Dashboard hero card shows total contribution per cycle across all obligations (e.g. "$587.50 per fortnight") as the primary figure, with the most urgent obligation shown below. Engine snapshot includes `totalContributionPerCycle` and `cyclePeriodLabel` in API response.
+  - Tests: 4 new perCycleLabel tests, updated dashboard page tests and API route tests

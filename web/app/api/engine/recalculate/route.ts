@@ -86,7 +86,7 @@ export async function POST(): Promise<NextResponse> {
       cycleConfig,
     });
 
-    // Persist the snapshot
+    // Persist the snapshot (core fields only — computed per-cycle fields are ephemeral)
     const saved = await prisma.engineSnapshot.create({
       data: {
         userId: user.id,
@@ -99,7 +99,12 @@ export async function POST(): Promise<NextResponse> {
       },
     });
 
-    return NextResponse.json(saved);
+    // Return persisted snapshot augmented with computed per-cycle fields
+    return NextResponse.json({
+      ...saved,
+      totalContributionPerCycle: snapshot.totalContributionPerCycle,
+      cyclePeriodLabel: snapshot.cyclePeriodLabel,
+    });
   } catch (error) {
     logError("failed to recalculate engine", error);
     return NextResponse.json(

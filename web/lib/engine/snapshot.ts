@@ -3,6 +3,8 @@ import { calculateContributions, type CycleConfig, type EngineInput, type Engine
 export interface SnapshotData {
   totalRequired: number;
   totalFunded: number;
+  totalContributionPerCycle: number;
+  cyclePeriodLabel: string;
   nextActionAmount: number;
   nextActionDate: Date;
   nextActionDescription: string;
@@ -11,6 +13,8 @@ export interface SnapshotData {
 
 /**
  * Returns a human-readable cycle period label for the given cycle type.
+ * Used in next-action descriptions ("Set aside $X this week for Y")
+ * and in the dashboard summary ("per week", "per fortnight", etc.).
  */
 function cyclePeriodLabel(cycleType: CycleConfig["type"]): string {
   switch (cycleType) {
@@ -26,6 +30,23 @@ function cyclePeriodLabel(cycleType: CycleConfig["type"]): string {
 }
 
 /**
+ * Returns a short "per cycle" label for the given cycle type.
+ * Used in dashboard summaries like "$412.00 per week".
+ */
+export function perCycleLabel(cycleType: CycleConfig["type"]): string {
+  switch (cycleType) {
+    case "weekly":
+      return "per week";
+    case "fortnightly":
+      return "per fortnight";
+    case "twice_monthly":
+      return "per pay period";
+    case "monthly":
+      return "per month";
+  }
+}
+
+/**
  * Generates a snapshot from an EngineResult.
  *
  * The next action is the most urgent under-funded obligation (nearest due date).
@@ -33,13 +54,17 @@ function cyclePeriodLabel(cycleType: CycleConfig["type"]): string {
  * If there are no obligations, it prompts the user to add some.
  */
 export function generateSnapshot(engineResult: EngineResult, cycleConfig?: CycleConfig): SnapshotData {
-  const { contributions, totalRequired, totalFunded, isFullyFunded } = engineResult;
+  const { contributions, totalRequired, totalFunded, totalContributionPerCycle, isFullyFunded } = engineResult;
+
+  const periodLabel = cycleConfig ? perCycleLabel(cycleConfig.type) : "per cycle";
 
   // No obligations — prompt user
   if (contributions.length === 0) {
     return {
       totalRequired: 0,
       totalFunded: 0,
+      totalContributionPerCycle: 0,
+      cyclePeriodLabel: periodLabel,
       nextActionAmount: 0,
       nextActionDate: new Date(),
       nextActionDescription: "Add your first obligation to get started",
@@ -59,6 +84,8 @@ export function generateSnapshot(engineResult: EngineResult, cycleConfig?: Cycle
     return {
       totalRequired,
       totalFunded,
+      totalContributionPerCycle,
+      cyclePeriodLabel: periodLabel,
       nextActionAmount: 0,
       nextActionDate: nearestDueDate,
       nextActionDescription: "You're fully covered!",
@@ -73,6 +100,8 @@ export function generateSnapshot(engineResult: EngineResult, cycleConfig?: Cycle
   return {
     totalRequired,
     totalFunded,
+    totalContributionPerCycle,
+    cyclePeriodLabel: periodLabel,
     nextActionAmount: nextAction.contributionPerCycle,
     nextActionDate: nextAction.nextDueDate,
     nextActionDescription: cycleConfig
