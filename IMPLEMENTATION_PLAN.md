@@ -774,7 +774,7 @@
   - Acceptance: `EngineInput` interface replaces `contributionCycleDays: number | null` with `cycleConfig: CycleConfig`. `CycleConfig` has `type` and `payDays` fields. `calculateContributions()` uses `cycleConfig` throughout. All callers updated.
   - Tests: Existing engine tests updated to pass `cycleConfig` instead of `contributionCycleDays`; all pass
 
-- [ ] **Update recalculate API route to resolve and pass `CycleConfig`**
+- [x] **Update recalculate API route to resolve and pass `CycleConfig`**
   - Files: `web/app/api/engine/recalculate/route.ts`
   - Spec: `specs/07a-cycle-auto-detection.md`
   - Acceptance: Route reads `user.contributionCycleType` and `user.contributionPayDays`. If null, queries income sources and derives cycle via `resolveCycleConfig()`. Passes resolved `CycleConfig` to engine calculation.

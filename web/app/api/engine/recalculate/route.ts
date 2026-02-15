@@ -5,7 +5,7 @@ import { logError } from "@/lib/logging";
 import { calculateAndSnapshot } from "@/lib/engine/snapshot";
 import { applyPendingEscalations } from "@/lib/engine/applyEscalations";
 import type { ObligationInput, FundBalanceInput } from "@/lib/engine/calculate";
-import { cycleDaysToConfig } from "@/lib/engine/calculate";
+import { resolveCycleConfig } from "@/lib/engine/calculate";
 
 export async function POST(): Promise<NextResponse> {
   try {
@@ -16,6 +16,21 @@ export async function POST(): Promise<NextResponse> {
 
     // Apply any pending one-off escalation rules before recalculating
     await applyPendingEscalations(user.id);
+
+    // Fetch active income sources for cycle auto-detection
+    const incomeSources = await prisma.incomeSource.findMany({
+      where: { userId: user.id, isActive: true },
+      select: { frequency: true, isIrregular: true, isActive: true, isPaused: true },
+    });
+
+    // Resolve cycle config: explicit user setting > auto-detect from income > monthly default
+    const cycleConfig = resolveCycleConfig(
+      {
+        contributionCycleType: user.contributionCycleType ?? null,
+        contributionPayDays: user.contributionPayDays ?? [],
+      },
+      incomeSources,
+    );
 
     // Fetch active, non-archived obligations with their custom entries
     const obligations = await prisma.obligation.findMany({
@@ -68,7 +83,7 @@ export async function POST(): Promise<NextResponse> {
       obligations: obligationInputs,
       fundBalances: fundBalanceInputs,
       maxContributionPerCycle: user.maxContributionPerCycle,
-      cycleConfig: cycleDaysToConfig(user.contributionCycleDays),
+      cycleConfig,
     });
 
     // Persist the snapshot

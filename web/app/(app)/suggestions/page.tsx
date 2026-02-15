@@ -31,6 +31,7 @@ interface Suggestion {
 const FREQUENCY_LABELS: Record<string, string> = {
   weekly: "Weekly",
   fortnightly: "Fortnightly",
+  twice_monthly: "Twice monthly",
   monthly: "Monthly",
   quarterly: "Quarterly",
   annual: "Annual",
@@ -41,6 +42,7 @@ const FREQUENCY_LABELS: Record<string, string> = {
 const FREQUENCY_OPTIONS = [
   { value: "weekly", label: "Weekly" },
   { value: "fortnightly", label: "Fortnightly" },
+  { value: "twice_monthly", label: "Twice monthly" },
   { value: "monthly", label: "Monthly" },
   { value: "quarterly", label: "Quarterly" },
   { value: "annual", label: "Annual" },
@@ -86,7 +88,9 @@ function computeAverageCadence(dates: string[]): string | null {
 }
 
 function formatTransactionDate(dateStr: string): string {
-  const date = new Date(dateStr);
+  const datePart = dateStr.includes("T") ? dateStr.split("T")[0] : dateStr;
+  const [year, month, day] = datePart.split("-").map(Number);
+  const date = new Date(year, month - 1, day);
   return date.toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
@@ -346,6 +350,17 @@ export default function SuggestionsPage() {
                         <p className={styles.cadenceLine}>{cadence}</p>
                       ) : null;
                     })()}
+                    {suggestion.detectedAmountMin === null &&
+                      suggestion.suggestionTransactions.length > 1 &&
+                      new Set(
+                        suggestion.suggestionTransactions.map(
+                          (st) => st.transaction.amount
+                        )
+                      ).size > 1 && (
+                        <p className={styles.cadenceLine}>
+                          Amounts vary slightly — average shown above
+                        </p>
+                      )}
                   </div>
                 )}
 

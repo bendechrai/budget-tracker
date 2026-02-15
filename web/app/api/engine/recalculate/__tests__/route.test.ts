@@ -8,6 +8,7 @@ vi.mock("@/lib/auth/getCurrentUser", () => ({
 const mockObligationFindMany = vi.fn();
 const mockFundBalanceFindMany = vi.fn();
 const mockEngineSnapshotCreate = vi.fn();
+const mockIncomeSourceFindMany = vi.fn();
 
 vi.mock("@/lib/prisma", () => ({
   prisma: {
@@ -19,6 +20,9 @@ vi.mock("@/lib/prisma", () => ({
     },
     engineSnapshot: {
       create: (...args: unknown[]) => mockEngineSnapshotCreate(...args),
+    },
+    incomeSource: {
+      findMany: (...args: unknown[]) => mockIncomeSourceFindMany(...args),
     },
   },
 }));
@@ -45,7 +49,8 @@ const mockUser = {
   id: "user_1",
   email: "test@example.com",
   maxContributionPerCycle: 500,
-  contributionCycleDays: 14,
+  contributionCycleType: "fortnightly" as const,
+  contributionPayDays: [] as number[],
 };
 
 const futureDate = new Date("2025-06-15");
@@ -100,6 +105,7 @@ describe("POST /api/engine/recalculate", () => {
     mockApplyPendingEscalations.mockResolvedValue({ appliedCount: 0, updatedObligationIds: [] });
     mockObligationFindMany.mockResolvedValue(mockObligations);
     mockFundBalanceFindMany.mockResolvedValue(mockFundBalances);
+    mockIncomeSourceFindMany.mockResolvedValue([]);
     mockCalculateAndSnapshot.mockReturnValue({
       result: {},
       snapshot: mockSnapshotData,
@@ -115,6 +121,15 @@ describe("POST /api/engine/recalculate", () => {
     expect(res.status).toBe(401);
     const data = await res.json();
     expect(data.error).toBe("unauthorized");
+  });
+
+  it("fetches active income sources for cycle detection", async () => {
+    await POST();
+
+    expect(mockIncomeSourceFindMany).toHaveBeenCalledWith({
+      where: { userId: "user_1", isActive: true },
+      select: { frequency: true, isIrregular: true, isActive: true, isPaused: true },
+    });
   });
 
   it("fetches active non-archived obligations for the user", async () => {
@@ -142,6 +157,52 @@ describe("POST /api/engine/recalculate", () => {
         },
       },
     });
+  });
+
+  it("uses explicit user cycle config when set", async () => {
+    await POST();
+
+    expect(mockCalculateAndSnapshot).toHaveBeenCalledWith(
+      expect.objectContaining({
+        cycleConfig: { type: "fortnightly", payDays: [] },
+      })
+    );
+  });
+
+  it("auto-detects cycle from income sources when user has no cycle set", async () => {
+    mockGetCurrentUser.mockResolvedValue({
+      ...mockUser,
+      contributionCycleType: null,
+      contributionPayDays: [],
+    });
+    mockIncomeSourceFindMany.mockResolvedValue([
+      { frequency: "weekly", isIrregular: false, isActive: true, isPaused: false },
+    ]);
+
+    await POST();
+
+    expect(mockCalculateAndSnapshot).toHaveBeenCalledWith(
+      expect.objectContaining({
+        cycleConfig: { type: "weekly", payDays: [] },
+      })
+    );
+  });
+
+  it("falls back to monthly when no cycle set and no income sources", async () => {
+    mockGetCurrentUser.mockResolvedValue({
+      ...mockUser,
+      contributionCycleType: null,
+      contributionPayDays: [],
+    });
+    mockIncomeSourceFindMany.mockResolvedValue([]);
+
+    await POST();
+
+    expect(mockCalculateAndSnapshot).toHaveBeenCalledWith(
+      expect.objectContaining({
+        cycleConfig: { type: "monthly", payDays: [1] },
+      })
+    );
   });
 
   it("calls calculateAndSnapshot with correct inputs", async () => {

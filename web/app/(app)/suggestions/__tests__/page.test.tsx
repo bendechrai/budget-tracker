@@ -96,7 +96,7 @@ const mockSuggestions = [
       {
         transaction: {
           id: "t6",
-          date: "2025-12-20",
+          date: "2025-12-10",
           description: "RANDOM SHOP",
           amount: 80,
           type: "expense",
@@ -105,7 +105,7 @@ const mockSuggestions = [
       {
         transaction: {
           id: "t7",
-          date: "2025-11-01",
+          date: "2025-11-05",
           description: "RANDOM SHOP",
           amount: 30,
           type: "expense",
@@ -114,7 +114,7 @@ const mockSuggestions = [
       {
         transaction: {
           id: "t8",
-          date: "2025-09-13",
+          date: "2025-10-01",
           description: "RANDOM SHOP",
           amount: 50,
           type: "expense",
@@ -470,8 +470,76 @@ describe("SuggestionsPage", () => {
     });
     await user.click(toggleButton);
 
-    expect(screen.getByText("RANDOM SHOP")).toBeDefined();
-    expect(screen.getByText(/~every 7 weeks/)).toBeDefined();
+    expect(screen.getAllByText("RANDOM SHOP")).toHaveLength(3);
+    expect(screen.getByText(/~every 5 weeks/)).toBeDefined();
+  });
+
+  it("shows slight variation note when amounts differ but no range shown", async () => {
+    const user = userEvent.setup();
+    const varyingSuggestion = {
+      ...mockSuggestions[0],
+      id: "sv",
+      vendorPattern: "Nandos",
+      detectedAmount: 41.96,
+      detectedAmountMin: null,
+      detectedAmountMax: null,
+      suggestionTransactions: [
+        {
+          transaction: {
+            id: "tv1",
+            date: "2025-11-01",
+            description: "NANDOS",
+            amount: 38.43,
+            type: "expense",
+          },
+        },
+        {
+          transaction: {
+            id: "tv2",
+            date: "2025-12-01",
+            description: "NANDOS",
+            amount: 44.06,
+            type: "expense",
+          },
+        },
+      ],
+    };
+    vi.mocked(global.fetch).mockResolvedValueOnce(
+      mockFetchResponse({ suggestions: [varyingSuggestion], count: 1 })
+    );
+
+    render(<SuggestionsPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Nandos")).toBeDefined();
+    });
+
+    const toggleButton = screen.getByRole("button", {
+      name: /Toggle transactions for Nandos/,
+    });
+    await user.click(toggleButton);
+
+    expect(screen.getByText("Amounts vary slightly — average shown above")).toBeDefined();
+  });
+
+  it("does not show slight variation note when all amounts are identical", async () => {
+    const user = userEvent.setup();
+    vi.mocked(global.fetch).mockResolvedValueOnce(
+      mockFetchResponse({ suggestions: mockSuggestions, count: 3 })
+    );
+
+    render(<SuggestionsPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Netflix")).toBeDefined();
+    });
+
+    const toggleButton = screen.getByRole("button", {
+      name: /Toggle transactions for Netflix/,
+    });
+    await user.click(toggleButton);
+
+    expect(screen.queryByText(/vary slightly/)).toBeNull();
   });
 
   it("does not show cadence for regular frequency suggestions", async () => {
