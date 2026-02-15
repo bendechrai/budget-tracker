@@ -732,6 +732,12 @@
 
 ## Completed (continued 4)
 
+- [x] **Add settings page — profile section**
+  - Files: `web/app/(app)/settings/page.tsx`, `web/app/(app)/settings/settings.module.css`
+  - Spec: `specs/13-settings.md`
+  - Acceptance: Settings page with profile section showing current email and forms to change email and password. Email change requires current password. Password change requires current + new + confirm. Inline validation errors.
+  - Tests: Component test: renders email, change email form submits, change password form submits, validation errors display
+
 - [x] **Add cycle auto-detection from income sources**
   - Files: `web/lib/engine/calculate.ts`
   - Spec: `specs/07a-cycle-auto-detection.md`
@@ -847,12 +853,6 @@
   - Spec: `specs/13-settings.md`
   - Acceptance: Hard-deletes all user data (cascade). Requires confirmation token ("DELETE" string). Clears session. Returns 200.
   - Tests: Test delete with correct confirmation (200), wrong confirmation (400), unauthenticated (401)
-
-- [ ] **Add settings page — profile section**
-  - Files: `web/app/(app)/settings/page.tsx`, `web/app/(app)/settings/settings.module.css`
-  - Spec: `specs/13-settings.md`
-  - Acceptance: Settings page with profile section showing current email and forms to change email and password. Email change requires current password. Password change requires current + new + confirm. Inline validation errors.
-  - Tests: Component test: renders email, change email form submits, change password form submits, validation errors display
 
 - [ ] **Add settings page — budget preferences section**
   - Files: `web/app/(app)/settings/page.tsx` (update), `web/app/(app)/settings/settings.module.css` (update)
