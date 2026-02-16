@@ -36,8 +36,8 @@ function makeRequest(body: Record<string, unknown>): NextRequest {
 const validBody = {
   name: "Salary",
   expectedAmount: 5000,
-  frequency: "monthly",
-  isIrregular: false,
+  intervalUnit: "month",
+  intervalCount: 1,
   nextExpectedDate: "2026-03-01T00:00:00.000Z",
 };
 
@@ -53,9 +53,8 @@ describe("POST /api/income-sources", () => {
       userId: "user_1",
       name: "Salary",
       expectedAmount: 5000,
-      frequency: "monthly",
-      frequencyDays: null,
-      isIrregular: false,
+      intervalUnit: "month",
+      intervalCount: 1,
       minimumExpected: null,
       nextExpectedDate: "2026-03-01T00:00:00.000Z",
       isPaused: false,
@@ -76,52 +75,49 @@ describe("POST /api/income-sources", () => {
         userId: "user_1",
         name: "Salary",
         expectedAmount: 5000,
-        frequency: "monthly",
-        frequencyDays: null,
-        isIrregular: false,
+        intervalUnit: "month",
+        intervalCount: 1,
         minimumExpected: null,
         nextExpectedDate: new Date("2026-03-01T00:00:00.000Z"),
       },
     });
   });
 
-  it("returns 201 with custom frequency and frequencyDays", async () => {
+  it("returns 201 with day interval unit and custom count", async () => {
     mockGetCurrentUser.mockResolvedValue({ id: "user_1", email: "test@example.com" });
-    mockCreate.mockResolvedValue({ id: "inc_2", frequency: "custom", frequencyDays: 10 });
+    mockCreate.mockResolvedValue({ id: "inc_2", intervalUnit: "day", intervalCount: 10 });
 
     const res = await POST(makeRequest({
       name: "Side Gig",
       expectedAmount: 500,
-      frequency: "custom",
-      frequencyDays: 10,
-      isIrregular: false,
+      intervalUnit: "day",
+      intervalCount: 10,
     }));
 
     expect(res.status).toBe(201);
     expect(mockCreate).toHaveBeenCalledWith({
       data: expect.objectContaining({
-        frequency: "custom",
-        frequencyDays: 10,
+        intervalUnit: "day",
+        intervalCount: 10,
       }),
     });
   });
 
-  it("returns 201 with irregular income and minimumExpected", async () => {
+  it("returns 201 with irregular income (null intervalUnit) and minimumExpected", async () => {
     mockGetCurrentUser.mockResolvedValue({ id: "user_1", email: "test@example.com" });
-    mockCreate.mockResolvedValue({ id: "inc_3", isIrregular: true, minimumExpected: 200 });
+    mockCreate.mockResolvedValue({ id: "inc_3", intervalUnit: null, minimumExpected: 200 });
 
     const res = await POST(makeRequest({
       name: "Freelance",
       expectedAmount: 1000,
-      frequency: "irregular",
-      isIrregular: true,
+      intervalUnit: null,
       minimumExpected: 200,
     }));
 
     expect(res.status).toBe(201);
     expect(mockCreate).toHaveBeenCalledWith({
       data: expect.objectContaining({
-        isIrregular: true,
+        intervalUnit: null,
         minimumExpected: 200,
       }),
     });
@@ -143,8 +139,8 @@ describe("POST /api/income-sources", () => {
 
     const res = await POST(makeRequest({
       expectedAmount: 5000,
-      frequency: "monthly",
-      isIrregular: false,
+      intervalUnit: "month",
+      intervalCount: 1,
     }));
 
     expect(res.status).toBe(400);
@@ -158,8 +154,8 @@ describe("POST /api/income-sources", () => {
     const res = await POST(makeRequest({
       name: "  ",
       expectedAmount: 5000,
-      frequency: "monthly",
-      isIrregular: false,
+      intervalUnit: "month",
+      intervalCount: 1,
     }));
 
     expect(res.status).toBe(400);
@@ -172,8 +168,8 @@ describe("POST /api/income-sources", () => {
 
     const res = await POST(makeRequest({
       name: "Salary",
-      frequency: "monthly",
-      isIrregular: false,
+      intervalUnit: "month",
+      intervalCount: 1,
     }));
 
     expect(res.status).toBe(400);
@@ -187,8 +183,8 @@ describe("POST /api/income-sources", () => {
     const res = await POST(makeRequest({
       name: "Salary",
       expectedAmount: -100,
-      frequency: "monthly",
-      isIrregular: false,
+      intervalUnit: "month",
+      intervalCount: 1,
     }));
 
     expect(res.status).toBe(400);
@@ -196,48 +192,48 @@ describe("POST /api/income-sources", () => {
     expect(data.error).toBe("expectedAmount must be a non-negative number");
   });
 
-  it("returns 400 when frequency is invalid", async () => {
+  it("returns 400 when intervalUnit is invalid", async () => {
     mockGetCurrentUser.mockResolvedValue({ id: "user_1", email: "test@example.com" });
 
     const res = await POST(makeRequest({
       name: "Salary",
       expectedAmount: 5000,
-      frequency: "biweekly",
-      isIrregular: false,
+      intervalUnit: "biweekly",
     }));
 
     expect(res.status).toBe(400);
     const data = await res.json();
-    expect(data.error).toContain("frequency must be one of");
+    expect(data.error).toContain("intervalUnit must be one of");
   });
 
-  it("returns 400 when frequency is custom but frequencyDays is missing", async () => {
+  it("returns 400 when intervalCount is invalid", async () => {
     mockGetCurrentUser.mockResolvedValue({ id: "user_1", email: "test@example.com" });
 
     const res = await POST(makeRequest({
       name: "Side Gig",
       expectedAmount: 500,
-      frequency: "custom",
-      isIrregular: false,
+      intervalUnit: "day",
+      intervalCount: -1,
     }));
 
     expect(res.status).toBe(400);
     const data = await res.json();
-    expect(data.error).toBe("frequencyDays must be a positive integer when frequency is custom");
+    expect(data.error).toBe("intervalCount must be a positive integer");
   });
 
-  it("returns 400 when isIrregular is missing", async () => {
+  it("returns 400 when intervalCount is zero", async () => {
     mockGetCurrentUser.mockResolvedValue({ id: "user_1", email: "test@example.com" });
 
     const res = await POST(makeRequest({
       name: "Salary",
       expectedAmount: 5000,
-      frequency: "monthly",
+      intervalUnit: "month",
+      intervalCount: 0,
     }));
 
     expect(res.status).toBe(400);
     const data = await res.json();
-    expect(data.error).toBe("isIrregular is required and must be a boolean");
+    expect(data.error).toBe("intervalCount must be a positive integer");
   });
 
   it("trims whitespace from name", async () => {

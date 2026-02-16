@@ -124,11 +124,29 @@ function createMockFile(name: string, content: string): File {
   return new File([content], name, { type: "text/csv" });
 }
 
+// Response for the initial GET /api/import/batch call that useBatchImport
+// fires on mount to check for an active batch.
+function makeActiveBatchCheckResponse() {
+  return new Response(JSON.stringify({ batch: null }), {
+    status: 200,
+    headers: { "Content-Type": "application/json" },
+  });
+}
+
+// Render the page and wait for the initial loading state to resolve so the
+// upload zone becomes visible.
+async function renderAndWaitForLoad() {
+  render(<ImportPage />);
+  await waitFor(() => {
+    expect(screen.getByTestId("drop-zone")).toBeDefined();
+  });
+}
+
 describe("ImportPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     global.fetch = vi.fn().mockResolvedValue(
-      new Response("{}", { status: 200, headers: { "Content-Type": "application/json" } })
+      makeActiveBatchCheckResponse()
     );
   });
 
@@ -136,8 +154,8 @@ describe("ImportPage", () => {
     cleanup();
   });
 
-  it("renders the page title and upload zone", () => {
-    render(<ImportPage />);
+  it("renders the page title and upload zone", async () => {
+    await renderAndWaitForLoad();
 
     expect(
       screen.getByRole("heading", { name: "Import Statements" })
@@ -157,8 +175,8 @@ describe("ImportPage", () => {
     expect(link.getAttribute("href")).toBe("/import/history");
   });
 
-  it("renders a file input that accepts CSV, OFX, and PDF with multi-select", () => {
-    render(<ImportPage />);
+  it("renders a file input that accepts CSV, OFX, and PDF with multi-select", async () => {
+    await renderAndWaitForLoad();
 
     const input = screen.getByTestId("file-input") as HTMLInputElement;
     expect(input).toBeDefined();
@@ -169,9 +187,11 @@ describe("ImportPage", () => {
 
   it("shows uploading state when a file is selected", async () => {
     const user = userEvent.setup();
-    vi.mocked(global.fetch).mockReturnValueOnce(new Promise(() => {}));
+    vi.mocked(global.fetch)
+      .mockResolvedValueOnce(makeActiveBatchCheckResponse())
+      .mockReturnValueOnce(new Promise(() => {}));
 
-    render(<ImportPage />);
+    await renderAndWaitForLoad();
 
     const input = screen.getByTestId("file-input") as HTMLInputElement;
     const file = createMockFile("test.csv", "date,description,amount\n2026-01-01,Test,100");
@@ -184,6 +204,7 @@ describe("ImportPage", () => {
     const user = userEvent.setup();
 
     vi.mocked(global.fetch)
+      .mockResolvedValueOnce(makeActiveBatchCheckResponse())
       .mockResolvedValueOnce(
         new Response(JSON.stringify(makeBatchUploadResponse()), {
           status: 202,
@@ -197,7 +218,7 @@ describe("ImportPage", () => {
         })
       );
 
-    render(<ImportPage />);
+    await renderAndWaitForLoad();
 
     const input = screen.getByTestId("file-input") as HTMLInputElement;
     const file = createMockFile("statement.ofx", "<OFX>data</OFX>");
@@ -217,6 +238,7 @@ describe("ImportPage", () => {
     const user = userEvent.setup();
 
     vi.mocked(global.fetch)
+      .mockResolvedValueOnce(makeActiveBatchCheckResponse())
       .mockResolvedValueOnce(
         new Response(JSON.stringify(makeBatchUploadResponse()), {
           status: 202,
@@ -230,7 +252,7 @@ describe("ImportPage", () => {
         })
       );
 
-    render(<ImportPage />);
+    await renderAndWaitForLoad();
 
     const input = screen.getByTestId("file-input") as HTMLInputElement;
     const file = createMockFile("statement.csv", "data");
@@ -255,6 +277,7 @@ describe("ImportPage", () => {
     const user = userEvent.setup();
 
     vi.mocked(global.fetch)
+      .mockResolvedValueOnce(makeActiveBatchCheckResponse())
       .mockResolvedValueOnce(
         new Response(JSON.stringify(makeBatchUploadResponse()), {
           status: 202,
@@ -268,7 +291,7 @@ describe("ImportPage", () => {
         })
       );
 
-    render(<ImportPage />);
+    await renderAndWaitForLoad();
 
     const input = screen.getByTestId("file-input") as HTMLInputElement;
     const file = createMockFile("statement.csv", "data");
@@ -290,14 +313,16 @@ describe("ImportPage", () => {
 
   it("shows error when upload fails", async () => {
     const user = userEvent.setup();
-    vi.mocked(global.fetch).mockResolvedValueOnce(
-      new Response(JSON.stringify({ error: "unsupported file format" }), {
-        status: 400,
-        headers: { "Content-Type": "application/json" },
-      })
-    );
+    vi.mocked(global.fetch)
+      .mockResolvedValueOnce(makeActiveBatchCheckResponse())
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ error: "unsupported file format" }), {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        })
+      );
 
-    render(<ImportPage />);
+    await renderAndWaitForLoad();
 
     const input = screen.getByTestId("file-input") as HTMLInputElement;
     const file = createMockFile("test.csv", "bad,data");
@@ -314,6 +339,7 @@ describe("ImportPage", () => {
     const user = userEvent.setup();
 
     vi.mocked(global.fetch)
+      .mockResolvedValueOnce(makeActiveBatchCheckResponse())
       .mockResolvedValueOnce(
         new Response(JSON.stringify(makeBatchUploadResponse()), {
           status: 202,
@@ -327,7 +353,7 @@ describe("ImportPage", () => {
         })
       );
 
-    render(<ImportPage />);
+    await renderAndWaitForLoad();
 
     const input = screen.getByTestId("file-input") as HTMLInputElement;
     const file = createMockFile("statement.ofx", "data");
@@ -348,6 +374,7 @@ describe("ImportPage", () => {
     const user = userEvent.setup();
 
     vi.mocked(global.fetch)
+      .mockResolvedValueOnce(makeActiveBatchCheckResponse())
       .mockResolvedValueOnce(
         new Response(JSON.stringify(makeBatchUploadResponse()), {
           status: 202,
@@ -361,7 +388,7 @@ describe("ImportPage", () => {
         })
       );
 
-    render(<ImportPage />);
+    await renderAndWaitForLoad();
 
     const input = screen.getByTestId("file-input") as HTMLInputElement;
     const file = createMockFile("statement.ofx", "<OFX>data</OFX>");
@@ -371,12 +398,16 @@ describe("ImportPage", () => {
       expect(screen.getByText("Import Complete")).toBeDefined();
     });
 
-    // First call should be to batch endpoint
+    // First call is the mount check for active batch (GET /api/import/batch)
     const firstCall = vi.mocked(global.fetch).mock.calls[0];
     expect(firstCall[0]).toBe("/api/import/batch");
 
-    // Second call should be polling
+    // Second call should be the upload POST to batch endpoint
     const secondCall = vi.mocked(global.fetch).mock.calls[1];
-    expect(secondCall[0]).toBe("/api/import/batch/batch_1");
+    expect(secondCall[0]).toBe("/api/import/batch");
+
+    // Third call should be polling for batch status
+    const thirdCall = vi.mocked(global.fetch).mock.calls[2];
+    expect(thirdCall[0]).toBe("/api/import/batch/batch_1");
   });
 });

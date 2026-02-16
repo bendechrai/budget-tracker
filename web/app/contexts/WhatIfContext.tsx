@@ -8,15 +8,15 @@ import {
   useMemo,
   type ReactNode,
 } from "react";
-import type { ObligationType, IncomeFrequency, EscalationChangeType } from "@/app/generated/prisma/client";
+import type { ObligationType, IntervalUnit, EscalationChangeType } from "@/app/generated/prisma/client";
 
 export interface HypotheticalObligation {
   id: string;
   name: string;
   type: ObligationType;
   amount: number;
-  frequency: IncomeFrequency | null;
-  frequencyDays: number | null;
+  intervalUnit: IntervalUnit | null;
+  intervalCount: number;
   nextDueDate: Date;
   endDate: Date | null;
   fundGroupId: string | null;

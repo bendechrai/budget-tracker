@@ -25,12 +25,12 @@ const emptyContext: FinancialContext = {
 
 const sampleContext: FinancialContext = {
   incomeSources: [
-    { id: "inc_1", name: "Salary", expectedAmount: 5000, frequency: "monthly" },
+    { id: "inc_1", name: "Salary", expectedAmount: 5000, intervalUnit: "month", intervalCount: 1 },
   ],
   obligations: [
-    { id: "obl_1", name: "Netflix", amount: 22.99, frequency: "monthly", type: "recurring", nextDueDate: "2025-04-01" },
-    { id: "obl_2", name: "Gym Membership", amount: 50, frequency: "monthly", type: "recurring", nextDueDate: "2025-03-15" },
-    { id: "obl_3", name: "Rent", amount: 2000, frequency: "monthly", type: "recurring", nextDueDate: "2025-03-01" },
+    { id: "obl_1", name: "Netflix", amount: 22.99, intervalUnit: "month", intervalCount: 1, type: "recurring", nextDueDate: "2025-04-01" },
+    { id: "obl_2", name: "Gym Membership", amount: 50, intervalUnit: "month", intervalCount: 1, type: "recurring", nextDueDate: "2025-03-15" },
+    { id: "obl_3", name: "Rent", amount: 2000, intervalUnit: "month", intervalCount: 1, type: "recurring", nextDueDate: "2025-03-01" },
   ],
 };
 
@@ -80,8 +80,8 @@ describe("parseNaturalLanguage", () => {
         incomeFields: {
           name: "Monthly Income",
           expectedAmount: 1000,
-          frequency: "monthly",
-          isIrregular: false,
+          intervalUnit: "month",
+          intervalCount: 1,
         },
       });
 
@@ -96,7 +96,7 @@ describe("parseNaturalLanguage", () => {
       expect(create.incomeFields?.name).not.toBe("Add");
       expect(create.incomeFields?.name).toBeTruthy();
       expect(create.incomeFields?.expectedAmount).toBe(1000);
-      expect(create.incomeFields?.frequency).toBe("monthly");
+      expect(create.incomeFields?.intervalUnit).toBe("month");
     });
 
     it('parses "Netflix $22.99 monthly" as create expense', async () => {
@@ -108,7 +108,8 @@ describe("parseNaturalLanguage", () => {
           name: "Netflix",
           type: "recurring",
           amount: 22.99,
-          frequency: "monthly",
+          intervalUnit: "month",
+          intervalCount: 1,
         },
       });
 
@@ -122,7 +123,7 @@ describe("parseNaturalLanguage", () => {
       expect(create.targetType).toBe("expense");
       expect(create.obligationFields?.name).toBe("Netflix");
       expect(create.obligationFields?.amount).toBe(22.99);
-      expect(create.obligationFields?.frequency).toBe("monthly");
+      expect(create.obligationFields?.intervalUnit).toBe("month");
     });
 
     it('parses "add salary $5000 monthly" as create income', async () => {
@@ -133,8 +134,8 @@ describe("parseNaturalLanguage", () => {
         incomeFields: {
           name: "Salary",
           expectedAmount: 5000,
-          frequency: "monthly",
-          isIrregular: false,
+          intervalUnit: "month",
+          intervalCount: 1,
         },
       });
 
@@ -440,7 +441,7 @@ describe("parseNaturalLanguage", () => {
         type: "create",
         targetType: "expense",
         confidence: "high",
-        obligationFields: { name: "Netflix", type: "recurring", amount: 22.99, frequency: "monthly" },
+        obligationFields: { name: "Netflix", type: "recurring", amount: 22.99, intervalUnit: "month", intervalCount: 1 },
       });
 
       await parseNaturalLanguage("add Netflix $22.99 monthly", sampleContext, client);

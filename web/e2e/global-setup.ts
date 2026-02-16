@@ -57,8 +57,8 @@ async function globalSetup(config: FullConfig): Promise<void> {
         userId: user.id,
         name: "Test Salary",
         expectedAmount: 5000,
-        frequency: "monthly",
-        isIrregular: false,
+        intervalUnit: "month",
+        intervalCount: 1,
         nextExpectedDate: new Date(
           Date.now() + 14 * 24 * 60 * 60 * 1000
         ),
@@ -72,8 +72,8 @@ async function globalSetup(config: FullConfig): Promise<void> {
         name: "Test Rent",
         type: "recurring",
         amount: 1500,
-        frequency: "monthly",
-        startDate: new Date(),
+        intervalUnit: "month",
+        intervalCount: 1,
         nextDueDate: new Date(
           Date.now() + 30 * 24 * 60 * 60 * 1000
         ),

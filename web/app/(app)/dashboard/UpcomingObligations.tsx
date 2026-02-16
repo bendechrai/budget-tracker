@@ -11,8 +11,8 @@ interface ObligationData {
   nextDueDate: string;
   isPaused: boolean;
   type: string;
-  frequency?: string | null;
-  frequencyDays?: number | null;
+  intervalUnit?: string | null;
+  intervalCount?: number;
   endDate?: string | null;
   customEntries?: { dueDate: string; amount: number }[];
   fundGroupId: string;
@@ -52,26 +52,32 @@ function toDateKey(dateStr: string): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
 
-function addFrequencyInterval(date: Date, frequency: string, frequencyDays?: number | null): Date {
+function addIntervalClient(date: Date, unit: string, count: number): Date {
   const next = new Date(date);
-  switch (frequency) {
-    case "weekly":
-      next.setUTCDate(next.getUTCDate() + 7);
+  switch (unit) {
+    case "day":
+      next.setUTCDate(next.getUTCDate() + count);
       break;
-    case "fortnightly":
-      next.setUTCDate(next.getUTCDate() + 14);
+    case "week":
+      next.setUTCDate(next.getUTCDate() + count * 7);
       break;
-    case "monthly":
-      next.setUTCMonth(next.getUTCMonth() + 1);
+    case "month":
+      next.setUTCMonth(next.getUTCMonth() + count);
+      if (next.getUTCDate() !== date.getUTCDate()) {
+        next.setUTCDate(0);
+      }
       break;
-    case "quarterly":
-      next.setUTCMonth(next.getUTCMonth() + 3);
+    case "quarter":
+      next.setUTCMonth(next.getUTCMonth() + count * 3);
+      if (next.getUTCDate() !== date.getUTCDate()) {
+        next.setUTCDate(0);
+      }
       break;
-    case "annual":
-      next.setUTCFullYear(next.getUTCFullYear() + 1);
-      break;
-    case "custom":
-      next.setUTCDate(next.getUTCDate() + (frequencyDays ?? 30));
+    case "year":
+      next.setUTCFullYear(next.getUTCFullYear() + count);
+      if (next.getUTCDate() !== date.getUTCDate()) {
+        next.setUTCDate(0);
+      }
       break;
     default:
       return new Date(NaN);
@@ -109,10 +115,11 @@ function projectOccurrences(
 
     const isRecurring =
       ob.type === "recurring" || ob.type === "recurring_with_end";
-    const frequency = ob.frequency;
+    const unit = ob.intervalUnit;
+    const count = ob.intervalCount ?? 1;
     const endDate = ob.endDate ? new Date(ob.endDate) : null;
 
-    if (!isRecurring || !frequency || frequency === "irregular") {
+    if (!isRecurring || !unit) {
       if (dueDate >= now && dueDate <= cutoff) {
         results.push({
           ...ob,
@@ -135,7 +142,7 @@ function projectOccurrences(
         });
       }
       idx++;
-      current = addFrequencyInterval(current, frequency, ob.frequencyDays);
+      current = addIntervalClient(current, unit, count);
       if (isNaN(current.getTime())) break;
     }
   }

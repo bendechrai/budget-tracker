@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { detectPatterns, detectFrequency, type ExistingPattern } from "../detect";
+import { detectPatterns, detectInterval, type ExistingPattern } from "../detect";
 import type { TransactionRecord } from "../vendorMatch";
 
 function makeTxn(overrides: Partial<TransactionRecord> = {}): TransactionRecord {
@@ -32,22 +32,22 @@ function makeMonthlyTransactions(
   );
 }
 
-describe("detectFrequency", () => {
-  it("detects weekly frequency", () => {
+describe("detectInterval", () => {
+  it("detects weekly interval", () => {
     const txns = Array.from({ length: 5 }, (_, i) =>
       makeTxn({ date: new Date(2025, 0, 1 + i * 7) })
     );
-    expect(detectFrequency(txns)).toBe("weekly");
+    expect(detectInterval(txns)).toEqual({ unit: "week", count: 1 });
   });
 
-  it("detects fortnightly frequency", () => {
+  it("detects fortnightly interval (week x 2)", () => {
     const txns = Array.from({ length: 4 }, (_, i) =>
       makeTxn({ date: new Date(2025, 0, 1 + i * 14) })
     );
-    expect(detectFrequency(txns)).toBe("fortnightly");
+    expect(detectInterval(txns)).toEqual({ unit: "week", count: 2 });
   });
 
-  it("detects twice_monthly frequency for transactions on 1st and 15th", () => {
+  it("detects twice_monthly interval for transactions on 1st and 15th", () => {
     // Transactions on the 1st and 15th of consecutive months
     const txns = [
       makeTxn({ date: new Date(2025, 0, 1) }),
@@ -57,10 +57,10 @@ describe("detectFrequency", () => {
       makeTxn({ date: new Date(2025, 2, 1) }),
       makeTxn({ date: new Date(2025, 2, 15) }),
     ];
-    expect(detectFrequency(txns)).toBe("twice_monthly");
+    expect(detectInterval(txns)).toEqual({ unit: "twice_monthly", count: 1 });
   });
 
-  it("detects twice_monthly frequency for transactions on 10th and 25th", () => {
+  it("detects twice_monthly interval for transactions on 10th and 25th", () => {
     const txns = [
       makeTxn({ date: new Date(2025, 0, 10) }),
       makeTxn({ date: new Date(2025, 0, 25) }),
@@ -69,7 +69,7 @@ describe("detectFrequency", () => {
       makeTxn({ date: new Date(2025, 2, 10) }),
       makeTxn({ date: new Date(2025, 2, 25) }),
     ];
-    expect(detectFrequency(txns)).toBe("twice_monthly");
+    expect(detectInterval(txns)).toEqual({ unit: "twice_monthly", count: 1 });
   });
 
   it("does not detect twice_monthly for true fortnightly (drifts across months)", () => {
@@ -78,41 +78,41 @@ describe("detectFrequency", () => {
     const txns = Array.from({ length: 6 }, (_, i) =>
       makeTxn({ date: new Date(2025, 0, 3 + i * 14) })
     );
-    expect(detectFrequency(txns)).toBe("fortnightly");
+    expect(detectInterval(txns)).toEqual({ unit: "week", count: 2 });
   });
 
-  it("detects monthly frequency", () => {
+  it("detects monthly interval", () => {
     const txns = makeMonthlyTransactions("Test", 10, "debit", 4);
-    expect(detectFrequency(txns)).toBe("monthly");
+    expect(detectInterval(txns)).toEqual({ unit: "month", count: 1 });
   });
 
-  it("detects quarterly frequency", () => {
+  it("detects quarterly interval", () => {
     const txns = [0, 3, 6, 9].map((m) =>
       makeTxn({ date: new Date(2025, m, 15) })
     );
-    expect(detectFrequency(txns)).toBe("quarterly");
+    expect(detectInterval(txns)).toEqual({ unit: "quarter", count: 1 });
   });
 
-  it("detects annual frequency", () => {
+  it("detects annual interval", () => {
     const txns = [
       makeTxn({ date: new Date(2023, 6, 1) }),
       makeTxn({ date: new Date(2024, 6, 1) }),
       makeTxn({ date: new Date(2025, 6, 1) }),
     ];
-    expect(detectFrequency(txns)).toBe("annual");
+    expect(detectInterval(txns)).toEqual({ unit: "year", count: 1 });
   });
 
-  it("returns irregular for single transaction", () => {
+  it("returns irregular (null unit) for single transaction", () => {
     const txns = [makeTxn()];
-    expect(detectFrequency(txns)).toBe("irregular");
+    expect(detectInterval(txns)).toEqual({ unit: null, count: 1 });
   });
 
-  it("returns irregular for unrecognizable intervals", () => {
+  it("returns irregular (null unit) for unrecognizable intervals", () => {
     const txns = [
       makeTxn({ date: new Date(2025, 0, 1) }),
       makeTxn({ date: new Date(2025, 0, 22) }), // 21-day interval
     ];
-    expect(detectFrequency(txns)).toBe("irregular");
+    expect(detectInterval(txns)).toEqual({ unit: null, count: 1 });
   });
 });
 
@@ -126,7 +126,8 @@ describe("detectPatterns", () => {
     expect(patterns[0].vendorPattern).toBe("Netflix");
     expect(patterns[0].type).toBe("expense");
     expect(patterns[0].detectedAmount).toBe(22.99);
-    expect(patterns[0].detectedFrequency).toBe("monthly");
+    expect(patterns[0].detectedIntervalUnit).toBe("month");
+    expect(patterns[0].detectedIntervalCount).toBe(1);
     expect(patterns[0].matchingTransactionCount).toBe(4);
     expect(patterns[0].transactionIds).toHaveLength(4);
   });
@@ -139,7 +140,8 @@ describe("detectPatterns", () => {
     expect(patterns).toHaveLength(1);
     expect(patterns[0].type).toBe("income");
     expect(patterns[0].detectedAmount).toBe(5000);
-    expect(patterns[0].detectedFrequency).toBe("monthly");
+    expect(patterns[0].detectedIntervalUnit).toBe("month");
+    expect(patterns[0].detectedIntervalCount).toBe(1);
   });
 
   it("detects variable-amount pattern with min/max", () => {
@@ -155,7 +157,8 @@ describe("detectPatterns", () => {
     expect(patterns).toHaveLength(1);
     expect(patterns[0].detectedAmountMin).toBe(95);
     expect(patterns[0].detectedAmountMax).toBe(180);
-    expect(patterns[0].detectedFrequency).toBe("quarterly");
+    expect(patterns[0].detectedIntervalUnit).toBe("quarter");
+    expect(patterns[0].detectedIntervalCount).toBe(1);
   });
 
   it("excludes groups with fewer than 2 transactions", () => {
@@ -238,7 +241,7 @@ describe("detectPatterns", () => {
 
     expect(patterns).toHaveLength(1);
     expect(patterns[0].type).toBe("income");
-    expect(patterns[0].detectedFrequency).toBe("twice_monthly");
+    expect(patterns[0].detectedIntervalUnit).toBe("twice_monthly");
     expect(patterns[0].detectedAmount).toBe(2500);
   });
 

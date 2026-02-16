@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth/getCurrentUser";
 import { logError } from "@/lib/logging";
-import type { IncomeFrequency } from "@/app/generated/prisma/client";
+import type { IntervalUnit } from "@/app/generated/prisma/client";
 
 export async function DELETE(
   _request: NextRequest,
@@ -46,22 +46,20 @@ export async function DELETE(
 interface UpdateIncomeSourceBody {
   name?: string;
   expectedAmount?: number;
-  frequency?: IncomeFrequency;
-  frequencyDays?: number | null;
-  isIrregular?: boolean;
+  intervalUnit?: IntervalUnit | null;
+  intervalCount?: number;
   minimumExpected?: number | null;
   nextExpectedDate?: string | null;
   isPaused?: boolean;
 }
 
-const VALID_FREQUENCIES: IncomeFrequency[] = [
-  "weekly",
-  "fortnightly",
-  "monthly",
-  "quarterly",
-  "annual",
-  "custom",
-  "irregular",
+const VALID_INTERVAL_UNITS: IntervalUnit[] = [
+  "day",
+  "week",
+  "twice_monthly",
+  "month",
+  "quarter",
+  "year",
 ];
 
 export async function PUT(
@@ -112,46 +110,34 @@ export async function PUT(
       }
     }
 
-    const effectiveFrequency = body.frequency ?? existing.frequency;
-
-    if (body.frequency !== undefined) {
-      if (!VALID_FREQUENCIES.includes(body.frequency)) {
-        return NextResponse.json(
-          {
-            error:
-              "frequency must be one of: weekly, fortnightly, monthly, quarterly, annual, custom, irregular",
-          },
-          { status: 400 }
-        );
-      }
-    }
-
-    if (effectiveFrequency === "custom") {
-      const effectiveFrequencyDays =
-        body.frequencyDays !== undefined
-          ? body.frequencyDays
-          : existing.frequencyDays;
+    if (body.intervalUnit !== undefined) {
       if (
-        !effectiveFrequencyDays ||
-        typeof effectiveFrequencyDays !== "number" ||
-        !Number.isInteger(effectiveFrequencyDays) ||
-        effectiveFrequencyDays <= 0
+        body.intervalUnit !== null &&
+        !VALID_INTERVAL_UNITS.includes(body.intervalUnit)
       ) {
         return NextResponse.json(
           {
             error:
-              "frequencyDays must be a positive integer when frequency is custom",
+              "intervalUnit must be one of: day, week, twice_monthly, month, quarter, year",
           },
           { status: 400 }
         );
       }
     }
 
-    if (body.isIrregular !== undefined && typeof body.isIrregular !== "boolean") {
-      return NextResponse.json(
-        { error: "isIrregular must be a boolean" },
-        { status: 400 }
-      );
+    if (body.intervalCount !== undefined) {
+      if (
+        typeof body.intervalCount !== "number" ||
+        !Number.isInteger(body.intervalCount) ||
+        body.intervalCount <= 0
+      ) {
+        return NextResponse.json(
+          {
+            error: "intervalCount must be a positive integer",
+          },
+          { status: 400 }
+        );
+      }
     }
 
     if (body.isPaused !== undefined && typeof body.isPaused !== "boolean") {
@@ -193,17 +179,11 @@ export async function PUT(
     if (body.expectedAmount !== undefined) {
       updateData.expectedAmount = body.expectedAmount;
     }
-    if (body.frequency !== undefined) {
-      updateData.frequency = body.frequency;
+    if (body.intervalUnit !== undefined) {
+      updateData.intervalUnit = body.intervalUnit;
     }
-    if (body.frequencyDays !== undefined) {
-      updateData.frequencyDays =
-        effectiveFrequency === "custom" ? body.frequencyDays : null;
-    } else if (body.frequency !== undefined && body.frequency !== "custom") {
-      updateData.frequencyDays = null;
-    }
-    if (body.isIrregular !== undefined) {
-      updateData.isIrregular = body.isIrregular;
+    if (body.intervalCount !== undefined) {
+      updateData.intervalCount = body.intervalCount;
     }
     if (body.isPaused !== undefined) {
       updateData.isPaused = body.isPaused;

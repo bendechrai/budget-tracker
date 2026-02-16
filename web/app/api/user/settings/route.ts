@@ -17,7 +17,7 @@ export async function GET(): Promise<NextResponse> {
     // Fetch active income sources for auto-detection recommendation
     const incomeSources = await prisma.incomeSource.findMany({
       where: { userId: user.id, isActive: true },
-      select: { frequency: true, isIrregular: true, isActive: true, isPaused: true },
+      select: { intervalUnit: true, intervalCount: true, isActive: true, isPaused: true },
     });
 
     // Resolve auto-detected cycle (ignoring explicit user setting)

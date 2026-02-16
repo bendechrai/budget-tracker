@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth/getCurrentUser";
 import { logError } from "@/lib/logging";
-import type { IncomeFrequency } from "@/app/generated/prisma/client";
+import type { IntervalUnit } from "@/app/generated/prisma/client";
 
 export async function DELETE(
   _request: NextRequest,
@@ -46,8 +46,8 @@ export async function DELETE(
 interface UpdateObligationBody {
   name?: string;
   amount?: number;
-  frequency?: IncomeFrequency | null;
-  frequencyDays?: number | null;
+  intervalUnit?: IntervalUnit | null;
+  intervalCount?: number;
   nextDueDate?: string;
   endDate?: string | null;
   isPaused?: boolean;
@@ -55,14 +55,12 @@ interface UpdateObligationBody {
   fundGroupId?: string | null;
 }
 
-const VALID_FREQUENCIES: IncomeFrequency[] = [
-  "weekly",
-  "fortnightly",
-  "monthly",
-  "quarterly",
-  "annual",
-  "custom",
-  "irregular",
+const VALID_INTERVAL_UNITS: IntervalUnit[] = [
+  "day",
+  "week",
+  "month",
+  "quarter",
+  "year",
 ];
 
 export async function PUT(
@@ -115,42 +113,32 @@ export async function PUT(
       }
     }
 
-    // Determine effective frequency for validation
-    const effectiveFrequency =
-      body.frequency !== undefined ? body.frequency : existing.frequency;
-
-    // Validate frequency
-    if (body.frequency !== undefined) {
+    // Validate intervalUnit
+    if (body.intervalUnit !== undefined) {
       if (
-        body.frequency !== null &&
-        !VALID_FREQUENCIES.includes(body.frequency)
+        body.intervalUnit !== null &&
+        !VALID_INTERVAL_UNITS.includes(body.intervalUnit)
       ) {
         return NextResponse.json(
           {
             error:
-              "frequency must be one of: weekly, fortnightly, monthly, quarterly, annual, custom, irregular",
+              "intervalUnit must be one of: day, week, month, quarter, year",
           },
           { status: 400 }
         );
       }
     }
 
-    // Validate frequencyDays when frequency is custom
-    if (effectiveFrequency === "custom") {
-      const effectiveFrequencyDays =
-        body.frequencyDays !== undefined
-          ? body.frequencyDays
-          : existing.frequencyDays;
+    // Validate intervalCount
+    if (body.intervalCount !== undefined) {
       if (
-        !effectiveFrequencyDays ||
-        typeof effectiveFrequencyDays !== "number" ||
-        !Number.isInteger(effectiveFrequencyDays) ||
-        effectiveFrequencyDays <= 0
+        typeof body.intervalCount !== "number" ||
+        !Number.isInteger(body.intervalCount) ||
+        body.intervalCount <= 0
       ) {
         return NextResponse.json(
           {
-            error:
-              "frequencyDays must be a positive integer when frequency is custom",
+            error: "intervalCount must be a positive integer",
           },
           { status: 400 }
         );
@@ -223,14 +211,11 @@ export async function PUT(
     if (body.amount !== undefined) {
       updateData.amount = body.amount;
     }
-    if (body.frequency !== undefined) {
-      updateData.frequency = body.frequency;
+    if (body.intervalUnit !== undefined) {
+      updateData.intervalUnit = body.intervalUnit;
     }
-    if (body.frequencyDays !== undefined) {
-      updateData.frequencyDays =
-        effectiveFrequency === "custom" ? body.frequencyDays : null;
-    } else if (body.frequency !== undefined && body.frequency !== "custom") {
-      updateData.frequencyDays = null;
+    if (body.intervalCount !== undefined) {
+      updateData.intervalCount = body.intervalCount;
     }
     if (nextDueDate !== undefined) {
       updateData.nextDueDate = nextDueDate;

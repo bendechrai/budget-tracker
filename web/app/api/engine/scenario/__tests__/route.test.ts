@@ -69,8 +69,8 @@ const mockObligations = [
     name: "Rent",
     type: "recurring",
     amount: 1500,
-    frequency: "monthly",
-    frequencyDays: null,
+    intervalUnit: "month",
+    intervalCount: 1,
     nextDueDate: futureDate,
     endDate: null,
     isPaused: false,
@@ -150,13 +150,13 @@ describe("POST /api/engine/scenario", () => {
 
     expect(mockIncomeSourceFindMany).toHaveBeenCalledWith({
       where: { userId: "user_1", isActive: true },
-      select: { frequency: true, isIrregular: true, isActive: true, isPaused: true },
+      select: { intervalUnit: true, intervalCount: true, isActive: true, isPaused: true },
     });
   });
 
   it("calls resolveCycleConfig with user settings and income sources", async () => {
     const mockIncome = [
-      { frequency: "weekly", isIrregular: false, isActive: true, isPaused: false },
+      { intervalUnit: "week", intervalCount: 1, isActive: true, isPaused: false },
     ];
     mockIncomeSourceFindMany.mockResolvedValue(mockIncome);
 
@@ -191,7 +191,7 @@ describe("POST /api/engine/scenario", () => {
       contributionPayDays: [],
     });
     mockIncomeSourceFindMany.mockResolvedValue([
-      { frequency: "weekly", isIrregular: false, isActive: true, isPaused: false },
+      { intervalUnit: "week", intervalCount: 1, isActive: true, isPaused: false },
     ]);
 
     await POST(createRequest());
@@ -201,7 +201,7 @@ describe("POST /api/engine/scenario", () => {
         contributionCycleType: null,
         contributionPayDays: [],
       },
-      [{ frequency: "weekly", isIrregular: false, isActive: true, isPaused: false }],
+      [{ intervalUnit: "week", intervalCount: 1, isActive: true, isPaused: false }],
     );
   });
 

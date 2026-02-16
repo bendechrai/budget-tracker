@@ -62,8 +62,8 @@ const mockObligations = [
     name: "Rent",
     type: "recurring",
     amount: 1500,
-    frequency: "monthly",
-    frequencyDays: null,
+    intervalUnit: "month",
+    intervalCount: 1,
     nextDueDate: futureDate,
     endDate: null,
     isPaused: false,
@@ -132,7 +132,7 @@ describe("POST /api/engine/recalculate", () => {
 
     expect(mockIncomeSourceFindMany).toHaveBeenCalledWith({
       where: { userId: "user_1", isActive: true },
-      select: { frequency: true, isIrregular: true, isActive: true, isPaused: true },
+      select: { intervalUnit: true, intervalCount: true, isActive: true, isPaused: true },
     });
   });
 
@@ -178,7 +178,7 @@ describe("POST /api/engine/recalculate", () => {
       contributionPayDays: [],
     });
     mockIncomeSourceFindMany.mockResolvedValue([
-      { frequency: "weekly", isIrregular: false, isActive: true, isPaused: false },
+      { intervalUnit: "week", intervalCount: 1, isActive: true, isPaused: false },
     ]);
 
     await POST();
@@ -217,8 +217,8 @@ describe("POST /api/engine/recalculate", () => {
           name: "Rent",
           type: "recurring",
           amount: 1500,
-          frequency: "monthly",
-          frequencyDays: null,
+          intervalUnit: "month",
+          intervalCount: 1,
           nextDueDate: futureDate,
           endDate: null,
           isPaused: false,
@@ -311,8 +311,8 @@ describe("POST /api/engine/recalculate", () => {
         name: "Custom Payment",
         type: "custom",
         amount: 0,
-        frequency: null,
-        frequencyDays: null,
+        intervalUnit: null,
+        intervalCount: 1,
         nextDueDate: customDueDate,
         endDate: null,
         isPaused: false,

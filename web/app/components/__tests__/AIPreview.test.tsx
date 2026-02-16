@@ -22,7 +22,8 @@ const createIncomeIntent: CreateIntent = {
   incomeFields: {
     name: "Salary",
     expectedAmount: 3200,
-    frequency: "monthly",
+    intervalUnit: "month",
+    intervalCount: 1,
   },
 };
 
@@ -34,7 +35,8 @@ const createObligationIntent: CreateIntent = {
     name: "Netflix",
     type: "recurring",
     amount: 22.99,
-    frequency: "monthly",
+    intervalUnit: "month",
+    intervalCount: 1,
     nextDueDate: "2026-03-01",
   },
 };
@@ -72,7 +74,7 @@ describe("AIPreview", () => {
       expect(screen.getByTestId("ai-preview-create")).toBeDefined();
       expect(screen.getByTestId("preview-field-name").textContent).toBe("Salary");
       expect(screen.getByTestId("preview-field-amount").textContent).toBe("$3200.00");
-      expect(screen.getByTestId("preview-field-frequency").textContent).toBe("monthly");
+      expect(screen.getByTestId("preview-field-frequency").textContent).toBe("Monthly");
     });
 
     it("renders obligation create preview", () => {

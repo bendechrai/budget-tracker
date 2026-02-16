@@ -4,7 +4,7 @@ import { getCurrentUser } from "@/lib/auth/getCurrentUser";
 import { logError } from "@/lib/logging";
 import type {
   ObligationType,
-  IncomeFrequency,
+  IntervalUnit,
 } from "@/app/generated/prisma/client";
 
 interface CustomScheduleEntryInput {
@@ -16,9 +16,8 @@ interface CreateObligationBody {
   name: string;
   type: ObligationType;
   amount: number;
-  frequency?: IncomeFrequency | null;
-  frequencyDays?: number | null;
-  startDate: string;
+  intervalUnit?: IntervalUnit | null;
+  intervalCount?: number;
   endDate?: string | null;
   nextDueDate: string;
   fundGroupId?: string | null;
@@ -32,14 +31,12 @@ const VALID_TYPES: ObligationType[] = [
   "custom",
 ];
 
-const VALID_FREQUENCIES: IncomeFrequency[] = [
-  "weekly",
-  "fortnightly",
-  "monthly",
-  "quarterly",
-  "annual",
-  "custom",
-  "irregular",
+const VALID_INTERVAL_UNITS: IntervalUnit[] = [
+  "day",
+  "week",
+  "month",
+  "quarter",
+  "year",
 ];
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
@@ -125,55 +122,37 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    // Validate frequency for recurring types
+    // Validate intervalUnit for recurring types
     if (
       body.type === "recurring" ||
       body.type === "recurring_with_end"
     ) {
       if (
-        !body.frequency ||
-        !VALID_FREQUENCIES.includes(body.frequency as IncomeFrequency)
+        !body.intervalUnit ||
+        !VALID_INTERVAL_UNITS.includes(body.intervalUnit as IntervalUnit)
       ) {
         return NextResponse.json(
           {
             error:
-              "frequency is required for recurring obligations and must be one of: weekly, fortnightly, monthly, quarterly, annual, custom, irregular",
+              "intervalUnit is required for recurring obligations and must be one of: day, week, month, quarter, year",
           },
           { status: 400 }
         );
       }
 
-      if (body.frequency === "custom") {
-        if (
-          !body.frequencyDays ||
-          typeof body.frequencyDays !== "number" ||
-          !Number.isInteger(body.frequencyDays) ||
-          body.frequencyDays <= 0
-        ) {
-          return NextResponse.json(
-            {
-              error:
-                "frequencyDays must be a positive integer when frequency is custom",
-            },
-            { status: 400 }
-          );
-        }
+      if (
+        body.intervalCount !== undefined &&
+        (typeof body.intervalCount !== "number" ||
+          !Number.isInteger(body.intervalCount) ||
+          body.intervalCount <= 0)
+      ) {
+        return NextResponse.json(
+          {
+            error: "intervalCount must be a positive integer",
+          },
+          { status: 400 }
+        );
       }
-    }
-
-    // Validate startDate
-    if (!body.startDate) {
-      return NextResponse.json(
-        { error: "startDate is required" },
-        { status: 400 }
-      );
-    }
-    const startDate = new Date(body.startDate);
-    if (isNaN(startDate.getTime())) {
-      return NextResponse.json(
-        { error: "startDate must be a valid date" },
-        { status: 400 }
-      );
     }
 
     // Validate endDate for recurring_with_end
@@ -298,16 +277,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           name: body.name!.trim(),
           type: body.type!,
           amount: body.amount!,
-          frequency:
+          intervalUnit:
             body.type === "recurring" || body.type === "recurring_with_end"
-              ? body.frequency!
+              ? body.intervalUnit!
               : null,
-          frequencyDays:
-            (body.type === "recurring" || body.type === "recurring_with_end") &&
-            body.frequency === "custom"
-              ? body.frequencyDays!
-              : null,
-          startDate,
+          intervalCount:
+            body.type === "recurring" || body.type === "recurring_with_end"
+              ? (body.intervalCount ?? 1)
+              : 1,
           endDate,
           nextDueDate,
           fundGroupId: resolvedFundGroupId,

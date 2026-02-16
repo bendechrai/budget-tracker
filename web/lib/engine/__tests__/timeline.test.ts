@@ -12,8 +12,8 @@ function makeObligation(
     name: "Rent",
     type: "recurring",
     amount: 1200,
-    frequency: "monthly",
-    frequencyDays: null,
+    intervalUnit: "month",
+    intervalCount: 1,
     nextDueDate: new Date("2025-04-01"),
     endDate: null,
     isPaused: false,
@@ -103,7 +103,7 @@ describe("projectTimeline", () => {
               name: "Rent",
               amount: 600,
               nextDueDate: new Date("2025-04-01"),
-              frequency: "monthly",
+              intervalUnit: "month",
             }),
           ],
           currentFundBalance: 1000,
@@ -126,7 +126,7 @@ describe("projectTimeline", () => {
           obligations: [
             makeObligation({
               nextDueDate: new Date("2025-04-01"),
-              frequency: "monthly",
+              intervalUnit: "month",
               amount: 500,
             }),
           ],
@@ -134,7 +134,7 @@ describe("projectTimeline", () => {
         })
       );
 
-      // Should have markers at Apr 1, May 1, Jun 1 (approx, 30-day freq)
+      // Should have markers at Apr 1, May 1, Jun 1 (calendar months)
       expect(result.expenseMarkers.length).toBeGreaterThanOrEqual(3);
       expect(result.expenseMarkers[0].date).toEqual(
         new Date("2025-04-01T00:00:00.000Z")
@@ -149,7 +149,7 @@ describe("projectTimeline", () => {
           obligations: [
             makeObligation({
               type: "one_off",
-              frequency: null,
+              intervalUnit: null,
               nextDueDate: new Date("2025-05-15"),
               amount: 3000,
             }),
@@ -171,7 +171,7 @@ describe("projectTimeline", () => {
           obligations: [
             makeObligation({
               type: "custom",
-              frequency: null,
+              intervalUnit: null,
               customEntries: [
                 {
                   dueDate: new Date("2025-04-01"),
@@ -229,7 +229,7 @@ describe("projectTimeline", () => {
               type: "recurring_with_end",
               nextDueDate: new Date("2025-04-01"),
               endDate: new Date("2025-05-15"),
-              frequency: "monthly",
+              intervalUnit: "month",
               amount: 100,
             }),
           ],
@@ -237,7 +237,7 @@ describe("projectTimeline", () => {
         })
       );
 
-      // Apr 1 is within range, May 1 (30 days later) is within end date, Jun would be past end date
+      // Apr 1 is within range, May 1 (+1 month) is within end date, Jun 1 would be past end date
       expect(result.expenseMarkers).toHaveLength(2);
     });
   });
@@ -271,7 +271,7 @@ describe("projectTimeline", () => {
           obligations: [
             makeObligation({
               type: "one_off",
-              frequency: null,
+              intervalUnit: null,
               nextDueDate: new Date("2025-04-01"),
               amount: 500,
             }),
@@ -428,7 +428,7 @@ describe("projectTimeline", () => {
                 id: "hyp-1",
                 name: "Holiday",
                 type: "one_off",
-                frequency: null,
+                intervalUnit: null,
                 amount: 5000,
                 nextDueDate: new Date("2025-06-01"),
               }),
@@ -468,7 +468,7 @@ describe("projectTimeline", () => {
           obligations: [
             makeObligation({
               nextDueDate: new Date("2025-02-01"),
-              frequency: "monthly",
+              intervalUnit: "month",
               amount: 500,
             }),
           ],
@@ -477,7 +477,7 @@ describe("projectTimeline", () => {
       );
 
       // Should advance past due date to find ones in the window
-      // Feb 1 → Mar 3 → Apr 2 → May 2
+      // Feb 1 → Mar 1 → Apr 1 → May 1 (calendar months)
       expect(result.expenseMarkers.length).toBeGreaterThan(0);
       for (const marker of result.expenseMarkers) {
         expect(marker.date.getTime()).toBeGreaterThanOrEqual(NOW.getTime());
@@ -505,7 +505,7 @@ describe("projectTimeline", () => {
               id: "obl-1",
               name: "Rent",
               type: "one_off",
-              frequency: null,
+              intervalUnit: null,
               amount: 1000,
               nextDueDate: new Date("2025-04-01"),
             }),
@@ -513,7 +513,7 @@ describe("projectTimeline", () => {
               id: "obl-2",
               name: "Insurance",
               type: "one_off",
-              frequency: null,
+              intervalUnit: null,
               amount: 500,
               nextDueDate: new Date("2025-04-01"),
             }),
@@ -590,7 +590,7 @@ describe("projectTimeline", () => {
               id: "obl-rent",
               name: "Rent",
               amount: 1000,
-              frequency: "monthly",
+              intervalUnit: "month",
               nextDueDate: new Date("2025-02-01"),
               escalationRules: [
                 makeEscalationRule({
@@ -639,7 +639,7 @@ describe("projectTimeline", () => {
               id: "obl-rent",
               name: "Rent",
               amount: 500,
-              frequency: "monthly",
+              intervalUnit: "month",
               nextDueDate: new Date("2025-02-01"),
               escalationRules: [
                 makeEscalationRule({
@@ -681,7 +681,7 @@ describe("projectTimeline", () => {
               id: "obl-rent",
               name: "Rent",
               amount: 1000,
-              frequency: "monthly",
+              intervalUnit: "month",
               nextDueDate: new Date("2025-02-01"),
               escalationRules: [
                 makeEscalationRule({
@@ -720,13 +720,23 @@ describe("projectTimeline", () => {
         expect(marker.amount).toBeCloseTo(1100, 0);
       }
 
-      // After June 1 escalation, amounts should be ~1210
-      const juneOnward = result.expenseMarkers.filter(
-        (m) => m.date >= new Date("2025-06-01T00:00:00.000Z")
+      // After June 1 escalation (before Sep 1), amounts should be ~1210
+      const juneToAug = result.expenseMarkers.filter(
+        (m) =>
+          m.date >= new Date("2025-06-01T00:00:00.000Z") &&
+          m.date < new Date("2025-09-01T00:00:00.000Z")
       );
-      expect(juneOnward.length).toBeGreaterThan(0);
-      for (const marker of juneOnward) {
+      expect(juneToAug.length).toBeGreaterThan(0);
+      for (const marker of juneToAug) {
         expect(marker.amount).toBeCloseTo(1210, 0);
+      }
+
+      // After Sep 1 escalation, amounts should be ~1331
+      const sepOnward = result.expenseMarkers.filter(
+        (m) => m.date >= new Date("2025-09-01T00:00:00.000Z")
+      );
+      for (const marker of sepOnward) {
+        expect(marker.amount).toBeCloseTo(1331, 0);
       }
     });
 
@@ -738,7 +748,7 @@ describe("projectTimeline", () => {
               id: "obl-rent",
               name: "Rent",
               amount: 1000,
-              frequency: "monthly",
+              intervalUnit: "month",
               nextDueDate: new Date("2025-02-01"),
               escalationRules: [
                 makeEscalationRule({
@@ -771,7 +781,7 @@ describe("projectTimeline", () => {
               id: "obl-rent",
               name: "Rent",
               amount: 1000,
-              frequency: "monthly",
+              intervalUnit: "month",
               nextDueDate: new Date("2025-02-01"),
               // no escalationRules
             }),
@@ -798,7 +808,7 @@ describe("projectTimeline", () => {
               id: "obl-rent",
               name: "Rent",
               amount: 1000,
-              frequency: "monthly",
+              intervalUnit: "month",
               nextDueDate: new Date("2025-02-01"),
               escalationRules: [
                 makeEscalationRule({

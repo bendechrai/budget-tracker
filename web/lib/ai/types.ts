@@ -1,4 +1,4 @@
-import type { IncomeFrequency, ObligationType } from "@/app/generated/prisma/client";
+import type { IntervalUnit, ObligationType } from "@/app/generated/prisma/client";
 
 /** The kind of action the user wants to perform. */
 export type IntentType = "create" | "edit" | "delete" | "query";
@@ -13,9 +13,8 @@ export type ParseConfidence = "high" | "medium" | "low";
 export interface CreateIncomeFields {
   name: string;
   expectedAmount: number;
-  frequency: IncomeFrequency;
-  frequencyDays?: number;
-  isIrregular?: boolean;
+  intervalUnit?: IntervalUnit | null;
+  intervalCount?: number;
   nextExpectedDate?: string;
 }
 
@@ -24,9 +23,8 @@ export interface CreateObligationFields {
   name: string;
   type: ObligationType;
   amount: number;
-  frequency?: IncomeFrequency;
-  frequencyDays?: number;
-  startDate?: string;
+  intervalUnit?: IntervalUnit | null;
+  intervalCount?: number;
   endDate?: string;
   nextDueDate?: string;
   customEntries?: Array<{ dueDate: string; amount: number }>;
@@ -45,8 +43,8 @@ export interface CreateIntent {
 export interface EditFields {
   name?: string;
   amount?: number;
-  frequency?: IncomeFrequency;
-  frequencyDays?: number;
+  intervalUnit?: IntervalUnit | null;
+  intervalCount?: number;
   isPaused?: boolean;
   nextDueDate?: string;
 }
@@ -118,7 +116,8 @@ export interface WhatIfChange {
   action: WhatIfAction;
   targetName?: string;
   amount?: number;
-  frequency?: IncomeFrequency;
+  intervalUnit?: IntervalUnit | null;
+  intervalCount?: number;
   dueDate?: string;
 }
 
@@ -145,7 +144,8 @@ export interface FinancialContextIncome {
   id: string;
   name: string;
   expectedAmount: number;
-  frequency: string;
+  intervalUnit: string | null;
+  intervalCount: number;
 }
 
 /** Summarized obligation for AI context. */
@@ -153,7 +153,8 @@ export interface FinancialContextObligation {
   id: string;
   name: string;
   amount: number;
-  frequency: string | null;
+  intervalUnit: string | null;
+  intervalCount: number;
   type: string;
   nextDueDate: string | null;
 }

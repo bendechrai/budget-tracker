@@ -67,8 +67,8 @@ const mockObligations = [
     name: "Rent",
     type: "recurring",
     amount: 1500,
-    frequency: "monthly",
-    frequencyDays: null,
+    intervalUnit: "month",
+    intervalCount: 1,
     nextDueDate: futureDate,
     endDate: null,
     isPaused: false,
@@ -228,7 +228,7 @@ describe("GET /api/engine/timeline", () => {
 
   it("auto-detects cycle from income sources when user has no explicit setting", async () => {
     const incomeSources = [
-      { frequency: "fortnightly", isIrregular: false, isActive: true, isPaused: false },
+      { intervalUnit: "week", intervalCount: 2, isActive: true, isPaused: false },
     ];
     mockIncomeSourceFindMany.mockResolvedValue(incomeSources);
 

@@ -20,7 +20,7 @@ export async function POST(): Promise<NextResponse> {
     // Fetch active income sources for cycle auto-detection
     const incomeSources = await prisma.incomeSource.findMany({
       where: { userId: user.id, isActive: true },
-      select: { frequency: true, isIrregular: true, isActive: true, isPaused: true },
+      select: { intervalUnit: true, intervalCount: true, isActive: true, isPaused: true },
     });
 
     // Resolve cycle config: explicit user setting > auto-detect from income > monthly default
@@ -55,8 +55,8 @@ export async function POST(): Promise<NextResponse> {
       name: o.name,
       type: o.type,
       amount: o.amount,
-      frequency: o.frequency,
-      frequencyDays: o.frequencyDays,
+      intervalUnit: o.intervalUnit,
+      intervalCount: o.intervalCount,
       nextDueDate: o.nextDueDate,
       endDate: o.endDate,
       isPaused: o.isPaused,

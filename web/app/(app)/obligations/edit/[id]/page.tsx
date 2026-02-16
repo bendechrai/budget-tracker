@@ -26,9 +26,8 @@ interface ObligationResponse {
   name: string;
   type: string;
   amount: number;
-  frequency: string | null;
-  frequencyDays: number | null;
-  startDate: string;
+  intervalUnit: string | null;
+  intervalCount: number;
   endDate: string | null;
   nextDueDate: string;
   fundGroupId: string;
@@ -149,9 +148,8 @@ export default function EditObligationPage({
                 name: obligation.name,
                 type: obligation.type,
                 amount: obligation.amount,
-                frequency: obligation.frequency,
-                frequencyDays: obligation.frequencyDays,
-                startDate: formatDateForInput(obligation.startDate),
+                intervalUnit: obligation.intervalUnit,
+                intervalCount: obligation.intervalCount,
                 endDate: formatDateForInput(obligation.endDate),
                 nextDueDate: formatDateForInput(obligation.nextDueDate),
                 fundGroupId: obligation.fundGroupId,

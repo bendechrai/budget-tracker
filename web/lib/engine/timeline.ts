@@ -172,8 +172,8 @@ function collectDueDates(
   while (currentDate < windowStart) {
     const next = getNextDueDateAfter(
       currentDate,
-      obligation.frequency,
-      obligation.frequencyDays
+      obligation.intervalUnit,
+      obligation.intervalCount
     );
     if (!next) break;
     currentDate = startOfDay(next);
@@ -198,8 +198,8 @@ function collectDueDates(
 
     const next = getNextDueDateAfter(
       currentDate,
-      obligation.frequency,
-      obligation.frequencyDays
+      obligation.intervalUnit,
+      obligation.intervalCount
     );
     if (!next) break;
     currentDate = startOfDay(next);

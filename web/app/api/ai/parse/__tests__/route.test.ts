@@ -88,7 +88,8 @@ describe("POST /api/ai/parse", () => {
         name: "Netflix",
         type: "recurring",
         amount: 22.99,
-        frequency: "monthly",
+        intervalUnit: "month",
+        intervalCount: 1,
       },
     });
 
@@ -102,7 +103,7 @@ describe("POST /api/ai/parse", () => {
     expect(data.intent.targetType).toBe("expense");
     expect(data.intent.obligationFields.name).toBe("Netflix");
     expect(data.intent.obligationFields.amount).toBe(22.99);
-    expect(data.intent.obligationFields.frequency).toBe("monthly");
+    expect(data.intent.obligationFields.intervalUnit).toBe("month");
   });
 
   it("returns create intent for income input", async () => {
@@ -113,8 +114,8 @@ describe("POST /api/ai/parse", () => {
       incomeFields: {
         name: "Salary",
         expectedAmount: 3200,
-        frequency: "fortnightly",
-        isIrregular: false,
+        intervalUnit: "week",
+        intervalCount: 2,
       },
     });
 
@@ -127,7 +128,7 @@ describe("POST /api/ai/parse", () => {
     expect(data.intent.type).toBe("create");
     expect(data.intent.targetType).toBe("income");
     expect(data.intent.incomeFields.expectedAmount).toBe(3200);
-    expect(data.intent.incomeFields.frequency).toBe("fortnightly");
+    expect(data.intent.incomeFields.intervalUnit).toBe("week");
   });
 
   it("returns edit intent for change input", async () => {
@@ -223,16 +224,16 @@ describe("POST /api/ai/parse", () => {
 
   it("loads financial context and passes to parser", async () => {
     mockIncomeSourceFindMany.mockResolvedValue([
-      { id: "inc_1", name: "Salary", expectedAmount: 5000, frequency: "monthly" },
+      { id: "inc_1", name: "Salary", expectedAmount: 5000, intervalUnit: "month", intervalCount: 1 },
     ]);
     mockObligationFindMany.mockResolvedValue([
-      { id: "obl_1", name: "Rent", amount: 2000, frequency: "monthly", type: "recurring", nextDueDate: new Date("2025-03-01") },
+      { id: "obl_1", name: "Rent", amount: 2000, intervalUnit: "month", intervalCount: 1, type: "recurring", nextDueDate: new Date("2025-03-01") },
     ]);
     mockParseNaturalLanguage.mockResolvedValue({
       type: "create",
       targetType: "expense",
       confidence: "high",
-      obligationFields: { name: "Netflix", type: "recurring", amount: 22.99, frequency: "monthly" },
+      obligationFields: { name: "Netflix", type: "recurring", amount: 22.99, intervalUnit: "month", intervalCount: 1 },
     });
 
     await POST(makeRequest({ text: "add Netflix $22.99 monthly" }));
@@ -240,8 +241,8 @@ describe("POST /api/ai/parse", () => {
     expect(mockParseNaturalLanguage).toHaveBeenCalledWith(
       "add Netflix $22.99 monthly",
       {
-        incomeSources: [{ id: "inc_1", name: "Salary", expectedAmount: 5000, frequency: "monthly" }],
-        obligations: [{ id: "obl_1", name: "Rent", amount: 2000, frequency: "monthly", type: "recurring", nextDueDate: "2025-03-01" }],
+        incomeSources: [{ id: "inc_1", name: "Salary", expectedAmount: 5000, intervalUnit: "month", intervalCount: 1 }],
+        obligations: [{ id: "obl_1", name: "Rent", amount: 2000, intervalUnit: "month", intervalCount: 1, type: "recurring", nextDueDate: "2025-03-01" }],
       }
     );
   });

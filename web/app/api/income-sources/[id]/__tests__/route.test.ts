@@ -39,9 +39,8 @@ const existingRecord = {
   userId: "user_1",
   name: "Salary",
   expectedAmount: 5000,
-  frequency: "monthly",
-  frequencyDays: null,
-  isIrregular: false,
+  intervalUnit: "month",
+  intervalCount: 1,
   minimumExpected: null,
   nextExpectedDate: null,
   isPaused: false,
@@ -99,40 +98,40 @@ describe("PUT /api/income-sources/[id]", () => {
     });
   });
 
-  it("returns 200 when updating frequency to custom with frequencyDays", async () => {
+  it("returns 200 when updating intervalUnit and intervalCount", async () => {
     mockGetCurrentUser.mockResolvedValue({ id: "user_1", email: "test@example.com" });
     mockFindUnique.mockResolvedValue(existingRecord);
-    const updatedRecord = { ...existingRecord, frequency: "custom", frequencyDays: 14 };
+    const updatedRecord = { ...existingRecord, intervalUnit: "day", intervalCount: 14 };
     mockUpdate.mockResolvedValue(updatedRecord);
 
-    const [req, ctx] = makeRequest("inc_1", { frequency: "custom", frequencyDays: 14 });
+    const [req, ctx] = makeRequest("inc_1", { intervalUnit: "day", intervalCount: 14 });
     const res = await PUT(req, ctx);
 
     expect(res.status).toBe(200);
     expect(mockUpdate).toHaveBeenCalledWith({
       where: { id: "inc_1" },
       data: {
-        frequency: "custom",
-        frequencyDays: 14,
+        intervalUnit: "day",
+        intervalCount: 14,
       },
     });
   });
 
-  it("clears frequencyDays when changing from custom to non-custom frequency", async () => {
-    const customRecord = { ...existingRecord, frequency: "custom", frequencyDays: 14 };
+  it("updates intervalUnit from day to month", async () => {
+    const dayRecord = { ...existingRecord, intervalUnit: "day", intervalCount: 14 };
     mockGetCurrentUser.mockResolvedValue({ id: "user_1", email: "test@example.com" });
-    mockFindUnique.mockResolvedValue(customRecord);
-    mockUpdate.mockResolvedValue({ ...customRecord, frequency: "monthly", frequencyDays: null });
+    mockFindUnique.mockResolvedValue(dayRecord);
+    mockUpdate.mockResolvedValue({ ...dayRecord, intervalUnit: "month", intervalCount: 1 });
 
-    const [req, ctx] = makeRequest("inc_1", { frequency: "monthly" });
+    const [req, ctx] = makeRequest("inc_1", { intervalUnit: "month", intervalCount: 1 });
     const res = await PUT(req, ctx);
 
     expect(res.status).toBe(200);
     expect(mockUpdate).toHaveBeenCalledWith({
       where: { id: "inc_1" },
       data: {
-        frequency: "monthly",
-        frequencyDays: null,
+        intervalUnit: "month",
+        intervalCount: 1,
       },
     });
   });
@@ -232,29 +231,29 @@ describe("PUT /api/income-sources/[id]", () => {
     expect(mockUpdate).not.toHaveBeenCalled();
   });
 
-  it("returns 400 when frequency is invalid", async () => {
+  it("returns 400 when intervalUnit is invalid", async () => {
     mockGetCurrentUser.mockResolvedValue({ id: "user_1", email: "test@example.com" });
     mockFindUnique.mockResolvedValue(existingRecord);
 
-    const [req, ctx] = makeRequest("inc_1", { frequency: "biweekly" });
+    const [req, ctx] = makeRequest("inc_1", { intervalUnit: "biweekly" });
     const res = await PUT(req, ctx);
 
     expect(res.status).toBe(400);
     const data = await res.json();
-    expect(data.error).toContain("frequency must be one of");
+    expect(data.error).toContain("intervalUnit must be one of");
     expect(mockUpdate).not.toHaveBeenCalled();
   });
 
-  it("returns 400 when changing to custom frequency without frequencyDays", async () => {
+  it("returns 400 when intervalCount is invalid", async () => {
     mockGetCurrentUser.mockResolvedValue({ id: "user_1", email: "test@example.com" });
     mockFindUnique.mockResolvedValue(existingRecord);
 
-    const [req, ctx] = makeRequest("inc_1", { frequency: "custom" });
+    const [req, ctx] = makeRequest("inc_1", { intervalCount: -1 });
     const res = await PUT(req, ctx);
 
     expect(res.status).toBe(400);
     const data = await res.json();
-    expect(data.error).toBe("frequencyDays must be a positive integer when frequency is custom");
+    expect(data.error).toBe("intervalCount must be a positive integer");
     expect(mockUpdate).not.toHaveBeenCalled();
   });
 });

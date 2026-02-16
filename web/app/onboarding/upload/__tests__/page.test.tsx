@@ -22,7 +22,8 @@ const mockSuggestions = [
     detectedAmount: 22.99,
     detectedAmountMin: null,
     detectedAmountMax: null,
-    detectedFrequency: "monthly",
+    detectedIntervalUnit: "month",
+    detectedIntervalCount: 1,
     confidence: "high" as const,
     matchingTransactionCount: 5,
     status: "pending",
@@ -35,13 +36,22 @@ const mockSuggestions = [
     detectedAmount: 5000,
     detectedAmountMin: 4800,
     detectedAmountMax: 5200,
-    detectedFrequency: "monthly",
+    detectedIntervalUnit: "month",
+    detectedIntervalCount: 1,
     confidence: "high" as const,
     matchingTransactionCount: 3,
     status: "pending",
     suggestionTransactions: [],
   },
 ];
+
+/** Response for the initial GET /api/import/batch check that runs on mount */
+function noActiveBatchResponse(): Response {
+  return new Response(JSON.stringify({ batch: null }), {
+    status: 200,
+    headers: { "Content-Type": "application/json" },
+  });
+}
 
 function makeBatchUploadResponse(overrides: Partial<BatchStatus> = {}): BatchStatus {
   return {
@@ -114,7 +124,13 @@ function createMockFile(name: string, content: string): File {
 describe("OnboardingUploadPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    global.fetch = vi.fn();
+    // Default mock handles any unexpected fetch calls (e.g. extra polls)
+    global.fetch = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ batch: null }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      })
+    );
   });
 
   afterEach(() => {
@@ -153,8 +169,12 @@ describe("OnboardingUploadPage", () => {
 
   it("shows processing state when a file is selected", async () => {
     const user = userEvent.setup();
-    // Upload POST never resolves
-    vi.mocked(global.fetch).mockReturnValueOnce(new Promise(() => {}));
+
+    vi.mocked(global.fetch)
+      // 1) Mount: check for active batch
+      .mockResolvedValueOnce(noActiveBatchResponse())
+      // 2) Upload POST never resolves
+      .mockReturnValueOnce(new Promise(() => {}));
 
     render(<OnboardingUploadPage />);
 
@@ -174,21 +194,23 @@ describe("OnboardingUploadPage", () => {
     const user = userEvent.setup();
 
     vi.mocked(global.fetch)
-      // Batch upload POST
+      // 1) Mount: check for active batch
+      .mockResolvedValueOnce(noActiveBatchResponse())
+      // 2) Batch upload POST
       .mockResolvedValueOnce(
         new Response(JSON.stringify(makeBatchUploadResponse()), {
           status: 202,
           headers: { "Content-Type": "application/json" },
         })
       )
-      // Immediate poll returns completed
+      // 3) Immediate poll returns completed
       .mockResolvedValueOnce(
         new Response(JSON.stringify(makeBatchCompletedResponse()), {
           status: 200,
           headers: { "Content-Type": "application/json" },
         })
       )
-      // Fetch suggestions
+      // 4) Fetch suggestions
       .mockResolvedValueOnce(
         new Response(
           JSON.stringify({ suggestions: mockSuggestions, count: 2 }),
@@ -220,18 +242,23 @@ describe("OnboardingUploadPage", () => {
     const user = userEvent.setup();
 
     vi.mocked(global.fetch)
+      // 1) Mount: check for active batch
+      .mockResolvedValueOnce(noActiveBatchResponse())
+      // 2) Batch upload POST
       .mockResolvedValueOnce(
         new Response(JSON.stringify(makeBatchUploadResponse()), {
           status: 202,
           headers: { "Content-Type": "application/json" },
         })
       )
+      // 3) Poll returns completed
       .mockResolvedValueOnce(
         new Response(JSON.stringify(makeBatchCompletedResponse()), {
           status: 200,
           headers: { "Content-Type": "application/json" },
         })
       )
+      // 4) Fetch suggestions (empty)
       .mockResolvedValueOnce(
         new Response(JSON.stringify({ suggestions: [], count: 0 }), {
           status: 200,
@@ -260,12 +287,16 @@ describe("OnboardingUploadPage", () => {
     const user = userEvent.setup();
 
     vi.mocked(global.fetch)
+      // 1) Mount: check for active batch
+      .mockResolvedValueOnce(noActiveBatchResponse())
+      // 2) Batch upload POST
       .mockResolvedValueOnce(
         new Response(JSON.stringify(makeBatchUploadResponse()), {
           status: 202,
           headers: { "Content-Type": "application/json" },
         })
       )
+      // 3) Poll returns completed with 0 imported
       .mockResolvedValueOnce(
         new Response(
           JSON.stringify(
@@ -298,18 +329,23 @@ describe("OnboardingUploadPage", () => {
     const user = userEvent.setup();
 
     vi.mocked(global.fetch)
+      // 1) Mount: check for active batch
+      .mockResolvedValueOnce(noActiveBatchResponse())
+      // 2) Batch upload POST
       .mockResolvedValueOnce(
         new Response(JSON.stringify(makeBatchUploadResponse()), {
           status: 202,
           headers: { "Content-Type": "application/json" },
         })
       )
+      // 3) Poll returns completed
       .mockResolvedValueOnce(
         new Response(JSON.stringify(makeBatchCompletedResponse()), {
           status: 200,
           headers: { "Content-Type": "application/json" },
         })
       )
+      // 4) Fetch suggestions (empty)
       .mockResolvedValueOnce(
         new Response(JSON.stringify({ suggestions: [], count: 0 }), {
           status: 200,
@@ -340,18 +376,23 @@ describe("OnboardingUploadPage", () => {
     const user = userEvent.setup();
 
     vi.mocked(global.fetch)
+      // 1) Mount: check for active batch
+      .mockResolvedValueOnce(noActiveBatchResponse())
+      // 2) Batch upload POST
       .mockResolvedValueOnce(
         new Response(JSON.stringify(makeBatchUploadResponse()), {
           status: 202,
           headers: { "Content-Type": "application/json" },
         })
       )
+      // 3) Poll returns completed
       .mockResolvedValueOnce(
         new Response(JSON.stringify(makeBatchCompletedResponse()), {
           status: 200,
           headers: { "Content-Type": "application/json" },
         })
       )
+      // 4) Fetch suggestions
       .mockResolvedValueOnce(
         new Response(
           JSON.stringify({ suggestions: mockSuggestions, count: 2 }),
@@ -361,7 +402,7 @@ describe("OnboardingUploadPage", () => {
           }
         )
       )
-      // Accept suggestion response
+      // 5) Accept suggestion response
       .mockResolvedValueOnce(
         new Response(JSON.stringify({ success: true }), {
           status: 200,
@@ -393,18 +434,23 @@ describe("OnboardingUploadPage", () => {
     const user = userEvent.setup();
 
     vi.mocked(global.fetch)
+      // 1) Mount: check for active batch
+      .mockResolvedValueOnce(noActiveBatchResponse())
+      // 2) Batch upload POST
       .mockResolvedValueOnce(
         new Response(JSON.stringify(makeBatchUploadResponse()), {
           status: 202,
           headers: { "Content-Type": "application/json" },
         })
       )
+      // 3) Poll returns completed
       .mockResolvedValueOnce(
         new Response(JSON.stringify(makeBatchCompletedResponse()), {
           status: 200,
           headers: { "Content-Type": "application/json" },
         })
       )
+      // 4) Fetch suggestions
       .mockResolvedValueOnce(
         new Response(
           JSON.stringify({
@@ -417,6 +463,7 @@ describe("OnboardingUploadPage", () => {
           }
         )
       )
+      // 5) Dismiss suggestion response
       .mockResolvedValueOnce(
         new Response(JSON.stringify({ success: true }), {
           status: 200,
@@ -448,18 +495,23 @@ describe("OnboardingUploadPage", () => {
     const user = userEvent.setup();
 
     vi.mocked(global.fetch)
+      // 1) Mount: check for active batch
+      .mockResolvedValueOnce(noActiveBatchResponse())
+      // 2) Batch upload POST
       .mockResolvedValueOnce(
         new Response(JSON.stringify(makeBatchUploadResponse()), {
           status: 202,
           headers: { "Content-Type": "application/json" },
         })
       )
+      // 3) Poll returns completed
       .mockResolvedValueOnce(
         new Response(JSON.stringify(makeBatchCompletedResponse()), {
           status: 200,
           headers: { "Content-Type": "application/json" },
         })
       )
+      // 4) Fetch suggestions
       .mockResolvedValueOnce(
         new Response(
           JSON.stringify({ suggestions: mockSuggestions, count: 2 }),
@@ -509,18 +561,23 @@ describe("OnboardingUploadPage", () => {
     });
 
     vi.mocked(global.fetch)
+      // 1) Mount: check for active batch
+      .mockResolvedValueOnce(noActiveBatchResponse())
+      // 2) Batch upload POST
       .mockResolvedValueOnce(
         new Response(JSON.stringify(multiFileResponse), {
           status: 202,
           headers: { "Content-Type": "application/json" },
         })
       )
+      // 3) Poll returns completed
       .mockResolvedValueOnce(
         new Response(JSON.stringify(makeBatchCompletedResponse()), {
           status: 200,
           headers: { "Content-Type": "application/json" },
         })
       )
+      // 4) Fetch suggestions
       .mockResolvedValueOnce(
         new Response(
           JSON.stringify({ suggestions: mockSuggestions, count: 2 }),
@@ -542,20 +599,24 @@ describe("OnboardingUploadPage", () => {
       expect(screen.getByText("Netflix")).toBeDefined();
     });
 
-    // Single batch upload + poll + suggestions = 3 calls (not 4 like sequential)
-    const uploadCall = vi.mocked(global.fetch).mock.calls[0];
+    // calls[0] is the mount check, calls[1] is the batch upload
+    const uploadCall = vi.mocked(global.fetch).mock.calls[1];
     expect(uploadCall[0]).toBe("/api/import/batch");
   });
 
   it("shows error when upload fails", async () => {
     const user = userEvent.setup();
 
-    vi.mocked(global.fetch).mockResolvedValueOnce(
-      new Response(JSON.stringify({ error: "unsupported file format" }), {
-        status: 400,
-        headers: { "Content-Type": "application/json" },
-      })
-    );
+    vi.mocked(global.fetch)
+      // 1) Mount: check for active batch
+      .mockResolvedValueOnce(noActiveBatchResponse())
+      // 2) Upload POST fails
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ error: "unsupported file format" }), {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        })
+      );
 
     render(<OnboardingUploadPage />);
 

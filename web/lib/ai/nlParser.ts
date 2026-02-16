@@ -19,6 +19,19 @@ const SYSTEM_PROMPT = `You are a financial intent parser. You receive natural la
 
 The user has income sources (money coming in) and obligations/expenses (money going out). You will be given their current financial data so you can resolve references like "the gym" or "my Netflix".
 
+## Interval Model
+
+Recurrence is expressed as intervalUnit + intervalCount. Valid intervalUnit values: "day", "week", "twice_monthly", "month", "quarter", "year". Use null for irregular/one-off items. intervalCount defaults to 1 and multiplies the unit (e.g. intervalUnit "week" + intervalCount 2 = every 2 weeks / fortnightly).
+
+Common mappings:
+- weekly → intervalUnit: "week", intervalCount: 1
+- fortnightly / every 2 weeks → intervalUnit: "week", intervalCount: 2
+- twice a month / semi-monthly → intervalUnit: "twice_monthly", intervalCount: 1
+- monthly → intervalUnit: "month", intervalCount: 1
+- quarterly → intervalUnit: "quarter", intervalCount: 1
+- annual / yearly → intervalUnit: "year", intervalCount: 1
+- irregular / one-off → intervalUnit: null
+
 ## Intent Types
 
 Return exactly ONE JSON object matching one of these schemas:
@@ -33,14 +46,15 @@ Create a new income source or obligation.
   "incomeFields": {
     "name": "string (descriptive name)",
     "expectedAmount": number,
-    "frequency": "weekly" | "fortnightly" | "monthly" | "quarterly" | "annual",
-    "isIrregular": boolean
+    "intervalUnit": "day" | "week" | "twice_monthly" | "month" | "quarter" | "year" | null,
+    "intervalCount": number
   },
   "obligationFields": {
     "name": "string (descriptive name)",
     "type": "recurring" | "recurring_with_end" | "one_off" | "custom",
     "amount": number,
-    "frequency": "weekly" | "fortnightly" | "monthly" | "quarterly" | "annual",
+    "intervalUnit": "day" | "week" | "twice_monthly" | "month" | "quarter" | "year" | null,
+    "intervalCount": number,
     "nextDueDate": "YYYY-MM-DD or omit",
     "customEntries": [{"dueDate": "YYYY-MM-DD", "amount": number}]
   }
@@ -59,7 +73,8 @@ Edit an existing item. Match the targetName against the user's existing items.
   "changes": {
     "name": "string (optional)",
     "amount": number,
-    "frequency": "string (optional)",
+    "intervalUnit": "day" | "week" | "twice_monthly" | "month" | "quarter" | "year" | null,
+    "intervalCount": number,
     "isPaused": boolean
   }
 }
@@ -98,7 +113,8 @@ A what-if scenario. Starts with "what if".
       "action": "toggle_off" | "override_amount" | "add_hypothetical",
       "targetName": "string",
       "amount": number,
-      "frequency": "string (optional)",
+      "intervalUnit": "day" | "week" | "twice_monthly" | "month" | "quarter" | "year" | null,
+      "intervalCount": number,
       "dueDate": "YYYY-MM-DD (optional)"
     }
   ],
@@ -154,8 +170,27 @@ When the input cannot be understood as a financial command.
 - For dates, use the first of the month when only a month is given. If a month is in the past and no year is specified, use next year.
 - Today's date is provided in the user message for date calculations.
 - Default expense type to "recurring" unless the input clearly indicates otherwise.
-- Default frequency to "monthly" when not specified for recurring items.
+- Default intervalUnit to "month" and intervalCount to 1 when recurrence is not specified for recurring items. Use null intervalUnit for one-off items.
 - Empty or whitespace-only input should return unrecognized.`;
+
+/**
+ * Format an interval unit + count into a human-readable string for context display.
+ */
+function formatInterval(unit: string | null, count: number): string {
+  if (!unit) return "irregular";
+  if (count === 1) {
+    const labels: Record<string, string> = {
+      day: "daily",
+      week: "weekly",
+      twice_monthly: "twice monthly",
+      month: "monthly",
+      quarter: "quarterly",
+      year: "annually",
+    };
+    return labels[unit] ?? unit;
+  }
+  return `every ${count} ${unit}s`;
+}
 
 /**
  * Build the user message with financial context.
@@ -170,14 +205,16 @@ function buildUserMessage(input: string, context: FinancialContext): string {
     if (context.incomeSources.length > 0) {
       message += "\n### Income Sources\n";
       for (const inc of context.incomeSources) {
-        message += `- ${inc.name}: $${inc.expectedAmount} ${inc.frequency}\n`;
+        const interval = formatInterval(inc.intervalUnit, inc.intervalCount);
+        message += `- ${inc.name}: $${inc.expectedAmount} ${interval}\n`;
       }
     }
 
     if (context.obligations.length > 0) {
       message += "\n### Obligations/Expenses\n";
       for (const obl of context.obligations) {
-        message += `- ${obl.name}: $${obl.amount} ${obl.frequency ?? obl.type}`;
+        const interval = formatInterval(obl.intervalUnit, obl.intervalCount);
+        message += `- ${obl.name}: $${obl.amount} ${interval || obl.type}`;
         if (obl.nextDueDate) {
           message += ` (next due: ${obl.nextDueDate})`;
         }

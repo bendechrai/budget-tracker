@@ -30,7 +30,8 @@ describe("Suggestion models schema", () => {
       type: SuggestionType.expense,
       vendorPattern: "Netflix",
       detectedAmount: 15.99,
-      detectedFrequency: "monthly",
+      detectedIntervalUnit: "month",
+      detectedIntervalCount: 1,
       confidence: SuggestionConfidence.high,
       matchingTransactionCount: 5,
     };
@@ -38,7 +39,8 @@ describe("Suggestion models schema", () => {
     expect(suggestion.type).toBe("expense");
     expect(suggestion.vendorPattern).toBe("Netflix");
     expect(suggestion.detectedAmount).toBe(15.99);
-    expect(suggestion.detectedFrequency).toBe("monthly");
+    expect(suggestion.detectedIntervalUnit).toBe("month");
+    expect(suggestion.detectedIntervalCount).toBe(1);
     expect(suggestion.confidence).toBe("high");
     expect(suggestion.matchingTransactionCount).toBe(5);
   });
@@ -51,7 +53,8 @@ describe("Suggestion models schema", () => {
       detectedAmount: 5000,
       detectedAmountMin: 4800,
       detectedAmountMax: 5200,
-      detectedFrequency: "monthly",
+      detectedIntervalUnit: "month",
+      detectedIntervalCount: 1,
       confidence: SuggestionConfidence.medium,
       matchingTransactionCount: 3,
       status: SuggestionStatus.pending,

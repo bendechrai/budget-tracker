@@ -5,7 +5,7 @@
  * classifies as income or expense, and calculates confidence.
  */
 
-import type { IncomeFrequency, SuggestionConfidence, SuggestionType } from "@/app/generated/prisma/client";
+import type { IntervalUnit, SuggestionConfidence, SuggestionType } from "@/app/generated/prisma/client";
 import { groupByVendor, vendorSimilarity, type TransactionRecord, type VendorGroup } from "./vendorMatch";
 
 /** Minimum number of transactions required to form a suggestion. */
@@ -20,7 +20,8 @@ export interface DetectedPattern {
   detectedAmount: number;
   detectedAmountMin: number | null;
   detectedAmountMax: number | null;
-  detectedFrequency: IncomeFrequency;
+  detectedIntervalUnit: IntervalUnit | null;
+  detectedIntervalCount: number;
   confidence: SuggestionConfidence;
   matchingTransactionCount: number;
   transactionIds: string[];
@@ -70,8 +71,8 @@ function analyzeGroup(group: VendorGroup): DetectedPattern | null {
   const type = classifyType(transactions);
   const amounts = transactions.map((t) => t.amount);
   const amountStats = computeAmountStats(amounts);
-  const frequency = detectFrequency(transactions);
-  const confidence = calculateConfidence(transactions, amountStats, frequency);
+  const interval = detectInterval(transactions);
+  const confidence = calculateConfidence(transactions, amountStats, interval);
 
   return {
     vendorPattern: group.vendorPattern,
@@ -79,7 +80,8 @@ function analyzeGroup(group: VendorGroup): DetectedPattern | null {
     detectedAmount: amountStats.mean,
     detectedAmountMin: amountStats.isVariable ? amountStats.min : null,
     detectedAmountMax: amountStats.isVariable ? amountStats.max : null,
-    detectedFrequency: frequency,
+    detectedIntervalUnit: interval.unit,
+    detectedIntervalCount: interval.count,
     confidence,
     matchingTransactionCount: transactions.length,
     transactionIds: transactions.map((t) => t.id),
@@ -121,12 +123,18 @@ function computeAmountStats(amounts: number[]): AmountStats {
   };
 }
 
+/** Detected interval result. */
+export interface DetectedInterval {
+  unit: IntervalUnit | null;
+  count: number;
+}
+
 /**
- * Detect the frequency of transactions by analyzing the intervals between them.
- * Sorts by date, calculates median interval, and maps to a known frequency.
+ * Detect the recurrence interval of transactions by analyzing the gaps between them.
+ * Sorts by date, calculates median interval, and maps to a known interval unit + count.
  */
-export function detectFrequency(transactions: TransactionRecord[]): IncomeFrequency {
-  if (transactions.length < 2) return "irregular";
+export function detectInterval(transactions: TransactionRecord[]): DetectedInterval {
+  if (transactions.length < 2) return { unit: null, count: 1 };
 
   const sorted = [...transactions].sort((a, b) => a.date.getTime() - b.date.getTime());
   const intervals: number[] = [];
@@ -141,12 +149,12 @@ export function detectFrequency(transactions: TransactionRecord[]): IncomeFreque
   // For intervals in the fortnightly/twice-monthly range, check day-of-month pattern
   if (medianInterval >= 11 && medianInterval <= 18) {
     if (isTwiceMonthlyPattern(sorted)) {
-      return "twice_monthly";
+      return { unit: "twice_monthly", count: 1 };
     }
-    return "fortnightly";
+    return { unit: "week", count: 2 };
   }
 
-  return mapIntervalToFrequency(medianInterval);
+  return mapIntervalToDays(medianInterval);
 }
 
 function median(values: number[]): number {
@@ -213,30 +221,30 @@ function isTwiceMonthlyPattern(sortedTransactions: TransactionRecord[]): boolean
 }
 
 /**
- * Map a median interval (in days) to a known frequency.
+ * Map a median interval (in days) to a known interval unit + count.
  * Allows ~20% tolerance on each range.
  * Note: the 11-18 day range (fortnightly/twice_monthly) is handled
- * separately in detectFrequency() before this function is called.
+ * separately in detectInterval() before this function is called.
  */
-function mapIntervalToFrequency(days: number): IncomeFrequency {
-  if (days >= 5 && days <= 9) return "weekly";
-  if (days >= 11 && days <= 18) return "fortnightly";
-  if (days >= 25 && days <= 38) return "monthly";
-  if (days >= 75 && days <= 110) return "quarterly";
-  if (days >= 330 && days <= 400) return "annual";
-  return "irregular";
+function mapIntervalToDays(days: number): DetectedInterval {
+  if (days >= 5 && days <= 9) return { unit: "week", count: 1 };
+  if (days >= 11 && days <= 18) return { unit: "week", count: 2 };
+  if (days >= 25 && days <= 38) return { unit: "month", count: 1 };
+  if (days >= 75 && days <= 110) return { unit: "quarter", count: 1 };
+  if (days >= 330 && days <= 400) return { unit: "year", count: 1 };
+  return { unit: null, count: 1 };
 }
 
 /**
  * Calculate confidence level based on:
  * - Number of matching transactions (more = higher)
  * - Amount consistency (lower variance = higher)
- * - Frequency regularity (recognized pattern = higher)
+ * - Interval regularity (recognized pattern = higher)
  */
 function calculateConfidence(
   transactions: TransactionRecord[],
   amountStats: AmountStats,
-  frequency: IncomeFrequency
+  interval: DetectedInterval
 ): SuggestionConfidence {
   let score = 0;
 
@@ -249,8 +257,8 @@ function calculateConfidence(
   if (!amountStats.isVariable) score += 2;
   else if (amountStats.stddev / amountStats.mean < 0.3) score += 1;
 
-  // Frequency regularity scoring
-  if (frequency !== "irregular") score += 2;
+  // Interval regularity scoring
+  if (interval.unit !== null) score += 2;
 
   if (score >= 6) return "high";
   if (score >= 4) return "medium";

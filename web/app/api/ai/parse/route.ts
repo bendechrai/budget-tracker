@@ -41,7 +41,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           id: true,
           name: true,
           expectedAmount: true,
-          frequency: true,
+          intervalUnit: true,
+          intervalCount: true,
         },
       }),
       prisma.obligation.findMany({
@@ -50,7 +51,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           id: true,
           name: true,
           amount: true,
-          frequency: true,
+          intervalUnit: true,
+          intervalCount: true,
           type: true,
           nextDueDate: true,
         },
@@ -62,13 +64,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         id: inc.id,
         name: inc.name,
         expectedAmount: Number(inc.expectedAmount),
-        frequency: inc.frequency,
+        intervalUnit: inc.intervalUnit,
+        intervalCount: inc.intervalCount,
       })),
       obligations: obligations.map((obl) => ({
         id: obl.id,
         name: obl.name,
         amount: Number(obl.amount),
-        frequency: obl.frequency,
+        intervalUnit: obl.intervalUnit,
+        intervalCount: obl.intervalCount,
         type: obl.type,
         nextDueDate: obl.nextDueDate
           ? obl.nextDueDate.toISOString().split("T")[0]

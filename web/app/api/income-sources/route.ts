@@ -2,26 +2,24 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth/getCurrentUser";
 import { logError } from "@/lib/logging";
-import type { IncomeFrequency } from "@/app/generated/prisma/client";
+import type { IntervalUnit } from "@/app/generated/prisma/client";
 
 interface CreateIncomeSourceBody {
   name: string;
   expectedAmount: number;
-  frequency: IncomeFrequency;
-  frequencyDays?: number | null;
-  isIrregular: boolean;
+  intervalUnit?: IntervalUnit | null;
+  intervalCount?: number;
   minimumExpected?: number | null;
   nextExpectedDate?: string | null;
 }
 
-const VALID_FREQUENCIES: IncomeFrequency[] = [
-  "weekly",
-  "fortnightly",
-  "monthly",
-  "quarterly",
-  "annual",
-  "custom",
-  "irregular",
+const VALID_INTERVAL_UNITS: IntervalUnit[] = [
+  "day",
+  "week",
+  "twice_monthly",
+  "month",
+  "quarter",
+  "year",
 ];
 
 export async function GET(): Promise<NextResponse> {
@@ -74,27 +72,22 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    if (!body.frequency || !VALID_FREQUENCIES.includes(body.frequency)) {
-      return NextResponse.json(
-        { error: "frequency must be one of: weekly, fortnightly, monthly, quarterly, annual, custom, irregular" },
-        { status: 400 }
-      );
-    }
-
-    if (body.frequency === "custom") {
-      if (!body.frequencyDays || typeof body.frequencyDays !== "number" || !Number.isInteger(body.frequencyDays) || body.frequencyDays <= 0) {
+    if (body.intervalUnit !== undefined && body.intervalUnit !== null) {
+      if (!VALID_INTERVAL_UNITS.includes(body.intervalUnit)) {
         return NextResponse.json(
-          { error: "frequencyDays must be a positive integer when frequency is custom" },
+          { error: "intervalUnit must be one of: day, week, twice_monthly, month, quarter, year" },
           { status: 400 }
         );
       }
     }
 
-    if (typeof body.isIrregular !== "boolean") {
-      return NextResponse.json(
-        { error: "isIrregular is required and must be a boolean" },
-        { status: 400 }
-      );
+    if (body.intervalCount !== undefined) {
+      if (typeof body.intervalCount !== "number" || !Number.isInteger(body.intervalCount) || body.intervalCount <= 0) {
+        return NextResponse.json(
+          { error: "intervalCount must be a positive integer" },
+          { status: 400 }
+        );
+      }
     }
 
     if (body.minimumExpected !== undefined && body.minimumExpected !== null) {
@@ -122,9 +115,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         userId: user.id,
         name: body.name.trim(),
         expectedAmount: body.expectedAmount,
-        frequency: body.frequency,
-        frequencyDays: body.frequency === "custom" ? body.frequencyDays! : null,
-        isIrregular: body.isIrregular,
+        intervalUnit: body.intervalUnit ?? null,
+        intervalCount: body.intervalCount ?? 1,
         minimumExpected: body.minimumExpected ?? null,
         nextExpectedDate,
       },

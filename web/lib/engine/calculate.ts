@@ -1,4 +1,4 @@
-import type { ContributionCycleType, IncomeFrequency, ObligationType } from "@/app/generated/prisma/client";
+import type { ContributionCycleType, IntervalUnit, ObligationType } from "@/app/generated/prisma/client";
 import { getAmountAtDate, type EscalationRule } from "./escalation";
 
 export interface WhatIfOverrides {
@@ -22,8 +22,8 @@ export interface ObligationInput {
   name: string;
   type: ObligationType;
   amount: number;
-  frequency: IncomeFrequency | null;
-  frequencyDays: number | null;
+  intervalUnit: IntervalUnit | null;
+  intervalCount: number;
   nextDueDate: Date;
   endDate: Date | null;
   isPaused: boolean;
@@ -105,44 +105,67 @@ export interface EngineResult {
 const MS_PER_DAY = 86_400_000;
 
 /**
- * Returns the number of days for a given frequency.
+ * Advances a date by the given interval unit and count, using calendar-aware
+ * arithmetic for month/quarter/year (with end-of-month clamping).
+ *
+ * Returns null when unit is null (irregular).
  */
-function frequencyToDays(
-  frequency: IncomeFrequency | null,
-  frequencyDays: number | null
-): number | null {
-  if (frequency === null) return null;
-  switch (frequency) {
-    case "weekly":
-      return 7;
-    case "fortnightly":
-      return 14;
-    case "twice_monthly":
-      return 15;
-    case "monthly":
-      return 30;
-    case "quarterly":
-      return 90;
-    case "annual":
-      return 365;
-    case "custom":
-      return frequencyDays ?? null;
-    case "irregular":
-      return null;
+export function addInterval(
+  date: Date,
+  unit: IntervalUnit | null,
+  count: number
+): Date | null {
+  if (unit === null) return null;
+
+  switch (unit) {
+    case "day":
+      return new Date(date.getTime() + count * MS_PER_DAY);
+
+    case "week":
+      return new Date(date.getTime() + count * 7 * MS_PER_DAY);
+
+    case "twice_monthly": {
+      // Advance to the next semi-monthly pay date (1st or 15th)
+      const d = new Date(date);
+      const day = d.getUTCDate();
+      if (day < 15) {
+        d.setUTCDate(15);
+      } else {
+        d.setUTCMonth(d.getUTCMonth() + 1);
+        d.setUTCDate(1);
+      }
+      return d;
+    }
+
+    case "month":
+    case "quarter":
+    case "year": {
+      const months = unit === "month" ? count
+        : unit === "quarter" ? count * 3
+        : count * 12;
+      const result = new Date(date);
+      const targetDay = result.getUTCDate();
+      result.setUTCMonth(result.getUTCMonth() + months);
+      // End-of-month clamping: if the day shifted (e.g. Jan 31 → Mar 3),
+      // go back to the last day of the intended month.
+      if (result.getUTCDate() !== targetDay) {
+        result.setUTCDate(0); // last day of previous month
+      }
+      return result;
+    }
   }
 }
 
 /**
- * Calculates the next due date after a given date, based on frequency.
+ * Calculates the next due date after a given date, based on interval.
+ * Returns null when unit is null (irregular).
  */
 export function getNextDueDateAfter(
   currentDueDate: Date,
-  frequency: IncomeFrequency | null,
-  frequencyDays: number | null
+  intervalUnit: IntervalUnit | null,
+  intervalCount: number
 ): Date | null {
-  const days = frequencyToDays(frequency, frequencyDays);
-  if (days === null) return null;
-  return new Date(currentDueDate.getTime() + days * MS_PER_DAY);
+  return addInterval(currentDueDate, intervalUnit, intervalCount);
 }
 
 /**
@@ -261,43 +284,34 @@ export interface CycleUserInput {
 
 /** Minimal income source fields needed for cycle resolution */
 export interface CycleIncomeInput {
-  frequency: IncomeFrequency;
-  isIrregular: boolean;
+  intervalUnit: IntervalUnit | null;
+  intervalCount: number;
   isActive: boolean;
   isPaused: boolean;
 }
 
-/**
- * Priority ordering for income frequencies — lower index = shorter (more frequent) cycle.
- * Only includes frequencies that map to a valid CycleConfig type.
- */
-const FREQUENCY_PRIORITY: IncomeFrequency[] = [
-  "weekly",
-  "fortnightly",
-  "twice_monthly",
-  "monthly",
+/** Cycle-eligible interval patterns, ordered by frequency (most frequent first). */
+interface CyclePattern {
+  unit: IntervalUnit;
+  count: number;
+  config: CycleConfig;
+}
+
+const CYCLE_PATTERNS: CyclePattern[] = [
+  { unit: "week", count: 1, config: { type: "weekly", payDays: [] } },
+  { unit: "week", count: 2, config: { type: "fortnightly", payDays: [] } },
+  { unit: "twice_monthly", count: 1, config: { type: "twice_monthly", payDays: [1, 15] } },
+  { unit: "month", count: 1, config: { type: "monthly", payDays: [1] } },
 ];
 
 /**
- * Maps an IncomeFrequency to a CycleConfig.
- * Returns null for frequencies that don't map to a contribution cycle type.
+ * Maps an interval unit+count to a CycleConfig.
+ * Returns null for intervals that don't map to a contribution cycle type.
  */
-function incomeFrequencyToCycleConfig(frequency: IncomeFrequency): CycleConfig | null {
-  switch (frequency) {
-    case "weekly":
-      return { type: "weekly", payDays: [] };
-    case "fortnightly":
-      return { type: "fortnightly", payDays: [] };
-    case "twice_monthly":
-      return { type: "twice_monthly", payDays: [1, 15] };
-    case "monthly":
-      return { type: "monthly", payDays: [1] };
-    case "quarterly":
-    case "annual":
-    case "custom":
-    case "irregular":
-      return null;
-  }
+function intervalToCycleConfig(unit: IntervalUnit | null, count: number): CycleConfig | null {
+  if (unit === null) return null;
+  const match = CYCLE_PATTERNS.find((p) => p.unit === unit && p.count === count);
+  return match?.config ?? null;
 }
 
 /**
@@ -325,19 +339,21 @@ export function resolveCycleConfig(
     return { type, payDays };
   }
 
-  // 2. Auto-detect from income sources
+  // 2. Auto-detect from income sources (filter out irregular = null unit)
   const eligible = incomeSources.filter(
-    (s) => s.isActive && !s.isPaused && !s.isIrregular,
+    (s) => s.isActive && !s.isPaused && s.intervalUnit !== null,
   );
 
-  let bestPriority = FREQUENCY_PRIORITY.length; // sentinel: worse than any valid
+  let bestPriority = CYCLE_PATTERNS.length; // sentinel: worse than any valid
   let bestConfig: CycleConfig | null = null;
 
   for (const source of eligible) {
-    const idx = FREQUENCY_PRIORITY.indexOf(source.frequency);
+    const idx = CYCLE_PATTERNS.findIndex(
+      (p) => p.unit === source.intervalUnit && p.count === source.intervalCount,
+    );
     if (idx !== -1 && idx < bestPriority) {
       bestPriority = idx;
-      bestConfig = incomeFrequencyToCycleConfig(source.frequency);
+      bestConfig = intervalToCycleConfig(source.intervalUnit, source.intervalCount);
     }
   }
 
@@ -405,8 +421,8 @@ export function calculateContributions(input: EngineInput): EngineResult {
         ) {
           const nextDate = getNextDueDateAfter(
             effectiveDueDate,
-            obligation.frequency,
-            obligation.frequencyDays
+            obligation.intervalUnit,
+            obligation.intervalCount
           );
           if (nextDate) {
             effectiveDueDate = nextDate;

@@ -64,9 +64,8 @@ function buildObligationsCsv(
     name: string;
     type: string;
     amount: number;
-    frequency: string | null;
-    frequencyDays: number | null;
-    startDate: Date;
+    intervalUnit: string | null;
+    intervalCount: number;
     endDate: Date | null;
     nextDueDate: Date;
     isPaused: boolean;
@@ -81,9 +80,8 @@ function buildObligationsCsv(
     "name",
     "type",
     "amount",
-    "frequency",
-    "frequencyDays",
-    "startDate",
+    "intervalUnit",
+    "intervalCount",
     "endDate",
     "nextDueDate",
     "isPaused",
@@ -98,9 +96,8 @@ function buildObligationsCsv(
       o.name,
       o.type,
       String(o.amount),
-      o.frequency ?? "",
-      o.frequencyDays != null ? String(o.frequencyDays) : "",
-      formatDate(o.startDate),
+      o.intervalUnit ?? "",
+      String(o.intervalCount),
       formatDate(o.endDate),
       formatDate(o.nextDueDate),
       String(o.isPaused),
@@ -118,9 +115,8 @@ function buildIncomeSourcesCsv(
     id: string;
     name: string;
     expectedAmount: number;
-    frequency: string;
-    frequencyDays: number | null;
-    isIrregular: boolean;
+    intervalUnit: string | null;
+    intervalCount: number;
     minimumExpected: number | null;
     nextExpectedDate: Date | null;
     isPaused: boolean;
@@ -132,9 +128,8 @@ function buildIncomeSourcesCsv(
     "id",
     "name",
     "expectedAmount",
-    "frequency",
-    "frequencyDays",
-    "isIrregular",
+    "intervalUnit",
+    "intervalCount",
     "minimumExpected",
     "nextExpectedDate",
     "isPaused",
@@ -146,9 +141,8 @@ function buildIncomeSourcesCsv(
       s.id,
       s.name,
       String(s.expectedAmount),
-      s.frequency,
-      s.frequencyDays != null ? String(s.frequencyDays) : "",
-      String(s.isIrregular),
+      s.intervalUnit ?? "",
+      String(s.intervalCount),
       s.minimumExpected != null ? String(s.minimumExpected) : "",
       formatDate(s.nextExpectedDate),
       String(s.isPaused),

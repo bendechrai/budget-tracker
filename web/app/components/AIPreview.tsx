@@ -20,9 +20,21 @@ interface AIPreviewProps {
 
 type ActionStatus = { type: "idle" } | { type: "loading" } | { type: "success"; message: string } | { type: "error"; message: string };
 
-function formatFrequency(freq: string | undefined | null): string {
-  if (!freq) return "—";
-  return freq.replace(/_/g, " ");
+function formatInterval(unit: string | undefined | null, count?: number): string {
+  if (!unit) return "Irregular";
+  if (unit === "twice_monthly") return "Twice monthly";
+  const c = count ?? 1;
+  const labels: Record<string, [string, string]> = {
+    day: ["Daily", "days"],
+    week: ["Weekly", "weeks"],
+    month: ["Monthly", "months"],
+    quarter: ["Quarterly", "quarters"],
+    year: ["Annually", "years"],
+  };
+  const [singular, plural] = labels[unit] ?? [unit, unit + "s"];
+  if (c === 1) return singular;
+  if (unit === "week" && c === 2) return "Fortnightly";
+  return `Every ${c} ${plural}`;
 }
 
 function formatAmount(amount: number | undefined | null): string {
@@ -53,7 +65,7 @@ function CreatePreview({ intent }: { intent: CreateIntent }) {
         </div>
         <div className={styles.fieldRow}>
           <span className={styles.fieldLabel}>Frequency</span>
-          <span className={styles.fieldValue} data-testid="preview-field-frequency">{formatFrequency(f.frequency)}</span>
+          <span className={styles.fieldValue} data-testid="preview-field-frequency">{formatInterval(f.intervalUnit, f.intervalCount)}</span>
         </div>
         {f.nextExpectedDate && (
           <div className={styles.fieldRow}>
@@ -82,10 +94,10 @@ function CreatePreview({ intent }: { intent: CreateIntent }) {
           <span className={styles.fieldLabel}>Type</span>
           <span className={styles.fieldValue} data-testid="preview-field-type">{f.type.replace(/_/g, " ")}</span>
         </div>
-        {f.frequency && (
+        {f.intervalUnit && (
           <div className={styles.fieldRow}>
             <span className={styles.fieldLabel}>Frequency</span>
-            <span className={styles.fieldValue} data-testid="preview-field-frequency">{formatFrequency(f.frequency)}</span>
+            <span className={styles.fieldValue} data-testid="preview-field-frequency">{formatInterval(f.intervalUnit, f.intervalCount)}</span>
           </div>
         )}
         {f.nextDueDate && (
@@ -111,7 +123,7 @@ function EditPreview({ intent }: { intent: EditIntent }) {
   const changes = intent.changes;
   const entries = Object.entries(changes).filter(
     ([, v]) => v !== undefined
-  ) as Array<[keyof EditFields, string | number | boolean]>;
+  ) as Array<[keyof EditFields, string | number | boolean | null]>;
 
   return (
     <div data-testid="ai-preview-edit">
@@ -147,18 +159,19 @@ function formatFieldName(key: string): string {
   const map: Record<string, string> = {
     name: "Name",
     amount: "Amount",
-    frequency: "Frequency",
-    frequencyDays: "Frequency days",
+    intervalUnit: "Frequency",
+    intervalCount: "Interval count",
     isPaused: "Paused",
     nextDueDate: "Next due date",
   };
   return map[key] ?? key;
 }
 
-function formatFieldValue(key: string, value: string | number | boolean): string {
+function formatFieldValue(key: string, value: string | number | boolean | null): string {
   if (key === "amount" && typeof value === "number") return formatAmount(value);
-  if (key === "frequency" && typeof value === "string") return formatFrequency(value);
+  if (key === "intervalUnit") return formatInterval(typeof value === "string" ? value : null);
   if (key === "isPaused" && typeof value === "boolean") return value ? "Yes" : "No";
+  if (value === null) return "—";
   return String(value);
 }
 
@@ -171,9 +184,8 @@ async function executeCreateIntent(intent: CreateIntent): Promise<string> {
       body: JSON.stringify({
         name: f.name,
         expectedAmount: f.expectedAmount,
-        frequency: f.frequency,
-        frequencyDays: f.frequencyDays ?? null,
-        isIrregular: f.isIrregular ?? false,
+        intervalUnit: f.intervalUnit ?? null,
+        intervalCount: f.intervalCount ?? 1,
         nextExpectedDate: f.nextExpectedDate ?? null,
       }),
     });
@@ -193,9 +205,8 @@ async function executeCreateIntent(intent: CreateIntent): Promise<string> {
         name: f.name,
         type: f.type,
         amount: f.amount,
-        frequency: f.frequency ?? null,
-        frequencyDays: f.frequencyDays ?? null,
-        startDate: f.startDate ?? new Date().toISOString(),
+        intervalUnit: f.intervalUnit ?? null,
+        intervalCount: f.intervalCount ?? 1,
         nextDueDate: f.nextDueDate ?? new Date().toISOString(),
         endDate: f.endDate ?? null,
         customEntries: f.customEntries ?? null,
@@ -249,8 +260,8 @@ function buildUpdateBody(intent: EditIntent): Record<string, unknown> {
       body.amount = c.amount;
     }
   }
-  if (c.frequency !== undefined) body.frequency = c.frequency;
-  if (c.frequencyDays !== undefined) body.frequencyDays = c.frequencyDays;
+  if (c.intervalUnit !== undefined) body.intervalUnit = c.intervalUnit;
+  if (c.intervalCount !== undefined) body.intervalCount = c.intervalCount;
   if (c.isPaused !== undefined) body.isPaused = c.isPaused;
   if (c.nextDueDate !== undefined) {
     if (intent.targetType === "income") {

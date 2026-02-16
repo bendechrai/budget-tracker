@@ -103,9 +103,8 @@ describe("POST /api/user/export", () => {
         name: "Rent",
         type: "recurring",
         amount: 2000,
-        frequency: "monthly",
-        frequencyDays: null,
-        startDate: new Date("2024-01-01"),
+        intervalUnit: "month",
+        intervalCount: 1,
         endDate: null,
         nextDueDate: new Date("2024-02-01"),
         isPaused: false,
@@ -121,9 +120,8 @@ describe("POST /api/user/export", () => {
         id: "inc_1",
         name: "Salary",
         expectedAmount: 5000,
-        frequency: "monthly",
-        frequencyDays: null,
-        isIrregular: false,
+        intervalUnit: "month",
+        intervalCount: 1,
         minimumExpected: null,
         nextExpectedDate: new Date("2024-02-01"),
         isPaused: false,
@@ -173,7 +171,7 @@ describe("POST /api/user/export", () => {
 
     // Income sources CSV
     const incCsv = appendCalls[2][0] as string;
-    expect(incCsv).toContain("id,name,expectedAmount,frequency");
+    expect(incCsv).toContain("id,name,expectedAmount,intervalUnit");
     expect(incCsv).toContain("inc_1");
     expect(incCsv).toContain("Salary");
     expect(appendCalls[2][1]).toEqual({ name: "income_sources.csv" });

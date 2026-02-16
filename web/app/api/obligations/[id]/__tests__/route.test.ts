@@ -43,9 +43,8 @@ const existingObligation = {
   name: "Netflix",
   type: "recurring",
   amount: 22.99,
-  frequency: "monthly",
-  frequencyDays: null,
-  startDate: new Date("2026-01-01T00:00:00.000Z"),
+  intervalUnit: "month",
+  intervalCount: 1,
   endDate: null,
   nextDueDate: new Date("2026-03-01T00:00:00.000Z"),
   isPaused: false,
@@ -145,7 +144,7 @@ describe("PUT /api/obligations/[id]", () => {
     expect(data.isPaused).toBe(true);
   });
 
-  it("returns 200 when updating frequency", async () => {
+  it("returns 200 when updating intervalUnit", async () => {
     mockGetCurrentUser.mockResolvedValue({
       id: "user_1",
       email: "test@example.com",
@@ -153,21 +152,22 @@ describe("PUT /api/obligations/[id]", () => {
     mockObligationFindUnique.mockResolvedValue(existingObligation);
     const updatedRecord = {
       ...existingObligation,
-      frequency: "quarterly",
+      intervalUnit: "quarter",
+      intervalCount: 1,
       customEntries: [],
       fundGroup: null,
     };
     mockObligationUpdate.mockResolvedValue(updatedRecord);
 
     const res = await PUT(
-      makeRequest({ frequency: "quarterly" }),
+      makeRequest({ intervalUnit: "quarter", intervalCount: 1 }),
       makeParams("obl_1")
     );
 
     expect(res.status).toBe(200);
     expect(mockObligationUpdate).toHaveBeenCalledWith({
       where: { id: "obl_1" },
-      data: { frequency: "quarterly", frequencyDays: null },
+      data: { intervalUnit: "quarter", intervalCount: 1 },
       include: {
         customEntries: true,
         fundGroup: true,
@@ -353,7 +353,7 @@ describe("PUT /api/obligations/[id]", () => {
     expect(data.error).toBe("amount must be a non-negative number");
   });
 
-  it("returns 400 when frequency is invalid", async () => {
+  it("returns 400 when intervalUnit is invalid", async () => {
     mockGetCurrentUser.mockResolvedValue({
       id: "user_1",
       email: "test@example.com",
@@ -361,13 +361,13 @@ describe("PUT /api/obligations/[id]", () => {
     mockObligationFindUnique.mockResolvedValue(existingObligation);
 
     const res = await PUT(
-      makeRequest({ frequency: "biweekly" }),
+      makeRequest({ intervalUnit: "biweekly" }),
       makeParams("obl_1")
     );
 
     expect(res.status).toBe(400);
     const data = await res.json();
-    expect(data.error).toContain("frequency must be one of");
+    expect(data.error).toContain("intervalUnit must be one of");
   });
 
   it("returns 400 when nextDueDate is invalid", async () => {
@@ -426,34 +426,34 @@ describe("PUT /api/obligations/[id]", () => {
     expect(data.error).toBe("isPaused must be a boolean");
   });
 
-  it("clears frequencyDays when switching from custom to non-custom frequency", async () => {
+  it("updates intervalUnit and intervalCount together", async () => {
     mockGetCurrentUser.mockResolvedValue({
       id: "user_1",
       email: "test@example.com",
     });
-    const customFreqObligation = {
+    const dayIntervalObligation = {
       ...existingObligation,
-      frequency: "custom",
-      frequencyDays: 14,
+      intervalUnit: "day",
+      intervalCount: 14,
     };
-    mockObligationFindUnique.mockResolvedValue(customFreqObligation);
+    mockObligationFindUnique.mockResolvedValue(dayIntervalObligation);
     mockObligationUpdate.mockResolvedValue({
-      ...customFreqObligation,
-      frequency: "monthly",
-      frequencyDays: null,
+      ...dayIntervalObligation,
+      intervalUnit: "month",
+      intervalCount: 1,
       customEntries: [],
       fundGroup: null,
     });
 
     const res = await PUT(
-      makeRequest({ frequency: "monthly" }),
+      makeRequest({ intervalUnit: "month", intervalCount: 1 }),
       makeParams("obl_1")
     );
 
     expect(res.status).toBe(200);
     expect(mockObligationUpdate).toHaveBeenCalledWith({
       where: { id: "obl_1" },
-      data: { frequency: "monthly", frequencyDays: null },
+      data: { intervalUnit: "month", intervalCount: 1 },
       include: {
         customEntries: true,
         fundGroup: true,

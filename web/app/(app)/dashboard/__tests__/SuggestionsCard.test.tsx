@@ -35,21 +35,24 @@ const mockSuggestions = [
     type: "expense",
     vendorPattern: "Netflix",
     detectedAmount: 22.99,
-    detectedFrequency: "monthly",
+    detectedIntervalUnit: "month",
+    detectedIntervalCount: 1,
   },
   {
     id: "s2",
     type: "expense",
     vendorPattern: "Spotify",
     detectedAmount: 14.99,
-    detectedFrequency: "monthly",
+    detectedIntervalUnit: "month",
+    detectedIntervalCount: 1,
   },
   {
     id: "s3",
     type: "income",
     vendorPattern: "Employer Co",
     detectedAmount: 3500,
-    detectedFrequency: "fortnightly",
+    detectedIntervalUnit: "week",
+    detectedIntervalCount: 2,
   },
 ];
 
@@ -97,10 +100,10 @@ describe("SuggestionsCard", () => {
       expect(screen.getByText("Netflix")).toBeDefined();
     });
 
-    // Netflix: $22.99/mo — expense
-    expect(screen.getByText(/\$22\.99\/mo/)).toBeDefined();
-    // Employer Co: $3500.00/fn — income
-    expect(screen.getByText(/\$3500\.00\/fn/)).toBeDefined();
+    // Netflix: $22.99 — expense (interval: 1 month)
+    expect(screen.getByText(/\$22\.99.*expense/)).toBeDefined();
+    // Employer Co: $3500.00 — income (interval: 2 weeks)
+    expect(screen.getByText(/\$3500\.00.*income/)).toBeDefined();
   });
 
   it("renders empty state when no suggestions exist", async () => {
@@ -139,7 +142,8 @@ describe("SuggestionsCard", () => {
       type: "expense",
       vendorPattern: `Vendor ${i}`,
       detectedAmount: 10 + i,
-      detectedFrequency: "monthly",
+      detectedIntervalUnit: "month",
+      detectedIntervalCount: 1,
     }));
 
     vi.mocked(global.fetch).mockResolvedValue(

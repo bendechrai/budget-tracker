@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { describe, it, expect } from "vitest";
 import {
+  addInterval,
   calculateContributions,
   calculateWithWhatIf,
   countCyclesBetween,
@@ -21,8 +22,8 @@ function makeObligation(
     name: "Rent",
     type: "recurring",
     amount: 1200,
-    frequency: "monthly",
-    frequencyDays: null,
+    intervalUnit: "month",
+    intervalCount: 1,
     nextDueDate: new Date("2025-04-01"),
     endDate: null,
     isPaused: false,
@@ -324,7 +325,7 @@ describe("calculateContributions", () => {
         obligations: [
           makeObligation({
             nextDueDate: new Date("2025-02-15"),
-            frequency: "monthly",
+            intervalUnit: "month",
             amount: 600,
           }),
         ],
@@ -335,8 +336,8 @@ describe("calculateContributions", () => {
       });
 
       const c = result.contributions[0];
-      // Should advance to ~March 17 (Feb 15 + 30 days)
-      expect(c.nextDueDate.getTime()).toBeGreaterThan(NOW.getTime());
+      // Feb 15 + 1 month = Mar 15 (calendar-aware)
+      expect(c.nextDueDate).toEqual(new Date("2025-03-15"));
     });
 
     it("advances multiple periods when obligation is far past due", () => {
@@ -345,7 +346,7 @@ describe("calculateContributions", () => {
         obligations: [
           makeObligation({
             nextDueDate: new Date("2024-12-01"),
-            frequency: "monthly",
+            intervalUnit: "month",
             amount: 300,
           }),
         ],
@@ -356,9 +357,8 @@ describe("calculateContributions", () => {
       });
 
       const c = result.contributions[0];
-      // Dec 1 → Dec 31 → Jan 30 → Mar 1 (still <= NOW) → Mar 31
-      // Should keep advancing until future
-      expect(c.nextDueDate.getTime()).toBeGreaterThan(NOW.getTime());
+      // Dec 1 → Jan 1 → Feb 1 → Mar 1 (still <= NOW) → Apr 1
+      expect(c.nextDueDate).toEqual(new Date("2025-04-01"));
     });
 
     it("skips recurring_with_end obligations past their end date", () => {
@@ -368,7 +368,7 @@ describe("calculateContributions", () => {
             type: "recurring_with_end",
             nextDueDate: new Date("2025-02-15"),
             endDate: new Date("2025-02-28"),
-            frequency: "monthly",
+            intervalUnit: "month",
           }),
         ],
         fundGroupBalances: [],
@@ -377,7 +377,7 @@ describe("calculateContributions", () => {
         now: NOW,
       });
 
-      // Next due would be March 17, but end date is Feb 28 — should be excluded
+      // Next due would be March 15, but end date is Feb 28 — should be excluded
       expect(result.contributions).toHaveLength(0);
     });
   });
@@ -415,7 +415,7 @@ describe("calculateContributions", () => {
           makeObligation({
             type: "one_off",
             amount: 3000,
-            frequency: null,
+            intervalUnit: null,
             nextDueDate: new Date("2025-06-01"),
           }),
         ],
@@ -438,7 +438,7 @@ describe("calculateContributions", () => {
         obligations: [
           makeObligation({
             type: "custom",
-            frequency: null,
+            intervalUnit: null,
             customEntries: [
               {
                 dueDate: new Date("2025-02-15"),
@@ -474,7 +474,7 @@ describe("calculateContributions", () => {
         obligations: [
           makeObligation({
             type: "custom",
-            frequency: null,
+            intervalUnit: null,
             customEntries: [
               {
                 dueDate: new Date("2025-02-15"),
@@ -603,7 +603,8 @@ describe("calculateContributions", () => {
       const result = calculateContributions({
         obligations: [
           makeObligation({
-            frequency: "weekly",
+            intervalUnit: "week",
+            intervalCount: 1,
             nextDueDate: new Date("2025-02-20"),
             amount: 100,
           }),
@@ -626,73 +627,59 @@ describe("calculateContributions", () => {
 });
 
 describe("getNextDueDateAfter", () => {
-  it("returns date 30 days later for monthly frequency", () => {
-    const result = getNextDueDateAfter(
-      new Date("2025-03-01"),
-      "monthly",
-      null
-    );
-    expect(result).toEqual(new Date("2025-03-31"));
+  it("advances by 1 month for month/1", () => {
+    const result = getNextDueDateAfter(new Date("2025-03-01"), "month", 1);
+    expect(result).toEqual(new Date("2025-04-01"));
   });
 
-  it("returns date 7 days later for weekly frequency", () => {
-    const result = getNextDueDateAfter(
-      new Date("2025-03-01"),
-      "weekly",
-      null
-    );
+  it("advances by 7 days for week/1", () => {
+    const result = getNextDueDateAfter(new Date("2025-03-01"), "week", 1);
     expect(result).toEqual(new Date("2025-03-08"));
   });
 
-  it("returns date 14 days later for fortnightly frequency", () => {
-    const result = getNextDueDateAfter(
-      new Date("2025-03-01"),
-      "fortnightly",
-      null
-    );
+  it("advances by 14 days for week/2 (fortnightly)", () => {
+    const result = getNextDueDateAfter(new Date("2025-03-01"), "week", 2);
     expect(result).toEqual(new Date("2025-03-15"));
   });
 
-  it("returns date 90 days later for quarterly frequency", () => {
-    const result = getNextDueDateAfter(
-      new Date("2025-03-01"),
-      "quarterly",
-      null
-    );
-    expect(result).toEqual(new Date("2025-05-30"));
+  it("advances by 3 months for quarter/1", () => {
+    const result = getNextDueDateAfter(new Date("2025-03-01"), "quarter", 1);
+    expect(result).toEqual(new Date("2025-06-01"));
   });
 
-  it("returns date 365 days later for annual frequency", () => {
-    const result = getNextDueDateAfter(
-      new Date("2025-03-01"),
-      "annual",
-      null
-    );
-    // 365 days after March 1, 2025 = March 1, 2026
+  it("advances by 1 year for year/1", () => {
+    const result = getNextDueDateAfter(new Date("2025-03-01"), "year", 1);
     expect(result).toEqual(new Date("2026-03-01"));
   });
 
-  it("uses custom frequency days", () => {
-    const result = getNextDueDateAfter(
-      new Date("2025-03-01"),
-      "custom",
-      45
-    );
+  it("advances by N days for day/N", () => {
+    const result = getNextDueDateAfter(new Date("2025-03-01"), "day", 45);
     expect(result).toEqual(new Date("2025-04-15"));
   });
 
-  it("returns null for irregular frequency", () => {
-    const result = getNextDueDateAfter(
-      new Date("2025-03-01"),
-      "irregular",
-      null
-    );
+  it("returns null for null unit (irregular)", () => {
+    const result = getNextDueDateAfter(new Date("2025-03-01"), null, 1);
     expect(result).toBeNull();
   });
 
-  it("returns null for null frequency", () => {
-    const result = getNextDueDateAfter(new Date("2025-03-01"), null, null);
-    expect(result).toBeNull();
+  it("clamps end-of-month (Jan 31 + 1 month = Feb 28)", () => {
+    const result = getNextDueDateAfter(new Date("2025-01-31"), "month", 1);
+    expect(result).toEqual(new Date("2025-02-28"));
+  });
+
+  it("clamps end-of-month in leap year (Jan 31 + 1 month = Feb 29)", () => {
+    const result = getNextDueDateAfter(new Date("2024-01-31"), "month", 1);
+    expect(result).toEqual(new Date("2024-02-29"));
+  });
+
+  it("advances every 7 weeks for week/7", () => {
+    const result = getNextDueDateAfter(new Date("2025-03-01"), "week", 7);
+    expect(result).toEqual(new Date("2025-04-19"));
+  });
+
+  it("advances every 3 months for month/3", () => {
+    const result = getNextDueDateAfter(new Date("2025-01-01"), "month", 3);
+    expect(result).toEqual(new Date("2025-04-01"));
   });
 });
 
@@ -923,7 +910,7 @@ describe("calculateWithWhatIf", () => {
         name: "Holiday",
         type: "one_off",
         amount: 2000,
-        frequency: null,
+        intervalUnit: null,
         nextDueDate: new Date("2025-12-01"),
       });
 
@@ -963,7 +950,7 @@ describe("calculateWithWhatIf", () => {
         name: "Holiday",
         type: "one_off",
         amount: 5000,
-        frequency: null,
+        intervalUnit: null,
         nextDueDate: new Date("2025-04-01"),
       });
 
@@ -1022,7 +1009,7 @@ describe("calculateWithWhatIf", () => {
         name: "Holiday",
         type: "one_off",
         amount: 1000,
-        frequency: null,
+        intervalUnit: null,
         nextDueDate: new Date("2025-06-01"),
       });
 
@@ -1494,8 +1481,8 @@ describe("resolveCycleConfig", () => {
 
   function makeIncome(overrides: Partial<CycleIncomeInput> = {}): CycleIncomeInput {
     return {
-      frequency: "monthly",
-      isIrregular: false,
+      intervalUnit: "month",
+      intervalCount: 1,
       isActive: true,
       isPaused: false,
       ...overrides,
@@ -1554,41 +1541,41 @@ describe("resolveCycleConfig", () => {
     it("explicit user config overrides income sources", () => {
       const result = resolveCycleConfig(
         makeUser({ contributionCycleType: "monthly", contributionPayDays: [15] }),
-        [makeIncome({ frequency: "weekly" })],
+        [makeIncome({ intervalUnit: "week", intervalCount: 1 })],
       );
       expect(result).toEqual({ type: "monthly", payDays: [15] });
     });
   });
 
   describe("auto-detect from income sources", () => {
-    it("detects weekly from weekly income", () => {
+    it("detects weekly from week/1 income", () => {
       const result = resolveCycleConfig(
         makeUser(),
-        [makeIncome({ frequency: "weekly" })],
+        [makeIncome({ intervalUnit: "week", intervalCount: 1 })],
       );
       expect(result).toEqual({ type: "weekly", payDays: [] });
     });
 
-    it("detects fortnightly from fortnightly income", () => {
+    it("detects fortnightly from week/2 income", () => {
       const result = resolveCycleConfig(
         makeUser(),
-        [makeIncome({ frequency: "fortnightly" })],
+        [makeIncome({ intervalUnit: "week", intervalCount: 2 })],
       );
       expect(result).toEqual({ type: "fortnightly", payDays: [] });
     });
 
-    it("detects twice_monthly from twice-monthly income", () => {
+    it("detects twice_monthly from twice_monthly/1 income", () => {
       const result = resolveCycleConfig(
         makeUser(),
-        [makeIncome({ frequency: "twice_monthly" })],
+        [makeIncome({ intervalUnit: "twice_monthly", intervalCount: 1 })],
       );
       expect(result).toEqual({ type: "twice_monthly", payDays: [1, 15] });
     });
 
-    it("detects monthly from monthly income", () => {
+    it("detects monthly from month/1 income", () => {
       const result = resolveCycleConfig(
         makeUser(),
-        [makeIncome({ frequency: "monthly" })],
+        [makeIncome({ intervalUnit: "month", intervalCount: 1 })],
       );
       expect(result).toEqual({ type: "monthly", payDays: [1] });
     });
@@ -1597,20 +1584,20 @@ describe("resolveCycleConfig", () => {
       const result = resolveCycleConfig(
         makeUser(),
         [
-          makeIncome({ frequency: "monthly" }),
-          makeIncome({ frequency: "weekly" }),
-          makeIncome({ frequency: "fortnightly" }),
+          makeIncome({ intervalUnit: "month", intervalCount: 1 }),
+          makeIncome({ intervalUnit: "week", intervalCount: 1 }),
+          makeIncome({ intervalUnit: "week", intervalCount: 2 }),
         ],
       );
       expect(result).toEqual({ type: "weekly", payDays: [] });
     });
 
-    it("ignores irregular income sources", () => {
+    it("ignores irregular income sources (null unit)", () => {
       const result = resolveCycleConfig(
         makeUser(),
         [
-          makeIncome({ frequency: "irregular", isIrregular: true }),
-          makeIncome({ frequency: "monthly" }),
+          makeIncome({ intervalUnit: null }),
+          makeIncome({ intervalUnit: "month", intervalCount: 1 }),
         ],
       );
       expect(result).toEqual({ type: "monthly", payDays: [1] });
@@ -1620,8 +1607,8 @@ describe("resolveCycleConfig", () => {
       const result = resolveCycleConfig(
         makeUser(),
         [
-          makeIncome({ frequency: "weekly", isActive: false }),
-          makeIncome({ frequency: "monthly" }),
+          makeIncome({ intervalUnit: "week", intervalCount: 1, isActive: false }),
+          makeIncome({ intervalUnit: "month", intervalCount: 1 }),
         ],
       );
       expect(result).toEqual({ type: "monthly", payDays: [1] });
@@ -1631,20 +1618,20 @@ describe("resolveCycleConfig", () => {
       const result = resolveCycleConfig(
         makeUser(),
         [
-          makeIncome({ frequency: "weekly", isPaused: true }),
-          makeIncome({ frequency: "monthly" }),
+          makeIncome({ intervalUnit: "week", intervalCount: 1, isPaused: true }),
+          makeIncome({ intervalUnit: "month", intervalCount: 1 }),
         ],
       );
       expect(result).toEqual({ type: "monthly", payDays: [1] });
     });
 
-    it("ignores quarterly/annual/custom frequencies (no cycle type mapping)", () => {
+    it("ignores intervals with no cycle type mapping (quarter, year, day)", () => {
       const result = resolveCycleConfig(
         makeUser(),
         [
-          makeIncome({ frequency: "quarterly" }),
-          makeIncome({ frequency: "annual" }),
-          makeIncome({ frequency: "custom" }),
+          makeIncome({ intervalUnit: "quarter", intervalCount: 1 }),
+          makeIncome({ intervalUnit: "year", intervalCount: 1 }),
+          makeIncome({ intervalUnit: "day", intervalCount: 30 }),
         ],
       );
       // Falls through to default
@@ -1658,10 +1645,10 @@ describe("resolveCycleConfig", () => {
       expect(result).toEqual({ type: "monthly", payDays: [1] });
     });
 
-    it("defaults when all income sources are irregular", () => {
+    it("defaults when all income sources are irregular (null unit)", () => {
       const result = resolveCycleConfig(
         makeUser(),
-        [makeIncome({ frequency: "irregular", isIrregular: true })],
+        [makeIncome({ intervalUnit: null })],
       );
       expect(result).toEqual({ type: "monthly", payDays: [1] });
     });

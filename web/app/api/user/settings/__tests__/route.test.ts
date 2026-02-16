@@ -60,7 +60,7 @@ describe("GET /api/user/settings", () => {
     });
 
     mockFindMany.mockResolvedValue([
-      { frequency: "monthly", isIrregular: false, isActive: true, isPaused: false },
+      { intervalUnit: "month", intervalCount: 1, isActive: true, isPaused: false },
     ]);
 
     mockResolveCycleConfig.mockReturnValue({ type: "monthly", payDays: [1] });
@@ -101,7 +101,7 @@ describe("GET /api/user/settings", () => {
     });
 
     mockFindMany.mockResolvedValue([
-      { frequency: "fortnightly", isIrregular: false, isActive: true, isPaused: false },
+      { intervalUnit: "week", intervalCount: 2, isActive: true, isPaused: false },
     ]);
 
     mockResolveCycleConfig.mockReturnValue({ type: "fortnightly", payDays: [] });
@@ -114,7 +114,7 @@ describe("GET /api/user/settings", () => {
     // Auto-detected should pass null cycleType to resolveCycleConfig (ignoring user setting)
     expect(mockResolveCycleConfig).toHaveBeenCalledWith(
       { contributionCycleType: null, contributionPayDays: [] },
-      [{ frequency: "fortnightly", isIrregular: false, isActive: true, isPaused: false }],
+      [{ intervalUnit: "week", intervalCount: 2, isActive: true, isPaused: false }],
     );
 
     expect(data.autoDetectedCycle).toEqual({ type: "fortnightly", payDays: [] });

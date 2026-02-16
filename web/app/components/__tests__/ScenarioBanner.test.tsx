@@ -16,8 +16,8 @@ interface MockHypothetical {
   name: string;
   type: string;
   amount: number;
-  frequency: string | null;
-  frequencyDays: number | null;
+  intervalUnit: string | null;
+  intervalCount: number;
   nextDueDate: Date;
   endDate: Date | null;
   fundGroupId: string | null;
@@ -139,8 +139,8 @@ describe("ScenarioBanner", () => {
           name: "Holiday",
           type: "one_off",
           amount: 2000,
-          frequency: null,
-          frequencyDays: null,
+          intervalUnit: null,
+          intervalCount: 1,
           nextDueDate: new Date("2026-12-01"),
           endDate: null,
           fundGroupId: null,
@@ -240,8 +240,8 @@ describe("ScenarioBanner", () => {
           name: "Holiday",
           type: "one_off",
           amount: 2000,
-          frequency: null,
-          frequencyDays: null,
+          intervalUnit: null,
+          intervalCount: 1,
           nextDueDate: dueDate,
           endDate: null,
           fundGroupId: null,
@@ -273,8 +273,8 @@ describe("ScenarioBanner", () => {
           name: "Holiday",
           type: "one_off",
           amount: 2000,
-          frequency: null,
-          frequencyDays: null,
+          intervalUnit: null,
+          intervalCount: 1,
           nextDueDate: dueDate.toISOString(),
           endDate: null,
           fundGroupId: null,

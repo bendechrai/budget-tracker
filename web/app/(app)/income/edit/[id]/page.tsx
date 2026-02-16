@@ -12,9 +12,8 @@ interface IncomeSourceResponse {
   id: string;
   name: string;
   expectedAmount: number;
-  frequency: string;
-  frequencyDays: number | null;
-  isIrregular: boolean;
+  intervalUnit: string | null;
+  intervalCount: number;
   minimumExpected: number | null;
   nextExpectedDate: string | null;
 }
@@ -118,9 +117,8 @@ export default function EditIncomePage({
             initialData={{
               name: incomeSource.name,
               expectedAmount: incomeSource.expectedAmount,
-              frequency: incomeSource.frequency,
-              frequencyDays: incomeSource.frequencyDays,
-              isIrregular: incomeSource.isIrregular,
+              intervalUnit: incomeSource.intervalUnit,
+              intervalCount: incomeSource.intervalCount,
               minimumExpected: incomeSource.minimumExpected,
               nextExpectedDate: formatDateForInput(
                 incomeSource.nextExpectedDate

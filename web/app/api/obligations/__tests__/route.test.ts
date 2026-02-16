@@ -52,8 +52,8 @@ const recurringBody = {
   name: "Netflix",
   type: "recurring",
   amount: 22.99,
-  frequency: "monthly",
-  startDate: "2026-01-01T00:00:00.000Z",
+  intervalUnit: "month",
+  intervalCount: 1,
   nextDueDate: "2026-03-01T00:00:00.000Z",
 };
 
@@ -61,8 +61,8 @@ const recurringWithEndBody = {
   name: "Tax Repayment",
   type: "recurring_with_end",
   amount: 200,
-  frequency: "monthly",
-  startDate: "2026-03-01T00:00:00.000Z",
+  intervalUnit: "month",
+  intervalCount: 1,
   endDate: "2028-01-01T00:00:00.000Z",
   nextDueDate: "2026-04-01T00:00:00.000Z",
 };
@@ -71,7 +71,6 @@ const oneOffBody = {
   name: "Car Registration",
   type: "one_off",
   amount: 850,
-  startDate: "2026-01-01T00:00:00.000Z",
   nextDueDate: "2026-07-15T00:00:00.000Z",
 };
 
@@ -79,7 +78,6 @@ const customBody = {
   name: "Council Tax",
   type: "custom",
   amount: 1800,
-  startDate: "2026-09-01T00:00:00.000Z",
   nextDueDate: "2026-09-15T00:00:00.000Z",
   customEntries: [
     { dueDate: "2026-09-15T00:00:00.000Z", amount: 180 },
@@ -129,9 +127,8 @@ describe("POST /api/obligations", () => {
       name: "Netflix",
       type: "recurring",
       amount: 22.99,
-      frequency: "monthly",
-      frequencyDays: null,
-      startDate: new Date("2026-01-01T00:00:00.000Z"),
+      intervalUnit: "month",
+      intervalCount: 1,
       endDate: null,
       nextDueDate: new Date("2026-03-01T00:00:00.000Z"),
       isPaused: false,
@@ -156,8 +153,8 @@ describe("POST /api/obligations", () => {
         name: "Netflix",
         type: "recurring",
         amount: 22.99,
-        frequency: "monthly",
-        frequencyDays: null,
+        intervalUnit: "month",
+        intervalCount: 1,
         fundGroupId: "fg_default",
       }),
     });
@@ -174,7 +171,8 @@ describe("POST /api/obligations", () => {
       name: "Tax Repayment",
       type: "recurring_with_end",
       amount: 200,
-      frequency: "monthly",
+      intervalUnit: "month",
+      intervalCount: 1,
       customEntries: [],
     };
     mockObligationCreate.mockResolvedValue(createdRecord);
@@ -189,7 +187,8 @@ describe("POST /api/obligations", () => {
     expect(mockObligationCreate).toHaveBeenCalledWith({
       data: expect.objectContaining({
         type: "recurring_with_end",
-        frequency: "monthly",
+        intervalUnit: "month",
+        intervalCount: 1,
         endDate: new Date("2028-01-01T00:00:00.000Z"),
       }),
     });
@@ -206,7 +205,8 @@ describe("POST /api/obligations", () => {
       name: "Car Registration",
       type: "one_off",
       amount: 850,
-      frequency: null,
+      intervalUnit: null,
+      intervalCount: 1,
       customEntries: [],
     };
     mockObligationCreate.mockResolvedValue(createdRecord);
@@ -221,8 +221,8 @@ describe("POST /api/obligations", () => {
     expect(mockObligationCreate).toHaveBeenCalledWith({
       data: expect.objectContaining({
         type: "one_off",
-        frequency: null,
-        frequencyDays: null,
+        intervalUnit: null,
+        intervalCount: 1,
       }),
     });
   });
@@ -238,7 +238,8 @@ describe("POST /api/obligations", () => {
       name: "Council Tax",
       type: "custom",
       amount: 1800,
-      frequency: null,
+      intervalUnit: null,
+      intervalCount: 1,
       customEntries: [
         {
           id: "cse_1",
@@ -315,8 +316,8 @@ describe("POST /api/obligations", () => {
       makeRequest({
         type: "recurring",
         amount: 22.99,
-        frequency: "monthly",
-        startDate: "2026-01-01T00:00:00.000Z",
+        intervalUnit: "month",
+        intervalCount: 1,
         nextDueDate: "2026-03-01T00:00:00.000Z",
       })
     );
@@ -372,8 +373,8 @@ describe("POST /api/obligations", () => {
       makeRequest({
         name: recurringBody.name,
         type: recurringBody.type,
-        frequency: recurringBody.frequency,
-        startDate: recurringBody.startDate,
+        intervalUnit: recurringBody.intervalUnit,
+        intervalCount: recurringBody.intervalCount,
         nextDueDate: recurringBody.nextDueDate,
       })
     );
@@ -401,7 +402,7 @@ describe("POST /api/obligations", () => {
     expect(data.error).toBe("amount must be a non-negative number");
   });
 
-  it("returns 400 when frequency is missing for recurring type", async () => {
+  it("returns 400 when intervalUnit is missing for recurring type", async () => {
     mockGetCurrentUser.mockResolvedValue({
       id: "user_1",
       email: "test@example.com",
@@ -412,17 +413,16 @@ describe("POST /api/obligations", () => {
         name: recurringBody.name,
         type: recurringBody.type,
         amount: recurringBody.amount,
-        startDate: recurringBody.startDate,
         nextDueDate: recurringBody.nextDueDate,
       })
     );
 
     expect(res.status).toBe(400);
     const data = await res.json();
-    expect(data.error).toContain("frequency is required for recurring");
+    expect(data.error).toContain("intervalUnit is required for recurring");
   });
 
-  it("returns 400 when frequency is invalid for recurring type", async () => {
+  it("returns 400 when intervalUnit is invalid for recurring type", async () => {
     mockGetCurrentUser.mockResolvedValue({
       id: "user_1",
       email: "test@example.com",
@@ -431,16 +431,16 @@ describe("POST /api/obligations", () => {
     const res = await POST(
       makeRequest({
         ...recurringBody,
-        frequency: "biweekly",
+        intervalUnit: "biweekly",
       })
     );
 
     expect(res.status).toBe(400);
     const data = await res.json();
-    expect(data.error).toContain("frequency is required for recurring");
+    expect(data.error).toContain("intervalUnit is required for recurring");
   });
 
-  it("returns 400 when startDate is missing", async () => {
+  it("returns 400 when intervalCount is invalid", async () => {
     mockGetCurrentUser.mockResolvedValue({
       id: "user_1",
       email: "test@example.com",
@@ -448,17 +448,14 @@ describe("POST /api/obligations", () => {
 
     const res = await POST(
       makeRequest({
-        name: recurringBody.name,
-        type: recurringBody.type,
-        amount: recurringBody.amount,
-        frequency: recurringBody.frequency,
-        nextDueDate: recurringBody.nextDueDate,
+        ...recurringBody,
+        intervalCount: -1,
       })
     );
 
     expect(res.status).toBe(400);
     const data = await res.json();
-    expect(data.error).toBe("startDate is required");
+    expect(data.error).toBe("intervalCount must be a positive integer");
   });
 
   it("returns 400 when nextDueDate is missing", async () => {
@@ -472,8 +469,8 @@ describe("POST /api/obligations", () => {
         name: recurringBody.name,
         type: recurringBody.type,
         amount: recurringBody.amount,
-        frequency: recurringBody.frequency,
-        startDate: recurringBody.startDate,
+        intervalUnit: recurringBody.intervalUnit,
+        intervalCount: recurringBody.intervalCount,
       })
     );
 
@@ -493,8 +490,8 @@ describe("POST /api/obligations", () => {
         name: recurringWithEndBody.name,
         type: recurringWithEndBody.type,
         amount: recurringWithEndBody.amount,
-        frequency: recurringWithEndBody.frequency,
-        startDate: recurringWithEndBody.startDate,
+        intervalUnit: recurringWithEndBody.intervalUnit,
+        intervalCount: recurringWithEndBody.intervalCount,
         nextDueDate: recurringWithEndBody.nextDueDate,
       })
     );
@@ -517,7 +514,6 @@ describe("POST /api/obligations", () => {
         name: customBody.name,
         type: customBody.type,
         amount: customBody.amount,
-        startDate: customBody.startDate,
         nextDueDate: customBody.nextDueDate,
       })
     );
@@ -644,7 +640,7 @@ describe("POST /api/obligations", () => {
     });
   });
 
-  it("returns 400 when frequencyDays is missing for custom frequency", async () => {
+  it("returns 400 when intervalUnit is invalid value", async () => {
     mockGetCurrentUser.mockResolvedValue({
       id: "user_1",
       email: "test@example.com",
@@ -653,15 +649,13 @@ describe("POST /api/obligations", () => {
     const res = await POST(
       makeRequest({
         ...recurringBody,
-        frequency: "custom",
+        intervalUnit: "custom",
       })
     );
 
     expect(res.status).toBe(400);
     const data = await res.json();
-    expect(data.error).toBe(
-      "frequencyDays must be a positive integer when frequency is custom"
-    );
+    expect(data.error).toContain("intervalUnit is required for recurring");
   });
 });
 
