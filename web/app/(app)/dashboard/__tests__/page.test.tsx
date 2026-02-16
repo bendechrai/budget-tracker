@@ -82,8 +82,19 @@ const mockTimelineData = {
   expenseMarkers: [],
   contributionMarkers: [],
   crunchPoints: [],
+  minProjectedBalance: 800,
   startDate: "2025-01-01T00:00:00.000Z",
   endDate: "2025-07-01T00:00:00.000Z",
+};
+
+const mockTimelineWithNegative = {
+  ...mockTimelineData,
+  dataPoints: [
+    { date: "2025-01-01T00:00:00.000Z", projectedBalance: 500 },
+    { date: "2025-03-01T00:00:00.000Z", projectedBalance: -1225 },
+    { date: "2025-06-01T00:00:00.000Z", projectedBalance: 200 },
+  ],
+  minProjectedBalance: -1225,
 };
 
 const mockSnapshot = {
@@ -131,7 +142,10 @@ const mockEmptySnapshot = {
 const mockObligationWithBalance = {
   id: "ob1",
   name: "Rent",
+  type: "recurring",
   amount: 1200,
+  intervalUnit: "month",
+  intervalCount: 1,
   nextDueDate: "2025-02-14T00:00:00.000Z",
   fundGroupId: "fg1",
   fundGroup: { id: "fg1", name: "Housing", currentBalance: 800 },
@@ -189,7 +203,7 @@ describe("DashboardPage", () => {
     vi.mocked(global.fetch).mockImplementation((url) => {
       if (typeof url === "string" && url.includes("/api/obligations")) {
         return Promise.resolve(
-          mockFetchResponse([{ id: "ob1", fundGroupId: "fg1", fundGroup: { id: "fg1", name: "Housing", currentBalance: 800 }, amount: 1200 }])
+          mockFetchResponse([{ id: "ob1", type: "recurring", intervalUnit: "month", intervalCount: 1, fundGroupId: "fg1", fundGroup: { id: "fg1", name: "Housing", currentBalance: 800 }, amount: 1200 }])
         );
       }
       if (typeof url === "string" && url.includes("/api/fund-groups")) {
@@ -227,7 +241,7 @@ describe("DashboardPage", () => {
     vi.mocked(global.fetch).mockImplementation((url) => {
       if (typeof url === "string" && url.includes("/api/obligations")) {
         return Promise.resolve(
-          mockFetchResponse([{ id: "ob1", fundGroupId: "fg1", fundGroup: { id: "fg1", name: "Housing", currentBalance: 1200 }, amount: 1200 }])
+          mockFetchResponse([{ id: "ob1", type: "recurring", intervalUnit: "month", intervalCount: 1, fundGroupId: "fg1", fundGroup: { id: "fg1", name: "Housing", currentBalance: 1200 }, amount: 1200 }])
         );
       }
       if (typeof url === "string" && url.includes("/api/fund-groups")) {
@@ -339,7 +353,7 @@ describe("DashboardPage", () => {
     vi.mocked(global.fetch).mockImplementation((url) => {
       if (typeof url === "string" && url.includes("/api/obligations")) {
         return Promise.resolve(
-          mockFetchResponse([{ id: "ob1", fundGroupId: "fg1", fundGroup: { id: "fg1", name: "Housing", currentBalance: 800 }, amount: 1200 }])
+          mockFetchResponse([{ id: "ob1", type: "recurring", intervalUnit: "month", intervalCount: 1, fundGroupId: "fg1", fundGroup: { id: "fg1", name: "Housing", currentBalance: 800 }, amount: 1200 }])
         );
       }
       if (typeof url === "string" && url.includes("/api/fund-groups")) {
@@ -409,7 +423,7 @@ describe("DashboardPage", () => {
     vi.mocked(global.fetch).mockImplementation((url) => {
       if (typeof url === "string" && url.includes("/api/obligations")) {
         return Promise.resolve(
-          mockFetchResponse([{ id: "ob1", fundGroupId: "fg1", amount: 1200 }, { id: "ob2", fundGroupId: "fg2", amount: 500 }])
+          mockFetchResponse([{ id: "ob1", type: "recurring", intervalUnit: "month", intervalCount: 1, fundGroupId: "fg1", amount: 1200 }, { id: "ob2", type: "recurring", intervalUnit: "month", intervalCount: 1, fundGroupId: "fg2", amount: 500 }])
         );
       }
       if (typeof url === "string" && url.includes("/api/fund-groups")) {
@@ -461,7 +475,7 @@ describe("DashboardPage", () => {
     vi.mocked(global.fetch).mockImplementation((url) => {
       if (typeof url === "string" && url.includes("/api/obligations")) {
         return Promise.resolve(
-          mockFetchResponse([{ id: "ob1", fundGroupId: "fg1", amount: 1200 }, { id: "ob2", fundGroupId: "fg2", amount: 500 }])
+          mockFetchResponse([{ id: "ob1", type: "recurring", intervalUnit: "month", intervalCount: 1, fundGroupId: "fg1", amount: 1200 }, { id: "ob2", type: "recurring", intervalUnit: "month", intervalCount: 1, fundGroupId: "fg2", amount: 500 }])
         );
       }
       if (typeof url === "string" && url.includes("/api/fund-groups")) {
@@ -540,6 +554,56 @@ describe("DashboardPage", () => {
     // Modal should show the fund group with an editable balance input
     const balanceInput = screen.getByTestId("confirm-balances-input-fg1") as HTMLInputElement;
     expect(balanceInput.value).toBe("800.00");
+  });
+
+  it("shows preseed row when timeline has negative balance", async () => {
+    vi.mocked(global.fetch).mockImplementation((url) => {
+      if (typeof url === "string" && url.includes("/api/obligations")) {
+        return Promise.resolve(
+          mockFetchResponse([{ id: "ob1", type: "recurring", intervalUnit: "month", intervalCount: 1, fundGroupId: "fg1", fundGroup: { id: "fg1", name: "Housing", currentBalance: 800 }, amount: 1200 }])
+        );
+      }
+      if (typeof url === "string" && url.includes("/api/fund-groups")) {
+        return Promise.resolve(mockFetchResponse(mockFundGroups));
+      }
+      if (typeof url === "string" && url.includes("/api/engine/timeline")) {
+        return Promise.resolve(mockFetchResponse(mockTimelineWithNegative));
+      }
+      return Promise.resolve(mockFetchResponse(mockSnapshot));
+    });
+
+    render(<DashboardPage />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("preseed-row")).toBeDefined();
+    });
+
+    expect(screen.getByText(/Suggested starting balance: \$1225\.00/)).toBeDefined();
+  });
+
+  it("does not show preseed row when timeline balance stays positive", async () => {
+    vi.mocked(global.fetch).mockImplementation((url) => {
+      if (typeof url === "string" && url.includes("/api/obligations")) {
+        return Promise.resolve(
+          mockFetchResponse([{ id: "ob1", type: "recurring", intervalUnit: "month", intervalCount: 1, fundGroupId: "fg1", fundGroup: { id: "fg1", name: "Housing", currentBalance: 800 }, amount: 1200 }])
+        );
+      }
+      if (typeof url === "string" && url.includes("/api/fund-groups")) {
+        return Promise.resolve(mockFetchResponse(mockFundGroups));
+      }
+      if (typeof url === "string" && url.includes("/api/engine/timeline")) {
+        return Promise.resolve(mockFetchResponse(mockTimelineData));
+      }
+      return Promise.resolve(mockFetchResponse(mockSnapshot));
+    });
+
+    render(<DashboardPage />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("total-per-cycle")).toBeDefined();
+    });
+
+    expect(screen.queryByTestId("preseed-row")).toBeNull();
   });
 
   it("does not show 'Confirm fund balances' button when what-if is active", async () => {

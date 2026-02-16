@@ -74,10 +74,15 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       currentBalance: fg.currentBalance,
     }));
 
+    const totalFundBalance = fundGroups.reduce(
+      (sum, fg) => sum + fg.currentBalance,
+      0
+    );
+
     const timeline = projectTimeline({
       obligations: obligationInputs,
       fundGroupBalances: fundGroupBalanceInputs,
-      currentFundBalance: user.currentFundBalance,
+      currentFundBalance: totalFundBalance,
       cycleConfig,
       monthsAhead,
     });

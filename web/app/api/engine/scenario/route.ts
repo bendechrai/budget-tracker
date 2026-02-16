@@ -160,10 +160,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       ...overrides.hypotheticals,
     ];
 
+    const totalFundBalance = fundGroups.reduce(
+      (sum, fg) => sum + fg.currentBalance,
+      0
+    );
+
     const scenarioTimeline = projectTimeline({
       obligations: allScenarioObligations,
       fundGroupBalances: fundGroupBalanceInputs,
-      currentFundBalance: user.currentFundBalance,
+      currentFundBalance: totalFundBalance,
       cycleConfig: engineInput.cycleConfig,
       monthsAhead,
     });

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import {
   ResponsiveContainer,
   LineChart,
@@ -38,6 +38,7 @@ interface TimelineData {
   dataPoints: TimelineDataPoint[];
   expenseMarkers: ExpenseMarker[];
   crunchPoints: CrunchPoint[];
+  minProjectedBalance: number;
   startDate: string;
   endDate: string;
 }
@@ -51,13 +52,14 @@ interface ChartDataPoint {
 
 interface TimelineChartProps {
   scenarioData?: TimelineData | null;
+  onPreseedChange?: (amount: number) => void;
 }
 
 const RANGE_OPTIONS = [6, 9, 12] as const;
 
 function formatDateLabel(timestamp: number): string {
   const date = new Date(timestamp);
-  return date.toLocaleDateString(undefined, { month: "short", year: "2-digit", timeZone: "UTC" });
+  return date.toLocaleDateString(undefined, { month: "short", day: "numeric", timeZone: "UTC" });
 }
 
 function formatCurrency(value: number): string {
@@ -155,11 +157,13 @@ function CustomTooltip({
   );
 }
 
-export default function TimelineChart({ scenarioData }: TimelineChartProps) {
+export default function TimelineChart({ scenarioData, onPreseedChange }: TimelineChartProps) {
   const [months, setMonths] = useState<6 | 9 | 12>(6);
   const [data, setData] = useState<TimelineData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const onPreseedChangeRef = useRef(onPreseedChange);
+  onPreseedChangeRef.current = onPreseedChange;
 
   const fetchTimeline = useCallback(async (monthsAhead: number) => {
     setLoading(true);
@@ -183,6 +187,14 @@ export default function TimelineChart({ scenarioData }: TimelineChartProps) {
   useEffect(() => {
     void fetchTimeline(months);
   }, [months, fetchTimeline]);
+
+  useEffect(() => {
+    if (!data || !onPreseedChangeRef.current) return;
+    const preseed = data.minProjectedBalance < 0
+      ? Math.abs(data.minProjectedBalance)
+      : 0;
+    onPreseedChangeRef.current(preseed);
+  }, [data]);
 
   const chartData = useMemo((): ChartDataPoint[] => {
     if (!data) return [];

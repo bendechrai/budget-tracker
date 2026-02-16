@@ -93,6 +93,7 @@ const mockTimelineResult = {
   expenseMarkers: [],
   contributionMarkers: [],
   crunchPoints: [],
+  minProjectedBalance: 800,
   startDate: new Date("2025-01-01"),
   endDate: new Date("2025-07-01"),
 };
@@ -167,12 +168,12 @@ describe("GET /api/engine/timeline", () => {
     );
   });
 
-  it("passes user's current fund balance to projection", async () => {
+  it("derives current fund balance from fund group sum", async () => {
     await GET(makeRequest());
 
     expect(mockProjectTimeline).toHaveBeenCalledWith(
       expect.objectContaining({
-        currentFundBalance: 1000,
+        currentFundBalance: 300,
       })
     );
   });

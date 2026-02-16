@@ -63,6 +63,8 @@ export interface TimelineResult {
   crunchPoints: CrunchPoint[];
   /** Steady-state contribution per cycle (total expenses / cycle count) */
   contributionPerCycle: number;
+  /** Minimum projected balance across all data points */
+  minProjectedBalance: number;
   startDate: Date;
   endDate: Date;
 }
@@ -396,12 +398,17 @@ export function projectTimeline(input: TimelineInput): TimelineResult {
     dataPoints.push({ date: endDate, projectedBalance: balance });
   }
 
+  const minProjectedBalance = Math.min(
+    ...dataPoints.map((dp) => dp.projectedBalance)
+  );
+
   return {
     dataPoints,
     expenseMarkers,
     contributionMarkers,
     crunchPoints,
     contributionPerCycle,
+    minProjectedBalance,
     startDate,
     endDate,
   };

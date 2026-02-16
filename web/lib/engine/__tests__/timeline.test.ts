@@ -398,6 +398,58 @@ describe("projectTimeline", () => {
     });
   });
 
+  describe("minProjectedBalance", () => {
+    it("returns the minimum projected balance across all data points", () => {
+      const result = projectTimeline(
+        makeInput({
+          obligations: [
+            makeObligation({
+              nextDueDate: new Date("2025-04-01"),
+              amount: 2000,
+            }),
+          ],
+          currentFundBalance: 500,
+          monthsAhead: 2,
+        })
+      );
+
+      // Balance starts at 500, drops to -1500 after $2000 expense
+      expect(result.minProjectedBalance).toBeLessThan(0);
+      expect(result.minProjectedBalance).toBe(
+        Math.min(...result.dataPoints.map((dp) => dp.projectedBalance))
+      );
+    });
+
+    it("returns non-negative value when balance never goes negative", () => {
+      const result = projectTimeline(
+        makeInput({
+          obligations: [
+            makeObligation({
+              nextDueDate: new Date("2025-04-01"),
+              amount: 200,
+            }),
+          ],
+          currentFundBalance: 5000,
+          monthsAhead: 2,
+        })
+      );
+
+      expect(result.minProjectedBalance).toBeGreaterThanOrEqual(0);
+    });
+
+    it("equals starting balance when there are no obligations", () => {
+      const result = projectTimeline(
+        makeInput({
+          obligations: [],
+          currentFundBalance: 1000,
+          monthsAhead: 3,
+        })
+      );
+
+      expect(result.minProjectedBalance).toBe(1000);
+    });
+  });
+
   describe("contribution markers", () => {
     it("generates contribution markers at cycle intervals", () => {
       const result = projectTimeline(

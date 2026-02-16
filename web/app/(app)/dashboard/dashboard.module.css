@@ -71,6 +71,19 @@
   margin-bottom: 16px;
 }
 
+.preseedRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.preseedText {
+  font-size: 14px;
+  font-weight: 500;
+  color: #666;
+}
+
 .shortfallRow {
   display: flex;
   align-items: center;
@@ -257,6 +270,10 @@
 
   .confirmBalancesButton:hover {
     background-color: #ccc;
+  }
+
+  .preseedText {
+    color: #999;
   }
 
   .shortfallText {

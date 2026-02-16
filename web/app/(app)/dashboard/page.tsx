@@ -37,7 +37,10 @@ interface FundGroupData {
 interface ObligationData {
   id: string;
   name: string;
+  type: string;
   amount: number;
+  intervalUnit: string | null;
+  intervalCount: number;
   nextDueDate: string;
   fundGroupId: string;
   fundGroup: { id: string; name: string; currentBalance: number };
@@ -67,6 +70,7 @@ interface TimelineData {
     triggerObligationId: string;
     triggerObligationName: string;
   }>;
+  minProjectedBalance: number;
   startDate: string;
   endDate: string;
 }
@@ -74,6 +78,30 @@ interface TimelineData {
 interface ScenarioResponse {
   snapshot: ScenarioSnapshot;
   timeline: TimelineData;
+}
+
+/**
+ * Prorates an obligation amount to its monthly equivalent.
+ * Recurring obligations are divided by their interval in months.
+ * One-off and custom obligations use the raw amount (lump sum needed).
+ */
+function monthlyEquivalent(o: ObligationData): number {
+  if (o.type === "one_off" || o.type === "custom" || !o.intervalUnit) {
+    return o.amount;
+  }
+  const monthsPerInterval = intervalToMonths(o.intervalUnit, o.intervalCount);
+  return o.amount / monthsPerInterval;
+}
+
+function intervalToMonths(unit: string, count: number): number {
+  switch (unit) {
+    case "day": return (count * 12) / 365.25;
+    case "week": return (count * 7 * 12) / 365.25;
+    case "month": return count;
+    case "quarter": return count * 3;
+    case "year": return count * 12;
+    default: return 1;
+  }
 }
 
 function formatCurrency(amount: number): string {
@@ -103,6 +131,7 @@ export default function DashboardPage() {
   const [scenarioTimeline, setScenarioTimeline] =
     useState<TimelineData | null>(null);
   const [showConfirmBalancesModal, setShowConfirmBalancesModal] = useState(false);
+  const [preseedAmount, setPreseedAmount] = useState(0);
 
   const { isActive, overrides } = useWhatIf();
   const scenarioAbortRef = useRef<AbortController | null>(null);
@@ -234,11 +263,11 @@ export default function DashboardPage() {
     displaySnapshot.nextActionAmount === 0 &&
     displaySnapshot.totalRequired > 0;
 
-  // Compute total required per fund group from obligations
+  // Compute total required per fund group from obligations (prorated to monthly)
   const fundGroupRequired = new Map<string, number>();
   for (const o of obligations) {
     const current = fundGroupRequired.get(o.fundGroupId) ?? 0;
-    fundGroupRequired.set(o.fundGroupId, current + o.amount);
+    fundGroupRequired.set(o.fundGroupId, current + monthlyEquivalent(o));
   }
 
   // Build per-fund-group health data for the health bar
@@ -340,6 +369,14 @@ export default function DashboardPage() {
                   across all obligations
                 </p>
 
+                {preseedAmount > 0 && (
+                  <div className={styles.preseedRow} data-testid="preseed-row">
+                    <span className={styles.preseedText}>
+                      Suggested starting balance: {formatCurrency(preseedAmount)}
+                    </span>
+                  </div>
+                )}
+
                 {totalShortfall > 0 && (
                   <div className={styles.shortfallRow} data-testid="shortfall-row">
                     <span className={styles.shortfallText}>
@@ -378,7 +415,10 @@ export default function DashboardPage() {
         {!loading && !error && !isEmptyState && (
           <div className={styles.mainContent}>
             <div className={styles.timelineSection}>
-              <TimelineChart scenarioData={isActive ? scenarioTimeline : null} />
+              <TimelineChart
+                scenarioData={isActive ? scenarioTimeline : null}
+                onPreseedChange={setPreseedAmount}
+              />
             </div>
             <aside className={styles.sidebar}>
               <UpcomingObligations />

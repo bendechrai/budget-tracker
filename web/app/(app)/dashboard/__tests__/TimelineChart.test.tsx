@@ -102,8 +102,19 @@ const mockTimelineData = {
       triggerObligationName: "Insurance",
     },
   ],
+  minProjectedBalance: 600,
   startDate: "2025-01-01T00:00:00.000Z",
   endDate: "2025-07-01T00:00:00.000Z",
+};
+
+const mockTimelineWithNegative = {
+  ...mockTimelineData,
+  dataPoints: [
+    { date: "2025-01-01T00:00:00.000Z", projectedBalance: 500 },
+    { date: "2025-02-01T00:00:00.000Z", projectedBalance: -1225 },
+    { date: "2025-03-01T00:00:00.000Z", projectedBalance: 200 },
+  ],
+  minProjectedBalance: -1225,
 };
 
 const mockEmptyTimeline = {
@@ -111,6 +122,7 @@ const mockEmptyTimeline = {
   expenseMarkers: [],
   contributionMarkers: [],
   crunchPoints: [],
+  minProjectedBalance: 0,
   startDate: "2025-01-01T00:00:00.000Z",
   endDate: "2025-07-01T00:00:00.000Z",
 };
@@ -363,5 +375,31 @@ describe("TimelineChart", () => {
     expect(vi.mocked(global.fetch)).toHaveBeenCalledWith(
       "/api/engine/timeline?months=6"
     );
+  });
+
+  it("calls onPreseedChange with preseed amount when balance goes negative", async () => {
+    vi.mocked(global.fetch).mockResolvedValue(
+      mockFetchResponse(mockTimelineWithNegative)
+    );
+
+    const onPreseedChange = vi.fn();
+    render(<TimelineChart onPreseedChange={onPreseedChange} />);
+
+    await waitFor(() => {
+      expect(onPreseedChange).toHaveBeenCalledWith(1225);
+    });
+  });
+
+  it("calls onPreseedChange with 0 when balance stays positive", async () => {
+    vi.mocked(global.fetch).mockResolvedValue(
+      mockFetchResponse(mockTimelineData)
+    );
+
+    const onPreseedChange = vi.fn();
+    render(<TimelineChart onPreseedChange={onPreseedChange} />);
+
+    await waitFor(() => {
+      expect(onPreseedChange).toHaveBeenCalledWith(0);
+    });
   });
 });
