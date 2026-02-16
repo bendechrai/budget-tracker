@@ -51,6 +51,7 @@ flowchart TD
 - User can delete with confirmation
 - Action buttons (sparkle, pause/play, edit, delete) use icons only (no text labels), right-aligned on obligation cards. Tooltips and aria-labels provide accessibility.
 - Creating, editing, pausing, or deleting triggers engine recalculation
+- Creating a new obligation (via form or suggestion acceptance) auto-links existing unlinked debit transactions that match by vendor name similarity
 
 ## Data Model
 
@@ -84,3 +85,4 @@ flowchart TD
 - [ ] Empty state guides user to add first obligation
 - [ ] Changes trigger engine recalculation
 - [ ] Past-due obligations are visually highlighted
+- [x] Creating an obligation auto-links matching unlinked transactions

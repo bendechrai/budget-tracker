@@ -155,6 +155,15 @@
   color: #666;
 }
 
+.obligationLink {
+  color: #3182ce;
+  text-decoration: none;
+}
+
+.obligationLink:hover {
+  text-decoration: underline;
+}
+
 .listItemAmount {
   font-size: 15px;
   font-weight: 500;
@@ -243,6 +252,10 @@
 
   .listItemDetail {
     color: #999;
+  }
+
+  .obligationLink {
+    color: #63b3ed;
   }
 
   .credit {

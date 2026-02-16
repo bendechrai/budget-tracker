@@ -25,7 +25,9 @@
 │   │   │   ├── suggestions/
 │   │   │   ├── import/
 │   │   │   └── transactions/
-│   ├── lib/prisma.ts       # Prisma client singleton
+│   ├── lib/
+│   │   ├── prisma.ts       # Prisma client singleton
+│   │   └── patterns/       # Transaction analysis (vendor matching, pattern detection, obligation linking)
 │   ├── prisma/
 │   │   └── schema.prisma   # Database schema
 │   ├── prisma.config.ts    # Prisma configuration

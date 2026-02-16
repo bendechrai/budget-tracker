@@ -44,7 +44,7 @@ flowchart TD
   - Number of matching transactions found
   - Suggested classification: income or expense, and which obligation pattern type
 - **User actions**:
-  - **Accept**: creates an income source or obligation with the detected parameters. For irregular patterns (no detected interval), the system computes a conservative baseline from transaction history (average/median per-period amount, minimum as floor) and names it "Vendor (irregular baseline)"
+  - **Accept**: creates an income source or obligation with the detected parameters. For irregular patterns (no detected interval), the system computes a conservative baseline from transaction history (average/median per-period amount, minimum as floor) and names it "Vendor (irregular baseline)". Accepting an expense suggestion also auto-links existing unlinked debit transactions to the new obligation via vendor name similarity
   - **Tweak**: opens a pre-filled form with "Every N [unit]" controls where the user can adjust name, amount, and frequency before saving
   - **Dismiss**: hides the suggestion; same pattern won't be re-suggested unless significant new transaction data strengthens the case
 - Suggestions are sorted by confidence (high first, then medium, then low), with newest first within each confidence level

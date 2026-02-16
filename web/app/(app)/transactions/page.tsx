@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
 import styles from "./transactions.module.css";
 import { logError } from "@/lib/logging";
 
@@ -10,6 +11,7 @@ interface Transaction {
   description: string;
   amount: number;
   type: "credit" | "debit";
+  obligation: { id: string; name: string } | null;
 }
 
 interface Pagination {
@@ -190,6 +192,17 @@ export default function TransactionsPage() {
                     </span>
                     <span className={styles.listItemDetail}>
                       {formatDate(tx.date)} &middot; {tx.type}
+                      {tx.obligation && (
+                        <>
+                          {" "}&middot;{" "}
+                          <Link
+                            href={`/obligations/edit/${tx.obligation.id}`}
+                            className={styles.obligationLink}
+                          >
+                            {tx.obligation.name}
+                          </Link>
+                        </>
+                      )}
                     </span>
                   </div>
                   <span

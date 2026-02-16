@@ -110,8 +110,9 @@ model Obligation {
   user          User                @relation(fields: [userId], references: [id])
   fundGroup     FundGroup           @relation(fields: [fundGroupId], references: [id])
   customEntries CustomScheduleEntry[]
-  linkedSuggestions Suggestion[]
-  escalations      Escalation[]
+  linkedSuggestions  Suggestion[]
+  escalations        Escalation[]
+  linkedTransactions Transaction[]
 
   @@index([userId])
   @@index([fundGroupId])
@@ -163,13 +164,16 @@ model Transaction {
   referenceId    String?
   fingerprint    String
   sourceFileName String
+  obligationId   String?
   importedAt     DateTime        @default(now())
   createdAt      DateTime        @default(now())
   user           User            @relation(fields: [userId], references: [id])
+  obligation     Obligation?     @relation(fields: [obligationId], references: [id], onDelete: SetNull)
   suggestionTransactions SuggestionTransaction[]
 
   @@index([userId])
   @@index([fingerprint])
+  @@index([obligationId])
 }
 
 model ImportLog {

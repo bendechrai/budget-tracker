@@ -89,6 +89,7 @@ describe("GET /api/transactions", () => {
       orderBy: { date: "desc" },
       skip: 0,
       take: 50,
+      include: { obligation: { select: { id: true, name: true } } },
     });
   });
 
@@ -138,6 +139,7 @@ describe("GET /api/transactions", () => {
       orderBy: { date: "desc" },
       skip: 10,
       take: 10,
+      include: { obligation: { select: { id: true, name: true } } },
     });
   });
 
@@ -188,6 +190,7 @@ describe("GET /api/transactions", () => {
       orderBy: { date: "desc" },
       skip: 0,
       take: 50,
+      include: { obligation: { select: { id: true, name: true } } },
     });
   });
 
@@ -208,6 +211,7 @@ describe("GET /api/transactions", () => {
       orderBy: { date: "desc" },
       skip: 0,
       take: 50,
+      include: { obligation: { select: { id: true, name: true } } },
     });
   });
 
@@ -228,6 +232,7 @@ describe("GET /api/transactions", () => {
       orderBy: { date: "desc" },
       skip: 0,
       take: 50,
+      include: { obligation: { select: { id: true, name: true } } },
     });
   });
 
@@ -243,6 +248,7 @@ describe("GET /api/transactions", () => {
       orderBy: { date: "desc" },
       skip: 0,
       take: 50,
+      include: { obligation: { select: { id: true, name: true } } },
     });
   });
 });

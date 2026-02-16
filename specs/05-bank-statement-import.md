@@ -25,7 +25,8 @@ flowchart TD
     M --> L
     K --> L
     L --> N[Delete raw statement file]
-    N --> O[Trigger pattern detection]
+    N --> N2[Link transactions to obligations]
+    N2 --> O[Trigger pattern detection]
     O --> P[Summary: X new, Y skipped, Z flagged]
 ```
 
@@ -47,7 +48,7 @@ flowchart TD
 
 ## Data Model
 
-- `Transaction`: id, userId, date, description, amount, type (enum: credit, debit), referenceId (nullable), fingerprint (hash string), sourceFileName, importedAt, createdAt
+- `Transaction`: id, userId, date, description, amount, type (enum: credit, debit), referenceId (nullable), fingerprint (hash string), sourceFileName, obligationId (nullable FK to Obligation — auto-linked via vendor similarity matching), importedAt, createdAt
 - `ImportLog`: id, userId, fileName, format (enum: pdf, csv, ofx), transactionsFound, transactionsImported, duplicatesSkipped, duplicatesFlagged, importedAt
 
 ## Edge Cases
@@ -77,3 +78,5 @@ flowchart TD
 - [ ] User can browse imported transactions
 - [ ] Multiple files can be uploaded in sequence
 - [ ] Navigating away mid-processing and returning resumes the active batch
+- [x] Imported debit transactions are auto-linked to matching obligations via vendor name similarity
+- [x] Transactions list shows linked obligation name as a clickable link to the obligation edit page

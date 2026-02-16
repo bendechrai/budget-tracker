@@ -1212,3 +1212,33 @@
   - Spec: `specs/06-pattern-detection.md`
   - Acceptance: Added `computeIrregularBaseline()` helper that takes transaction dates+amounts and returns `{ amount, intervalUnit, intervalCount, minimumExpected }`. When `intervalUnit` is null on acceptance: computes baseline from linked transactions, sets conservative amount (min of average and median), defaults to monthly (or weekly if per-week > $10), appends "(irregular baseline)" to name, sets `minimumExpected` to minimum observed amount. Works for both income and expense suggestion types.
   - Tests: Added `suggestionTransactions` to existing mock data. Added test for irregular income baseline computation verifying name suffix, interval fields, and minimumExpected.
+
+- [x] **Add obligationId FK to Transaction model**
+  - Files: `web/prisma/schema.prisma`, `web/prisma/migrations/20260216050926_add_obligation_link_to_transaction/migration.sql`
+  - Spec: `specs/05-bank-statement-import.md`
+  - Acceptance: Nullable `obligationId` FK on `Transaction` with `onDelete: SetNull`. `linkedTransactions` relation on `Obligation`. Index on `obligationId`. Migration applies cleanly.
+  - Tests: Prisma generate succeeds; migration applies without errors.
+
+- [x] **Add pure obligation matching logic**
+  - Files: `web/lib/patterns/matchObligation.ts`, `web/lib/patterns/__tests__/matchObligation.test.ts`
+  - Spec: `specs/05-bank-statement-import.md`
+  - Acceptance: `findBestObligationMatch()` computes vendor similarity (threshold >= 0.7) against active obligations, uses amount proximity as tiebreaker, skips credit transactions. `matchTransactionsToObligations()` returns a Map of transactionId -> obligationId. No Prisma dependency — pure functions reusing `vendorSimilarity()` from vendorMatch.ts.
+  - Tests: 10 tests — exact match, partial name, amount tiebreaker, credit skip, no match, empty inputs, multi-transaction batch.
+
+- [x] **Add Prisma orchestration for transaction-obligation linking**
+  - Files: `web/lib/patterns/linkTransactions.ts`
+  - Spec: `specs/05-bank-statement-import.md`, `specs/04-expenses-obligations.md`
+  - Acceptance: `linkNewTransactionsToObligations(userId, since)` queries unlinked debit transactions imported since a timestamp, matches against active obligations, batch updates. `linkExistingTransactionsToObligation(userId, obligation)` matches unlinked debit transactions against a single new obligation. Both use the pure matcher and batch-update in a Prisma transaction.
+  - Tests: Covered by matchObligation unit tests (pure logic) and integration via existing route/batch tests.
+
+- [x] **Integrate transaction-obligation linking into import, create, and accept flows**
+  - Files: `web/lib/import/batchProcessor.ts`, `web/app/api/obligations/route.ts`, `web/app/api/suggestions/[id]/route.ts`
+  - Spec: `specs/05-bank-statement-import.md`, `specs/04-expenses-obligations.md`, `specs/06-pattern-detection.md`
+  - Acceptance: Import batch calls `linkNewTransactionsToObligations()` after all files are processed and before pattern detection. Obligation POST calls `linkExistingTransactionsToObligation()` after creating an obligation. Suggestion acceptance (expense) calls `linkExistingTransactionsToObligation()` after creating the obligation. All wrapped in try/catch so linking failure doesn't break the parent operation.
+  - Tests: Existing route and batch processor tests continue to pass.
+
+- [x] **Show linked obligation in transactions API and UI**
+  - Files: `web/app/api/transactions/route.ts`, `web/app/api/transactions/__tests__/route.test.ts`, `web/app/(app)/transactions/page.tsx`, `web/app/(app)/transactions/transactions.module.css`
+  - Spec: `specs/05-bank-statement-import.md`
+  - Acceptance: Transactions API includes `obligation: { id, name } | null` via Prisma `include`. Transactions page renders obligation name as a clickable `Link` to `/obligations/edit/{id}` in the detail line. Styled with `.obligationLink` class (blue text, underline on hover, dark mode variant). Updated 6 existing test assertions to include the new `include` clause.
+  - Tests: 10 existing route tests pass with updated assertions. 14 existing page tests pass (mock data omits `obligation`, component handles null gracefully).

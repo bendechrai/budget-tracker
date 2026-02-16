@@ -11,6 +11,7 @@ import { parseOFX } from "./ofxParser";
 import { parsePDF } from "./pdfParser";
 import { deduplicateTransactions, generateFingerprint } from "./dedup";
 import { detectPatterns } from "@/lib/patterns/detect";
+import { linkNewTransactionsToObligations } from "@/lib/patterns/linkTransactions";
 import type { ParsedTransaction } from "./csvParser";
 import type { ExistingTransaction, FlaggedTransaction } from "./dedup";
 import type { ExistingPattern } from "@/lib/patterns/detect";
@@ -33,6 +34,7 @@ function parseTextFile(content: string, format: ImportFormat): ParsedTransaction
  * Called via Next.js after() to run in the background after HTTP response.
  */
 export async function processImportBatch(batchId: string, userId: string): Promise<void> {
+  const batchStartTime = new Date();
   try {
     // Mark batch as processing
     await prisma.importBatch.update({
@@ -220,6 +222,13 @@ export async function processImportBatch(batchId: string, userId: string): Promi
           data: { filesCompleted: { increment: 1 } },
         });
       }
+    }
+
+    // Link newly imported transactions to existing obligations
+    try {
+      await linkNewTransactionsToObligations(userId, batchStartTime);
+    } catch (linkError) {
+      logError("transaction-obligation linking failed during batch processing", linkError);
     }
 
     // Run pattern detection

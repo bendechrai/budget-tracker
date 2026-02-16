@@ -49,6 +49,9 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         orderBy: { date: "desc" },
         skip: (page - 1) * limit,
         take: limit,
+        include: {
+          obligation: { select: { id: true, name: true } },
+        },
       }),
       prisma.transaction.count({ where }),
     ]);

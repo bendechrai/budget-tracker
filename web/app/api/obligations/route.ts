@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth/getCurrentUser";
 import { logError } from "@/lib/logging";
+import { linkExistingTransactionsToObligation } from "@/lib/patterns/linkTransactions";
 import type {
   ObligationType,
   IntervalUnit,
@@ -306,6 +307,19 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         include: { customEntries: true },
       });
     });
+
+    // Link existing unlinked transactions to the new obligation
+    if (obligation) {
+      try {
+        await linkExistingTransactionsToObligation(user.id, {
+          id: obligation.id,
+          name: obligation.name,
+          amount: obligation.amount,
+        });
+      } catch (linkError) {
+        logError("failed to link transactions to new obligation", linkError);
+      }
+    }
 
     return NextResponse.json(obligation, { status: 201 });
   } catch (error) {

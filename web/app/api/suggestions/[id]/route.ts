@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth/getCurrentUser";
 import { logError } from "@/lib/logging";
+import { linkExistingTransactionsToObligation } from "@/lib/patterns/linkTransactions";
 import type { IntervalUnit } from "@/app/generated/prisma/client";
 
 const MS_PER_DAY = 1000 * 60 * 60 * 24;
@@ -239,6 +240,17 @@ export async function PUT(
 
       return { suggestion: updated, obligation };
     });
+
+    // Link existing unlinked transactions to the new obligation
+    try {
+      await linkExistingTransactionsToObligation(user.id, {
+        id: result.obligation.id,
+        name: result.obligation.name,
+        amount: result.obligation.amount,
+      });
+    } catch (linkError) {
+      logError("failed to link transactions to accepted suggestion obligation", linkError);
+    }
 
     return NextResponse.json(result);
   } catch (error) {
