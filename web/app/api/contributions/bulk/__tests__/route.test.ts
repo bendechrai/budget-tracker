@@ -326,8 +326,8 @@ describe("POST /api/contributions/bulk", () => {
         expect.objectContaining({ id: "obl_2", name: "Insurance" }),
       ]),
       fundGroupBalances: expect.arrayContaining([
-        { fundGroupId: "fg_1", currentBalance: 500 },
-        { fundGroupId: "fg_2", currentBalance: 300 },
+        { fundGroupId: "fg_1", name: "Default", currentBalance: 500 },
+        { fundGroupId: "fg_2", name: "Insurance Group", currentBalance: 300 },
       ]),
       maxContributionPerCycle: 500,
       cycleConfig: { type: "fortnightly", payDays: [] },

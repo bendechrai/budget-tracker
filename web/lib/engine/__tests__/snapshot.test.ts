@@ -286,7 +286,7 @@ describe("calculateAndSnapshot", () => {
           fundGroupId: "fg-1",
         },
       ],
-      fundGroupBalances: [],
+      fundGroupBalances: [{ fundGroupId: "fg-1", name: "Housing", currentBalance: 0 }],
       maxContributionPerCycle: null,
       cycleConfig: { type: "monthly", payDays: [1] },
       now: NOW,
@@ -296,6 +296,7 @@ describe("calculateAndSnapshot", () => {
     expect(result.contributions).toHaveLength(1);
     expect(snapshot.totalRequired).toBe(1200);
     expect(snapshot.nextActionDescription).toContain("this month");
+    expect(snapshot.nextActionDescription).toContain("Housing");
     expect(snapshot.nextActionFundGroupId).toBe("fg-1");
   });
 
@@ -316,7 +317,7 @@ describe("calculateAndSnapshot", () => {
           fundGroupId: "fg-1",
         },
       ],
-      fundGroupBalances: [{ fundGroupId: "fg-1", currentBalance: 1200 }],
+      fundGroupBalances: [{ fundGroupId: "fg-1", name: "Housing", currentBalance: 1200 }],
       maxContributionPerCycle: null,
       cycleConfig: { type: "monthly", payDays: [1] },
       now: NOW,

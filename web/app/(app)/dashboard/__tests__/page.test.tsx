@@ -49,6 +49,11 @@ vi.mock("@/app/contexts/WhatIfContext", () => ({
   useWhatIf: () => mockWhatIf,
 }));
 
+// Mock SuggestionsCard to avoid fetch side effects
+vi.mock("../SuggestionsCard", () => ({
+  default: () => <div data-testid="suggestions-card">Suggestions</div>,
+}));
+
 // Mock recharts to avoid SVG rendering issues in tests
 vi.mock("recharts", () => ({
   ResponsiveContainer: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
@@ -89,7 +94,7 @@ const mockSnapshot = {
   cyclePeriodLabel: "per fortnight",
   nextActionAmount: 412,
   nextActionDate: "2025-02-14T00:00:00.000Z",
-  nextActionDescription: "Set aside $412.00 for Rent by 2025-02-14",
+  nextActionDescription: "Set aside $412.00 this fortnight for Housing",
   nextActionObligationId: "ob1",
   nextActionFundGroupId: "fg1",
   calculatedAt: "2025-02-01T00:00:00.000Z",
@@ -180,7 +185,7 @@ describe("DashboardPage", () => {
     expect(screen.getByText("Loading...")).toBeDefined();
   });
 
-  it("renders the hero card with total per-cycle contribution and most urgent obligation", async () => {
+  it("renders the fund status card with total per-cycle contribution", async () => {
     vi.mocked(global.fetch).mockImplementation((url) => {
       if (typeof url === "string" && url.includes("/api/obligations")) {
         return Promise.resolve(
@@ -204,16 +209,18 @@ describe("DashboardPage", () => {
 
     // Total contribution per cycle is shown prominently
     expect(screen.getByTestId("total-per-cycle").textContent).toBe("$587.50");
-    expect(screen.getByText("Total contribution per fortnight")).toBeDefined();
+    expect(screen.getByText("Total contribution required per fortnight")).toBeDefined();
     expect(screen.getByText("across all obligations")).toBeDefined();
 
-    // Most urgent obligation shown below
-    expect(screen.getByText("Most urgent")).toBeDefined();
-    expect(screen.getByText("$412.00")).toBeDefined();
-    expect(
-      screen.getByText("Set aside $412.00 for Rent by 2025-02-14")
-    ).toBeDefined();
-    expect(screen.getByText(/Due by/)).toBeDefined();
+    // Shortfall is shown (1200 required - 800 balance = 400 shortfall)
+    expect(screen.getByTestId("shortfall-row")).toBeDefined();
+    expect(screen.getByText(/\$400\.00 shortfall across all funds/)).toBeDefined();
+
+    // Fund health bars are inside the fund status card
+    expect(screen.getByText("Fund health")).toBeDefined();
+
+    // Suggestions card is rendered
+    expect(screen.getByTestId("suggestions-card")).toBeDefined();
   });
 
   it("renders celebration state when fully funded", async () => {
@@ -328,7 +335,7 @@ describe("DashboardPage", () => {
     ).toBeDefined();
   });
 
-  it("renders responsive grid layout with hero and health bar in top row", async () => {
+  it("renders fund status card with health bars and suggestions card in top row", async () => {
     vi.mocked(global.fetch).mockImplementation((url) => {
       if (typeof url === "string" && url.includes("/api/obligations")) {
         return Promise.resolve(
@@ -341,9 +348,6 @@ describe("DashboardPage", () => {
       if (typeof url === "string" && url.includes("/api/engine/timeline")) {
         return Promise.resolve(mockFetchResponse(mockTimelineData));
       }
-      if (typeof url === "string" && url.includes("/api/suggestions")) {
-        return Promise.resolve(mockFetchResponse([]));
-      }
       return Promise.resolve(mockFetchResponse(mockSnapshot));
     });
 
@@ -353,14 +357,13 @@ describe("DashboardPage", () => {
       expect(screen.getByTestId("total-per-cycle")).toBeDefined();
     });
 
-    // Hero card and health bar are inside the top row grid container
-    const heroCard = screen.getByText("Most urgent").closest("div");
-    expect(heroCard).toBeDefined();
-    const topRow = heroCard?.parentElement;
-    expect(topRow).toBeDefined();
+    // Fund health bars are inside the fund status card
+    expect(screen.getByText("Fund health")).toBeDefined();
+
+    // Suggestions card is in the top row
+    expect(screen.getByTestId("suggestions-card")).toBeDefined();
 
     // Timeline and upcoming obligations are in the main content area
-    // The main content section should contain a timeline section and a sidebar
     const mainContent = container.querySelector("aside");
     expect(mainContent).toBeDefined();
     expect(mainContent?.parentElement).toBeDefined();
@@ -450,7 +453,7 @@ describe("DashboardPage", () => {
         cyclePeriodLabel: "per fortnight",
         nextActionAmount: 200,
         nextActionDate: "2025-03-15T00:00:00.000Z",
-        nextActionDescription: "Set aside $200.00 for Insurance by 2025-03-15",
+        nextActionDescription: "Set aside $200.00 this fortnight for Insurance",
       },
       timeline: mockTimelineData,
     };
@@ -476,18 +479,12 @@ describe("DashboardPage", () => {
     render(<DashboardPage />);
 
     await waitFor(() => {
-      // Should show scenario amount, not actual amount
-      expect(screen.getByText("$200.00")).toBeDefined();
+      // Should show scenario total per-cycle, not actual
+      expect(screen.getByTestId("total-per-cycle").textContent).toBe("$350.00");
     });
-
-    // Should show scenario total per-cycle, not actual
-    expect(screen.getByTestId("total-per-cycle").textContent).toBe("$350.00");
-    expect(
-      screen.getByText("Set aside $200.00 for Insurance by 2025-03-15")
-    ).toBeDefined();
   });
 
-  it("renders 'Mark as done' button on hero card when fund group ID is present", async () => {
+  it("renders 'Record contribution' button when fund groups are underfunded", async () => {
     vi.mocked(global.fetch).mockImplementation((url) => {
       if (typeof url === "string" && url.includes("/api/obligations")) {
         return Promise.resolve(
@@ -506,13 +503,13 @@ describe("DashboardPage", () => {
     render(<DashboardPage />);
 
     await waitFor(() => {
-      expect(screen.getByTestId("hero-mark-done")).toBeDefined();
+      expect(screen.getByTestId("hero-record-contribution")).toBeDefined();
     });
 
-    expect(screen.getByTestId("hero-mark-done").textContent).toBe("Mark as done");
+    expect(screen.getByTestId("hero-record-contribution").textContent).toBe("Record contribution");
   });
 
-  it("opens ContributionModal with correct pre-fill when 'Mark as done' is clicked", async () => {
+  it("opens ContributionModal when 'Record contribution' is clicked", async () => {
     vi.mocked(global.fetch).mockImplementation((url) => {
       if (typeof url === "string" && url.includes("/api/obligations")) {
         return Promise.resolve(
@@ -531,24 +528,24 @@ describe("DashboardPage", () => {
     render(<DashboardPage />);
 
     await waitFor(() => {
-      expect(screen.getByTestId("hero-mark-done")).toBeDefined();
+      expect(screen.getByTestId("hero-record-contribution")).toBeDefined();
     });
 
-    fireEvent.click(screen.getByTestId("hero-mark-done"));
+    fireEvent.click(screen.getByTestId("hero-record-contribution"));
 
     await waitFor(() => {
       expect(screen.getByTestId("contribution-modal")).toBeDefined();
     });
 
-    // Modal should show the fund group name
+    // Modal should show the most underfunded fund group name
     expect(screen.getByTestId("contribution-modal-name").textContent).toBe("Housing");
-    // Modal should be pre-filled with the hero card amount
+    // Modal should be pre-filled with the recommended amount
     expect(screen.getByTestId("contribution-modal-amount")).toBeDefined();
     const amountInput = screen.getByTestId("contribution-modal-amount") as HTMLInputElement;
     expect(amountInput.value).toBe("412.00");
   });
 
-  it("does not show 'Mark as done' button when what-if is active", async () => {
+  it("does not show 'Record contribution' button when what-if is active", async () => {
     mockWhatIf.isActive = true;
     mockWhatIf.changeSummary = "1 expense toggled off";
     mockWhatIf.overrides = {
@@ -566,7 +563,7 @@ describe("DashboardPage", () => {
         cyclePeriodLabel: "per fortnight",
         nextActionAmount: 200,
         nextActionDate: "2025-03-15T00:00:00.000Z",
-        nextActionDescription: "Set aside $200.00 for Insurance by 2025-03-15",
+        nextActionDescription: "Set aside $200.00 this fortnight for Insurance",
       },
       timeline: mockTimelineData,
     };
@@ -592,10 +589,10 @@ describe("DashboardPage", () => {
     render(<DashboardPage />);
 
     await waitFor(() => {
-      expect(screen.getByText("$200.00")).toBeDefined();
+      expect(screen.getByTestId("total-per-cycle")).toBeDefined();
     });
 
-    expect(screen.queryByTestId("hero-mark-done")).toBeNull();
+    expect(screen.queryByTestId("hero-record-contribution")).toBeNull();
   });
 
   it("shows 'Catch up' button when multiple fund groups are underfunded", async () => {
@@ -733,7 +730,7 @@ describe("DashboardPage", () => {
     render(<DashboardPage />);
 
     await waitFor(() => {
-      expect(screen.getByText("$412.00")).toBeDefined();
+      expect(screen.getByTestId("total-per-cycle")).toBeDefined();
     });
 
     expect(screen.queryByTestId("catch-up-button")).toBeNull();

@@ -144,6 +144,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     const fundGroupBalanceInputs: FundGroupBalanceInput[] = fundGroups.map((fg) => ({
       fundGroupId: fg.id,
+      name: fg.name,
       currentBalance: fg.currentBalance,
     }));
 

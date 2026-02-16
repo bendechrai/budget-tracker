@@ -9,7 +9,7 @@ import HealthBar from "./HealthBar";
 import type { FundGroupHealth } from "./HealthBar";
 import TimelineChart from "./TimelineChart";
 import UpcomingObligations from "./UpcomingObligations";
-import NudgeCards from "./NudgeCards";
+import SuggestionsCard from "./SuggestionsCard";
 import ScenarioBanner from "@/app/components/ScenarioBanner";
 import ContributionModal from "@/app/(app)/obligations/ContributionModal";
 import CatchUpModal from "./CatchUpModal";
@@ -237,18 +237,28 @@ export default function DashboardPage() {
     displaySnapshot.nextActionAmount === 0 &&
     displaySnapshot.totalRequired > 0;
 
-  // Find the fund group for the hero card's "Mark as done" action
-  const nextActionFundGroup =
-    snapshot?.nextActionFundGroupId
-      ? fundGroups.find((fg) => fg.id === snapshot.nextActionFundGroupId) ?? null
-      : null;
-
   // Compute total required per fund group from obligations
   const fundGroupRequired = new Map<string, number>();
   for (const o of obligations) {
     const current = fundGroupRequired.get(o.fundGroupId) ?? 0;
     fundGroupRequired.set(o.fundGroupId, current + o.amount);
   }
+
+  // Find the most underfunded fund group for "Record contribution" action
+  const mostUnderfundedFundGroup = (() => {
+    let best: FundGroupData | null = null;
+    let bestRatio = Infinity;
+    for (const fg of fundGroups) {
+      const required = fundGroupRequired.get(fg.id) ?? 0;
+      if (required <= 0) continue;
+      const ratio = fg.currentBalance / required;
+      if (ratio < bestRatio) {
+        bestRatio = ratio;
+        best = fg;
+      }
+    }
+    return best;
+  })();
 
   // Build per-fund-group health data for the health bar
   const fundGroupHealthData: FundGroupHealth[] = fundGroups
@@ -272,6 +282,12 @@ export default function DashboardPage() {
       amountNeeded: fundGroupRequired.get(fg.id) ?? 0,
       currentBalance: fg.currentBalance,
     }));
+
+  // Total shortfall across all funds
+  const totalShortfall = fundGroupHealthData.reduce((sum, fg) => {
+    const remaining = Math.max(0, fg.required - fg.funded);
+    return sum + remaining;
+  }, 0);
 
   const showCatchUpButton = underfundedFundGroups.length > 1 && !isActive;
 
@@ -310,6 +326,7 @@ export default function DashboardPage() {
 
         {!loading && !error && !isEmptyState && (
           <div className={styles.topRow}>
+            {/* Card 1: Fund Status */}
             {displayIsFullyFunded && displaySnapshot && (
               <div
                 className={`${styles.heroCard} ${styles.heroCelebration} ${isActive ? styles.heroScenario : ""}`}
@@ -329,6 +346,12 @@ export default function DashboardPage() {
                   All obligations are fully funded. Next due date:{" "}
                   {formatDate(displaySnapshot.nextActionDate)}
                 </p>
+                {fundGroupHealthData.length > 0 && (
+                  <>
+                    <div className={styles.heroDivider} />
+                    <HealthBar fundGroups={fundGroupHealthData} />
+                  </>
+                )}
               </div>
             )}
 
@@ -342,7 +365,7 @@ export default function DashboardPage() {
                   </div>
                 )}
                 <p className={styles.heroLabel}>
-                  Total contribution {displaySnapshot.cyclePeriodLabel}
+                  Total contribution required {displaySnapshot.cyclePeriodLabel}
                 </p>
                 <p className={styles.heroAmount} data-testid="total-per-cycle">
                   {formatCurrency(displaySnapshot.totalContributionPerCycle)}
@@ -350,51 +373,51 @@ export default function DashboardPage() {
                 <p className={styles.heroDescription}>
                   across all obligations
                 </p>
-                <div className={styles.heroDivider} />
-                <p className={styles.heroLabel}>Most urgent</p>
-                <p className={styles.heroSubAmount}>
-                  {formatCurrency(displaySnapshot.nextActionAmount)}
-                </p>
-                <p className={styles.heroDescription}>
-                  {displaySnapshot.nextActionDescription}
-                </p>
-                <p className={styles.heroDeadline}>
-                  Due by {formatDate(displaySnapshot.nextActionDate)}
-                </p>
+
+                {totalShortfall > 0 && (
+                  <div className={styles.shortfallRow} data-testid="shortfall-row">
+                    <span className={styles.shortfallText}>
+                      {formatCurrency(totalShortfall)} shortfall across all funds
+                    </span>
+                    {showCatchUpButton && (
+                      <button
+                        type="button"
+                        className={styles.catchUpButton}
+                        onClick={() => setShowCatchUpModal(true)}
+                        data-testid="catch-up-button"
+                      >
+                        Catch up
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {fundGroupHealthData.length > 0 && (
+                  <>
+                    <div className={styles.heroDivider} />
+                    <HealthBar fundGroups={fundGroupHealthData} />
+                  </>
+                )}
+
                 <div className={styles.heroActions}>
-                  {!isActive && snapshot?.nextActionFundGroupId && (
+                  {!isActive && mostUnderfundedFundGroup && (
                     <button
                       type="button"
                       className={styles.markDoneButton}
                       onClick={() => setShowContributionModal(true)}
-                      data-testid="hero-mark-done"
+                      data-testid="hero-record-contribution"
                     >
-                      Mark as done
-                    </button>
-                  )}
-                  {showCatchUpButton && (
-                    <button
-                      type="button"
-                      className={styles.catchUpButton}
-                      onClick={() => setShowCatchUpModal(true)}
-                      data-testid="catch-up-button"
-                    >
-                      Catch up
+                      Record contribution
                     </button>
                   )}
                 </div>
               </div>
             )}
 
-            {snapshot && (
-              <HealthBar
-                fundGroups={fundGroupHealthData}
-              />
-            )}
+            {/* Card 2: Suggestions */}
+            <SuggestionsCard />
           </div>
         )}
-
-        {!loading && !error && !isEmptyState && <NudgeCards />}
 
         {!loading && !error && !isEmptyState && (
           <div className={styles.mainContent}>
@@ -408,12 +431,12 @@ export default function DashboardPage() {
         )}
       </div>
 
-      {showContributionModal && nextActionFundGroup && snapshot && (
+      {showContributionModal && mostUnderfundedFundGroup && snapshot && (
         <ContributionModal
-          fundGroupId={nextActionFundGroup.id}
-          fundGroupName={nextActionFundGroup.name}
-          currentBalance={nextActionFundGroup.currentBalance}
-          amountNeeded={fundGroupRequired.get(nextActionFundGroup.id) ?? 0}
+          fundGroupId={mostUnderfundedFundGroup.id}
+          fundGroupName={mostUnderfundedFundGroup.name}
+          currentBalance={mostUnderfundedFundGroup.currentBalance}
+          amountNeeded={fundGroupRequired.get(mostUnderfundedFundGroup.id) ?? 0}
           recommendedContribution={snapshot.nextActionAmount}
           onClose={() => setShowContributionModal(false)}
           onSaved={() => setShowContributionModal(false)}

@@ -346,6 +346,7 @@ describe("POST /api/contributions", () => {
       fundGroupBalances: [
         {
           fundGroupId: "fg_1",
+          name: "Default",
           currentBalance: 300,
         },
       ],

@@ -85,7 +85,7 @@ describe("calculateContributions", () => {
             amount: 900,
           }),
         ],
-        fundGroupBalances: [{ fundGroupId: "fg-1", currentBalance: 300 }],
+        fundGroupBalances: [{ fundGroupId: "fg-1", name: "Housing", currentBalance: 300 }],
         maxContributionPerCycle: null,
         cycleConfig: { type: "monthly", payDays: [1] },
         now: NOW,
@@ -153,7 +153,7 @@ describe("calculateContributions", () => {
             nextDueDate: new Date("2025-05-30"),
           }),
         ],
-        fundGroupBalances: [{ fundGroupId: "fg-1", currentBalance: 600 }],
+        fundGroupBalances: [{ fundGroupId: "fg-1", name: "Housing", currentBalance: 600 }],
         maxContributionPerCycle: null,
         cycleConfig: { type: "monthly", payDays: [1] },
         now: NOW,
@@ -167,7 +167,7 @@ describe("calculateContributions", () => {
     it("returns zero contribution when fully funded", () => {
       const result = calculateContributions({
         obligations: [makeObligation({ amount: 500 })],
-        fundGroupBalances: [{ fundGroupId: "fg-1", currentBalance: 500 }],
+        fundGroupBalances: [{ fundGroupId: "fg-1", name: "Housing", currentBalance: 500 }],
         maxContributionPerCycle: null,
         cycleConfig: { type: "monthly", payDays: [1] },
         now: NOW,
@@ -181,7 +181,7 @@ describe("calculateContributions", () => {
     it("returns zero contribution when over-funded", () => {
       const result = calculateContributions({
         obligations: [makeObligation({ amount: 500 })],
-        fundGroupBalances: [{ fundGroupId: "fg-1", currentBalance: 700 }],
+        fundGroupBalances: [{ fundGroupId: "fg-1", name: "Housing", currentBalance: 700 }],
         maxContributionPerCycle: null,
         cycleConfig: { type: "monthly", payDays: [1] },
         now: NOW,
@@ -539,7 +539,7 @@ describe("calculateContributions", () => {
           makeObligation({ id: "obl-2", amount: 300 }),
         ],
         fundGroupBalances: [
-          { fundGroupId: "fg-1", currentBalance: 800 },
+          { fundGroupId: "fg-1", name: "Housing", currentBalance: 800 },
         ],
         maxContributionPerCycle: null,
         cycleConfig: { type: "monthly", payDays: [1] },
@@ -548,6 +548,23 @@ describe("calculateContributions", () => {
 
       expect(result.isFullyFunded).toBe(true);
       expect(result.totalContributionPerCycle).toBe(0);
+    });
+
+    it("uses fund group name from balance input, not obligation ID", () => {
+      const result = calculateContributions({
+        obligations: [
+          makeObligation({ id: "obl-1", amount: 500 }),
+        ],
+        fundGroupBalances: [
+          { fundGroupId: "fg-1", name: "Housing", currentBalance: 0 },
+        ],
+        maxContributionPerCycle: null,
+        cycleConfig: { type: "monthly", payDays: [1] },
+        now: NOW,
+      });
+
+      expect(result.fundGroupContributions).toHaveLength(1);
+      expect(result.fundGroupContributions[0].fundGroupName).toBe("Housing");
     });
 
     it("handles multiple obligations with different fund groups", () => {

@@ -41,6 +41,7 @@ export interface CustomEntryInput {
 
 export interface FundGroupBalanceInput {
   fundGroupId: string;
+  name: string;
   currentBalance: number;
 }
 
@@ -364,10 +365,12 @@ export function calculateContributions(input: EngineInput): EngineResult {
     now = new Date(),
   } = input;
 
-  // Build a lookup for fund group balances
+  // Build a lookup for fund group balances and names
   const groupBalanceMap = new Map<string, number>();
+  const groupNameMap = new Map<string, string>();
   for (const fgb of fundGroupBalances) {
     groupBalanceMap.set(fgb.fundGroupId, fgb.currentBalance);
+    groupNameMap.set(fgb.fundGroupId, fgb.name);
   }
 
   // Filter to active, non-paused obligations
@@ -512,8 +515,8 @@ export function calculateContributions(input: EngineInput): EngineResult {
     totalRequired += data.totalRequired;
     totalFunded += currentBalance;
 
-    // Find group name from obligations (first match)
-    const groupName = obligations.find((o) => o.fundGroupId === groupId)?.fundGroupId ?? groupId;
+    // Find group name from fund group balances (or fall back to ID)
+    const groupName = groupNameMap.get(groupId) ?? groupId;
 
     fundGroupContributions.push({
       fundGroupId: groupId,

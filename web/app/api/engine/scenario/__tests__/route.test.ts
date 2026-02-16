@@ -85,6 +85,7 @@ const mockFundGroups = [
   {
     id: "fg_1",
     userId: "user_1",
+    name: "Housing",
     currentBalance: 300,
   },
 ];
