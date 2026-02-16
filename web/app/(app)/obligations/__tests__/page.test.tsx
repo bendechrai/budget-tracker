@@ -121,12 +121,25 @@ const pastDueObligation = {
 
 const mockEscalations: Record<string, unknown[]> = {};
 
+const mockFundGroups = [
+  { id: "g0", name: "Ungrouped" },
+  { id: "g1", name: "Bills" },
+];
+
 function mockFetchResponses(active: unknown[], archived: unknown[] = []) {
   vi.mocked(global.fetch).mockImplementation((input: string | URL | Request, init?: RequestInit) => {
     const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
     if (url.includes("archived=true")) {
       return Promise.resolve(
         new Response(JSON.stringify(archived), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        })
+      );
+    }
+    if (url === "/api/fund-groups") {
+      return Promise.resolve(
+        new Response(JSON.stringify(mockFundGroups), {
           status: 200,
           headers: { "Content-Type": "application/json" },
         })
@@ -230,8 +243,8 @@ describe("ObligationsPage", () => {
     });
 
     // With multiple groups, group titles should be shown
-    expect(screen.getByText("Ungrouped")).toBeDefined();
-    expect(screen.getByText("Bills")).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Ungrouped" })).toBeDefined();
+    expect(screen.getByRole("heading", { name: "Bills" })).toBeDefined();
   });
 
   it("does not show group titles when all in one group", async () => {
@@ -244,7 +257,7 @@ describe("ObligationsPage", () => {
       expect(screen.getByText("Netflix")).toBeDefined();
     });
 
-    expect(screen.queryByText("Ungrouped")).toBeNull();
+    expect(screen.queryByRole("heading", { name: "Ungrouped" })).toBeNull();
   });
 
   it("shows type badges for each obligation", async () => {
@@ -640,6 +653,14 @@ describe("ObligationsPage", () => {
           })
         );
       }
+      if (url === "/api/fund-groups") {
+        return Promise.resolve(
+          new Response(JSON.stringify(mockFundGroups), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          })
+        );
+      }
       if (url.includes("/api/obligations/20") && !putCalled) {
         putCalled = true;
         return Promise.resolve(
@@ -697,6 +718,14 @@ describe("ObligationsPage", () => {
       if (url.includes("archived=true")) {
         return Promise.resolve(
           new Response(JSON.stringify([]), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          })
+        );
+      }
+      if (url === "/api/fund-groups") {
+        return Promise.resolve(
+          new Response(JSON.stringify(mockFundGroups), {
             status: 200,
             headers: { "Content-Type": "application/json" },
           })
@@ -1225,6 +1254,174 @@ describe("ObligationsPage", () => {
     await user.click(screen.getByRole("button", { name: "Add price change" }));
 
     expect(screen.getByTestId("escalation-form")).toBeDefined();
+  });
+
+  // Fund pill tests
+
+  it("renders fund pills on active obligation cards", async () => {
+    mockFetchResponses(mockObligations);
+
+    render(<ObligationsPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Netflix")).toBeDefined();
+    });
+
+    expect(screen.getByTestId("fund-pill-1")).toBeDefined();
+    expect(screen.getByTestId("fund-pill-2")).toBeDefined();
+    expect(screen.getByTestId("fund-pill-3")).toBeDefined();
+  });
+
+  it("shows correct fund name on each pill", async () => {
+    mockFetchResponses(mockObligations);
+
+    render(<ObligationsPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Netflix")).toBeDefined();
+    });
+
+    expect(screen.getByTestId("fund-pill-1").textContent).toBe("Ungrouped");
+    expect(screen.getByTestId("fund-pill-2").textContent).toBe("Bills");
+  });
+
+  it("calls move API with correct fundGroupId when fund is changed", async () => {
+    const user = userEvent.setup();
+    mockFetchResponses(mockObligations);
+
+    render(<ObligationsPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Netflix")).toBeDefined();
+    });
+
+    // Click the fund pill for Netflix (currently in g0/Ungrouped)
+    await user.click(screen.getByTestId("fund-pill-1"));
+
+    // Mock the PUT response for the move
+    vi.mocked(global.fetch).mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          ...mockObligations[0],
+          fundGroupId: "g1",
+          fundGroup: { id: "g1", name: "Bills" },
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      )
+    );
+
+    // Click "Bills" in the dropdown
+    await user.click(screen.getByTestId("fund-option-g1"));
+
+    expect(vi.mocked(global.fetch)).toHaveBeenCalledWith(
+      "/api/obligations/1",
+      expect.objectContaining({
+        method: "PUT",
+        body: JSON.stringify({ fundGroupId: "g1" }),
+      })
+    );
+  });
+
+  it("shows error state when move fund API fails", async () => {
+    const user = userEvent.setup();
+    mockFetchResponses(mockObligations);
+
+    render(<ObligationsPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Netflix")).toBeDefined();
+    });
+
+    await user.click(screen.getByTestId("fund-pill-1"));
+
+    vi.mocked(global.fetch).mockResolvedValueOnce(
+      new Response(JSON.stringify({ error: "fail" }), {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      })
+    );
+
+    await user.click(screen.getByTestId("fund-option-g1"));
+
+    await waitFor(() => {
+      expect(screen.getByRole("alert").textContent).toBe("Failed to move obligation");
+    });
+  });
+
+  it("renders pill as static with single fund group", async () => {
+    const singleGroupObs = [mockObligations[0]];
+    // Override fetch to return single fund group
+    vi.mocked(global.fetch).mockImplementation((input: string | URL | Request) => {
+      const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
+      if (url.includes("archived=true")) {
+        return Promise.resolve(
+          new Response(JSON.stringify([]), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          })
+        );
+      }
+      if (url === "/api/fund-groups") {
+        return Promise.resolve(
+          new Response(JSON.stringify([{ id: "g0", name: "Ungrouped" }]), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          })
+        );
+      }
+      if (url.includes("/api/escalations")) {
+        return Promise.resolve(
+          new Response(JSON.stringify([]), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          })
+        );
+      }
+      return Promise.resolve(
+        new Response(JSON.stringify(singleGroupObs), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        })
+      );
+    });
+
+    render(<ObligationsPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Netflix")).toBeDefined();
+    });
+
+    const pill = screen.getByTestId("fund-pill-1");
+    expect(pill.tagName).toBe("SPAN");
+  });
+
+  it("does not render fund pills on archived cards", async () => {
+    const archivedOb = {
+      id: "10",
+      name: "Old Subscription",
+      type: "recurring",
+      amount: 9.99,
+      frequency: "monthly",
+      frequencyDays: null,
+      startDate: "2025-01-01T00:00:00.000Z",
+      endDate: null,
+      nextDueDate: "2025-06-01T00:00:00.000Z",
+      isPaused: false,
+      isArchived: true,
+      fundGroupId: "g0",
+      fundGroup: { id: "g0", name: "Ungrouped" },
+      customEntries: [],
+    };
+
+    mockFetchResponses(mockObligations, [archivedOb]);
+
+    render(<ObligationsPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Old Subscription")).toBeDefined();
+    });
+
+    expect(screen.queryByTestId("fund-pill-10")).toBeNull();
   });
 
   it("formats different escalation change types correctly", async () => {

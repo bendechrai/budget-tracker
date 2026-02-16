@@ -9,6 +9,7 @@ import { useWhatIf } from "@/app/contexts/WhatIfContext";
 import { useConfirmDialog } from "@/lib/hooks/useConfirmDialog";
 import HypotheticalForm from "./HypotheticalForm";
 import EscalationForm from "./EscalationForm";
+import FundPill from "./FundPill";
 
 interface FundGroup {
   id: string;
@@ -166,6 +167,8 @@ function groupByFundGroup(obligations: Obligation[]): GroupedObligations[] {
     result.push({ groupName, obligations: obs });
   }
 
+  result.sort((a, b) => a.groupName.localeCompare(b.groupName));
+
   return result;
 }
 
@@ -179,6 +182,7 @@ export default function ObligationsPage() {
   const [escalations, setEscalations] = useState<Map<string, Escalation[]>>(new Map());
   const [expandedEscalations, setExpandedEscalations] = useState<Set<string>>(new Set());
   const [escalationFormTarget, setEscalationFormTarget] = useState<string | null>(null);
+  const [fundGroups, setFundGroups] = useState<FundGroup[]>([]);
   const { overrides, overrideAmount, clearAmountOverride, addHypothetical, removeHypothetical } = useWhatIf();
   const { confirm, confirmDialog } = useConfirmDialog();
 
@@ -196,9 +200,10 @@ export default function ObligationsPage() {
 
   const fetchObligations = useCallback(async () => {
     try {
-      const [activeRes, archivedRes] = await Promise.all([
+      const [activeRes, archivedRes, fundGroupsRes] = await Promise.all([
         fetch("/api/obligations"),
         fetch("/api/obligations?archived=true"),
+        fetch("/api/fund-groups"),
       ]);
 
       if (!activeRes.ok || !archivedRes.ok) {
@@ -208,6 +213,11 @@ export default function ObligationsPage() {
 
       const activeData = (await activeRes.json()) as Obligation[];
       const archivedData = (await archivedRes.json()) as Obligation[];
+
+      if (fundGroupsRes.ok) {
+        const fundGroupsData = (await fundGroupsRes.json()) as FundGroup[];
+        setFundGroups(fundGroupsData);
+      }
 
       // Auto-archive completed obligations
       const completed: Obligation[] = [];
@@ -344,6 +354,27 @@ export default function ObligationsPage() {
     router.push("/obligations/new");
   }
 
+  async function handleMoveFund(obligationId: string, newFundGroupId: string) {
+    try {
+      const res = await fetch(`/api/obligations/${obligationId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fundGroupId: newFundGroupId }),
+      });
+      if (!res.ok) {
+        setError("Failed to move obligation");
+        return;
+      }
+      const updated = (await res.json()) as Obligation;
+      setObligations((prev) =>
+        prev.map((o) => (o.id === obligationId ? updated : o))
+      );
+    } catch (err) {
+      logError("failed to move obligation to new fund", err);
+      setError("Failed to move obligation");
+    }
+  }
+
   const grouped = groupByFundGroup(obligations);
   const hasAnyObligations = obligations.length > 0 || archivedObligations.length > 0;
 
@@ -409,6 +440,13 @@ export default function ObligationsPage() {
 
                   return (
                     <li key={ob.id} className={classNames.join(" ")}>
+                      <FundPill
+                        obligationId={ob.id}
+                        currentFundId={ob.fundGroupId}
+                        currentFundName={ob.fundGroup.name}
+                        allFunds={fundGroups}
+                        onMoveFund={handleMoveFund}
+                      />
                       <div className={styles.listItemInfo}>
                         <span className={styles.listItemName}>
                           {ob.name}

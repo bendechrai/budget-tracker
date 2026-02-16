@@ -155,7 +155,7 @@ Add fields:
 - [x] Contribution history is per fund
 - [x] Fund health % = balance / calculated target
 - [x] Fund target is calculated in realtime from obligations
-- [ ] Obligations page shows fund badge (top-right of card) with click-to-move
+- [x] Obligations page shows fund badge (top-right of card) with click-to-move
 - [ ] Obligations page groups by fund with health summary in headers
 - [ ] Obligations page has a fund filter dropdown
 - [x] Per-obligation fund balance UI is removed (no progress bars on cards)

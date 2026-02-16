@@ -1118,3 +1118,22 @@
   - Spec: `specs/13-settings.md`
   - Acceptance: Parent slimmed to ~120 lines. Fetches settings, renders 4 CollapsibleSection wrappers (Profile, Budget Preferences, Funds, Account). Accordion behavior: only one section open at a time, Profile starts expanded. Opening a section closes the previous one.
   - Tests: 7 tests: loading, title, fetch error, section headings, first section expanded by default, accordion toggle, collapse all
+
+### Fund pill on obligation cards
+
+- [x] **Create FundPill component**
+  - Files: `web/app/(app)/obligations/FundPill.tsx`, `web/app/(app)/obligations/__tests__/FundPill.test.tsx`
+  - Spec: `specs/07b-fund-group-rework.md`
+  - Acceptance: Self-contained component (~100 lines). Renders a pill button in blue badge palette (`#2b6cb0`/`#ebf8ff`). When multiple funds exist, clicking opens a dropdown listing other funds. Selecting a fund calls `onMoveFund` callback. Click-outside and Escape key close the dropdown. Renders as a static `<span>` when only one fund exists. Uses `role="listbox"` / `role="option"` for accessibility.
+  - Tests: 8 tests: renders fund name, static when single fund, button when multiple, opens dropdown, excludes current fund, calls onMoveFund on selection, closes on Escape, closes on click-outside
+
+- [x] **Add FundPill CSS styles**
+  - Files: `web/app/(app)/obligations/obligations.module.css`
+  - Spec: `specs/07b-fund-group-rework.md`
+  - Acceptance: `position: relative` on `.listItem`. `padding-right: 100px` on `.listItemName` to avoid overlap. New classes: `.fundPillWrapper` (absolute top-right), `.fundPill` (blue badge), `.fundPillStatic` (non-interactive), `.fundDropdown`, `.fundDropdownItem`. `max-width` + `text-overflow: ellipsis` on pill. Dark mode variants (`#63b3ed`/`#1a365d`). Mobile adjustments (smaller max-width).
+
+- [x] **Integrate FundPill into obligations page**
+  - Files: `web/app/(app)/obligations/page.tsx`, `web/app/(app)/obligations/__tests__/page.test.tsx`
+  - Spec: `specs/07b-fund-group-rework.md`
+  - Acceptance: `fundGroups` state fetched from `GET /api/fund-groups` in parallel with obligations. `handleMoveFund` PUTs to `/api/obligations/[id]` with `{ fundGroupId }`, updates local state from response. `<FundPill>` rendered on each active obligation card (not on archived or hypothetical cards). Fund groups sorted alphabetically in the listing.
+  - Tests: 7 new tests: pills render on active cards, correct fund name shown, move API called with correct fundGroupId, error state on API failure, static pill with single fund, no pills on archived cards. 2 existing tests updated for text ambiguity with fund pill text.
