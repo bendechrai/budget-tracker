@@ -7,14 +7,16 @@ describe("Home (landing page)", () => {
     cleanup();
   });
 
-  it("renders the app title", () => {
+  it("renders the headline", () => {
     render(<Home />);
-    expect(screen.getByRole("heading", { name: "Sinking Fund" })).toBeDefined();
+    expect(
+      screen.getByRole("heading", { name: /never be caught off guard/i })
+    ).toBeDefined();
   });
 
-  it("renders a Sign up link pointing to /signup", () => {
+  it("renders a Get started link pointing to /signup", () => {
     render(<Home />);
-    const link = screen.getByRole("link", { name: "Sign up" });
+    const link = screen.getByRole("link", { name: "Get started" });
     expect(link).toBeDefined();
     expect(link.getAttribute("href")).toBe("/signup");
   });
@@ -26,10 +28,10 @@ describe("Home (landing page)", () => {
     expect(link.getAttribute("href")).toBe("/login");
   });
 
-  it("renders a subtitle describing the app", () => {
+  it("renders a subheadline describing the app", () => {
     render(<Home />);
     expect(
-      screen.getByText(/take control of your finances/i)
+      screen.getByText(/calculates exactly what to set aside/i)
     ).toBeDefined();
   });
 });

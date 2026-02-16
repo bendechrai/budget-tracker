@@ -1,3 +1,4 @@
+/* ===== Desktop horizontal nav ===== */
 .nav {
   border-bottom: 1px solid #e5e5e5;
   padding: 0 1rem;
@@ -65,13 +66,155 @@
   }
 }
 
-@media (max-width: 480px) {
+/* ===== Mobile bottom tab bar ===== */
+.bottomBar {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  /* Hide desktop nav, show bottom bar */
   .nav {
-    padding: 0 0.5rem;
+    display: none;
   }
 
-  .navLink {
-    padding: 0.625rem 0.5rem;
-    font-size: 0.8125rem;
+  .bottomBar {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 999;
+    background: var(--background);
+    border-top: 1px solid #e5e5e5;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    justify-content: space-around;
+    align-items: stretch;
   }
+}
+
+@media (max-width: 768px) and (prefers-color-scheme: dark) {
+  .bottomBar {
+    border-top-color: #333;
+  }
+}
+
+.tabItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  flex: 1;
+  padding: 8px 0;
+  color: #999;
+  text-decoration: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  position: relative;
+  transition: color 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.tabItem:hover {
+  color: var(--foreground);
+}
+
+.tabItemActive {
+  color: var(--accent);
+}
+
+.tabLabel {
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.tabBadge {
+  position: absolute;
+  top: 6px;
+  right: 50%;
+  transform: translateX(12px);
+  width: 7px;
+  height: 7px;
+  background: #e53935;
+  border-radius: 50%;
+}
+
+/* ===== More sheet ===== */
+.moreOverlay {
+  display: none;
+}
+
+.moreSheet {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .moreOverlay {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 998;
+    background: rgba(0, 0, 0, 0.3);
+  }
+
+  .moreSheet {
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    bottom: calc(56px + env(safe-area-inset-bottom, 0px));
+    left: 0;
+    right: 0;
+    z-index: 999;
+    background: var(--background);
+    border-top: 1px solid #e5e5e5;
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
+    padding: 8px 0;
+  }
+}
+
+@media (max-width: 768px) and (prefers-color-scheme: dark) {
+  .moreSheet {
+    border-top-color: #333;
+  }
+
+  .moreOverlay {
+    background: rgba(0, 0, 0, 0.5);
+  }
+}
+
+.moreItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 24px;
+  font-size: 15px;
+  font-weight: 400;
+  color: var(--foreground);
+  text-decoration: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  width: 100%;
+  text-align: left;
+  transition: background-color 0.1s;
+}
+
+.moreItem:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+@media (prefers-color-scheme: dark) {
+  .moreItem:hover {
+    background: rgba(255, 255, 255, 0.06);
+  }
+}
+
+.moreItemActive {
+  color: var(--accent);
+  font-weight: 500;
 }

@@ -231,9 +231,9 @@
   font-style: italic;
 }
 
-@media (max-width: 480px) {
+@media (max-width: 768px) {
   .wrapper {
-    bottom: 1rem;
+    bottom: calc(56px + env(safe-area-inset-bottom, 0px) + 0.75rem);
     right: 1rem;
   }
 

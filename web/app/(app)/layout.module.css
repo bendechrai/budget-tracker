@@ -60,12 +60,27 @@
   padding: 1.5rem;
 }
 
-@media (max-width: 480px) {
-  .main {
-    padding: 1rem;
+@media (max-width: 768px) {
+  .header {
+    border-bottom: none;
+  }
+
+  .navWrapper {
+    display: none;
   }
 
   .logoutWrapper {
-    padding-right: 0.5rem;
+    display: none;
+  }
+
+  .main {
+    padding-bottom: calc(56px + env(safe-area-inset-bottom, 0px) + 1.5rem);
+  }
+}
+
+@media (max-width: 480px) {
+  .main {
+    padding: 1rem;
+    padding-bottom: calc(56px + env(safe-area-inset-bottom, 0px) + 1rem);
   }
 }

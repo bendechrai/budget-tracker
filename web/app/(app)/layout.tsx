@@ -16,6 +16,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         </div>
       </header>
       <main className={styles.main}>{children}</main>
+      <Nav mobile />
       <AIBar />
     </div>
   );
