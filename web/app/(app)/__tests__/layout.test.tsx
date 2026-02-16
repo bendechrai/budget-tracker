@@ -103,7 +103,7 @@ describe("AppLayout", () => {
     });
 
     await waitFor(() => {
-      expect(mockPush).toHaveBeenCalledWith("/login");
+      expect(mockPush).toHaveBeenCalledWith("/");
     });
   });
 
