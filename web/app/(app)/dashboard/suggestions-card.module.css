@@ -1,8 +1,4 @@
 .card {
-  padding: 32px;
-  border: 1px solid #ddd;
-  border-radius: 12px;
-  background: var(--background);
   display: flex;
   flex-direction: column;
 }
@@ -67,10 +63,6 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  .card {
-    border-color: #333;
-  }
-
   .heading {
     color: #999;
   }
@@ -84,8 +76,3 @@
   }
 }
 
-@media (max-width: 480px) {
-  .card {
-    padding: 24px;
-  }
-}

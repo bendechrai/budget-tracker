@@ -316,104 +316,104 @@ export default function DashboardPage() {
         )}
 
         {!loading && !error && !isEmptyState && (
-          <div className={styles.topRow}>
-            {/* Card 1: Fund Status */}
-            {displayIsFullyFunded && displaySnapshot && (
-              <div
-                className={`${styles.heroCard} ${styles.heroCelebration} ${isActive ? styles.heroScenario : ""}`}
-              >
-                {isActive && (
-                  <div className={styles.scenarioIndicator} data-testid="scenario-indicator">
-                    What-if scenario
-                  </div>
-                )}
-                <div className={styles.celebrationEmoji} aria-hidden="true">
-                  &#127881;
-                </div>
-                <h2 className={styles.celebrationTitle}>
-                  {"You're fully covered!"}
-                </h2>
-                <p className={styles.celebrationDescription}>
-                  All obligations are fully funded. Next due date:{" "}
-                  {formatDate(displaySnapshot.nextActionDate)}
-                </p>
-                {fundGroupHealthData.length > 0 && (
-                  <>
-                    <div className={styles.heroDivider} />
-                    <HealthBar fundGroups={fundGroupHealthData} />
-                  </>
-                )}
-
-                <div className={styles.heroActions}>
-                  {!isActive && fundGroups.length > 0 && (
-                    <button
-                      type="button"
-                      className={styles.confirmBalancesButton}
-                      onClick={() => setShowConfirmBalancesModal(true)}
-                      data-testid="hero-confirm-balances"
-                    >
-                      Confirm fund balances
-                    </button>
+          <div className={styles.grid}>
+            <div className={styles.leftColumn}>
+              {/* Hero Card */}
+              {displayIsFullyFunded && displaySnapshot && (
+                <div
+                  className={`${styles.heroCard} ${styles.heroCelebration} ${isActive ? styles.heroScenario : ""}`}
+                >
+                  {isActive && (
+                    <div className={styles.scenarioIndicator} data-testid="scenario-indicator">
+                      What-if scenario
+                    </div>
                   )}
-                </div>
-              </div>
-            )}
-
-            {!displayIsFullyFunded && displaySnapshot && (
-              <div
-                className={`${styles.heroCard} ${isActive ? styles.heroScenario : ""}`}
-              >
-                {isActive && (
-                  <div className={styles.scenarioIndicator} data-testid="scenario-indicator">
-                    What-if scenario
+                  <div className={styles.celebrationEmoji} aria-hidden="true">
+                    &#127881;
                   </div>
-                )}
-                <p className={styles.heroLabel}>
-                  Total contribution required {displaySnapshot.cyclePeriodLabel}
-                </p>
-                <p className={styles.heroAmount} data-testid="total-per-cycle">
-                  {formatCurrency(displaySnapshot.totalContributionPerCycle)}
-                </p>
-                <p className={styles.heroDescription}>
-                  across all obligations
-                </p>
-
-                {fundGroupHealthData.length > 0 && (
-                  <>
-                    <div className={styles.heroDivider} />
-                    <HealthBar fundGroups={fundGroupHealthData} />
-                  </>
-                )}
-
-                <div className={styles.heroActions}>
-                  {!isActive && fundGroups.length > 0 && (
-                    <button
-                      type="button"
-                      className={styles.confirmBalancesButton}
-                      onClick={() => setShowConfirmBalancesModal(true)}
-                      data-testid="hero-confirm-balances"
-                    >
-                      Confirm fund balances
-                    </button>
+                  <h2 className={styles.celebrationTitle}>
+                    {"You're fully covered!"}
+                  </h2>
+                  <p className={styles.celebrationDescription}>
+                    All obligations are fully funded. Next due date:{" "}
+                    {formatDate(displaySnapshot.nextActionDate)}
+                  </p>
+                  {fundGroupHealthData.length > 0 && (
+                    <>
+                      <div className={styles.heroDivider} />
+                      <HealthBar fundGroups={fundGroupHealthData} />
+                    </>
                   )}
+
+                  <div className={styles.heroActions}>
+                    {!isActive && fundGroups.length > 0 && (
+                      <button
+                        type="button"
+                        className={styles.confirmBalancesButton}
+                        onClick={() => setShowConfirmBalancesModal(true)}
+                        data-testid="hero-confirm-balances"
+                      >
+                        Confirm fund balances
+                      </button>
+                    )}
+                  </div>
                 </div>
+              )}
+
+              {!displayIsFullyFunded && displaySnapshot && (
+                <div
+                  className={`${styles.heroCard} ${isActive ? styles.heroScenario : ""}`}
+                >
+                  {isActive && (
+                    <div className={styles.scenarioIndicator} data-testid="scenario-indicator">
+                      What-if scenario
+                    </div>
+                  )}
+                  <p className={styles.heroLabel}>
+                    Total contribution required {displaySnapshot.cyclePeriodLabel}
+                  </p>
+                  <p className={styles.heroAmount} data-testid="total-per-cycle">
+                    {formatCurrency(displaySnapshot.totalContributionPerCycle)}
+                  </p>
+                  <p className={styles.heroDescription}>
+                    across all obligations
+                  </p>
+
+                  {fundGroupHealthData.length > 0 && (
+                    <>
+                      <div className={styles.heroDivider} />
+                      <HealthBar fundGroups={fundGroupHealthData} />
+                    </>
+                  )}
+
+                  <div className={styles.heroActions}>
+                    {!isActive && fundGroups.length > 0 && (
+                      <button
+                        type="button"
+                        className={styles.confirmBalancesButton}
+                        onClick={() => setShowConfirmBalancesModal(true)}
+                        data-testid="hero-confirm-balances"
+                      >
+                        Confirm fund balances
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Fund Projection */}
+              <div className={styles.timelineSection}>
+                <TimelineChart
+                  scenarioData={isActive ? scenarioTimeline : null}
+                  onPreseedChange={setFundGroupPreseeds}
+                />
               </div>
-            )}
-
-            {/* Card 2: Suggestions */}
-            <SuggestionsCard />
-          </div>
-        )}
-
-        {!loading && !error && !isEmptyState && (
-          <div className={styles.mainContent}>
-            <div className={styles.timelineSection}>
-              <TimelineChart
-                scenarioData={isActive ? scenarioTimeline : null}
-                onPreseedChange={setFundGroupPreseeds}
-              />
             </div>
-            <aside className={styles.sidebar}>
+
+            {/* Sidebar: Suggestions + Upcoming */}
+            <aside className={styles.sidebarCard}>
+              <SuggestionsCard />
+              <hr className={styles.sidebarDivider} />
               <UpcomingObligations />
             </aside>
           </div>
