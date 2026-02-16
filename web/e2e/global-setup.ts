@@ -41,6 +41,16 @@ async function globalSetup(config: FullConfig): Promise<void> {
       },
     });
 
+    // Create default fund group
+    const defaultFundGroup = await prisma.fundGroup.create({
+      data: {
+        userId: user.id,
+        name: "Default Sinking Fund",
+        isDefault: true,
+        currentBalance: 1000,
+      },
+    });
+
     // Seed sample income source
     await prisma.incomeSource.create({
       data: {
@@ -67,6 +77,7 @@ async function globalSetup(config: FullConfig): Promise<void> {
         nextDueDate: new Date(
           Date.now() + 30 * 24 * 60 * 60 * 1000
         ),
+        fundGroupId: defaultFundGroup.id,
       },
     });
 
@@ -109,10 +120,7 @@ async function cleanupUser(
   await prisma.importLog.deleteMany({ where: { userId } });
   await prisma.transaction.deleteMany({ where: { userId } });
   await prisma.contributionRecord.deleteMany({
-    where: { obligation: { userId } },
-  });
-  await prisma.fundBalance.deleteMany({
-    where: { obligation: { userId } },
+    where: { fundGroup: { userId } },
   });
   await prisma.escalation.deleteMany({
     where: { obligation: { userId } },

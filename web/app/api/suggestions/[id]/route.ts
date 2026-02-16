@@ -99,6 +99,15 @@ export async function PUT(
 
     // expense type — create an Obligation
     const result = await prisma.$transaction(async (tx) => {
+      // Look up default fund group for this user
+      const defaultFundGroup = await tx.fundGroup.findFirst({
+        where: { userId: user.id, isDefault: true },
+      });
+
+      if (!defaultFundGroup) {
+        throw new Error("no default fund group found for user");
+      }
+
       const obligation = await tx.obligation.create({
         data: {
           userId: user.id,
@@ -109,6 +118,7 @@ export async function PUT(
           frequencyDays: body.frequencyDays ?? null,
           startDate: now,
           nextDueDate: body.nextDueDate ? new Date(body.nextDueDate) : now,
+          fundGroupId: defaultFundGroup.id,
         },
       });
 

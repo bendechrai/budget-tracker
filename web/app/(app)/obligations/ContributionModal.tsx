@@ -5,8 +5,8 @@ import styles from "./contribution-modal.module.css";
 import { logError } from "@/lib/logging";
 
 interface ContributionModalProps {
-  obligationId: string;
-  obligationName: string;
+  fundGroupId: string;
+  fundGroupName: string;
   currentBalance: number;
   amountNeeded: number;
   recommendedContribution: number;
@@ -21,8 +21,8 @@ type ModalStatus =
   | { type: "error"; message: string };
 
 export default function ContributionModal({
-  obligationId,
-  obligationName,
+  fundGroupId,
+  fundGroupName,
   currentBalance,
   amountNeeded,
   recommendedContribution,
@@ -52,7 +52,7 @@ export default function ContributionModal({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          obligationId,
+          fundGroupId,
           amount: parsed,
           type: "contribution",
         }),
@@ -71,7 +71,7 @@ export default function ContributionModal({
       logError("failed to record contribution", err);
       setStatus({ type: "error", message });
     }
-  }, [amount, obligationId, onSaved]);
+  }, [amount, fundGroupId, onSaved]);
 
   const isLoading = status.type === "loading";
 
@@ -80,7 +80,7 @@ export default function ContributionModal({
       <div
         className={styles.modal}
         role="dialog"
-        aria-label={`Record contribution for ${obligationName}`}
+        aria-label={`Record contribution for ${fundGroupName}`}
         data-testid="contribution-modal"
       >
         <div className={styles.modalHeader}>
@@ -98,9 +98,9 @@ export default function ContributionModal({
 
         <div className={styles.content}>
           <div className={styles.fieldRow}>
-            <span className={styles.fieldLabel}>Obligation</span>
+            <span className={styles.fieldLabel}>Fund</span>
             <span className={styles.fieldValue} data-testid="contribution-modal-name">
-              {obligationName}
+              {fundGroupName}
             </span>
           </div>
           <div className={styles.fieldRow}>

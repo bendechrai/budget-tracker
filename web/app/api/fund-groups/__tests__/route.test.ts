@@ -115,11 +115,11 @@ describe("GET /api/fund-groups", () => {
     vi.clearAllMocks();
   });
 
-  it("returns 200 with user's fund groups ordered by createdAt desc", async () => {
+  it("returns 200 with user's fund groups ordered by isDefault desc then createdAt asc", async () => {
     mockGetCurrentUser.mockResolvedValue({ id: "user_1", email: "test@example.com" });
     const records = [
-      { id: "fg_2", userId: "user_1", name: "Savings", createdAt: "2026-02-01T00:00:00.000Z" },
-      { id: "fg_1", userId: "user_1", name: "Bills", createdAt: "2026-01-01T00:00:00.000Z" },
+      { id: "fg_1", userId: "user_1", name: "Default", isDefault: true, createdAt: "2026-01-01T00:00:00.000Z", _count: { obligations: 2 } },
+      { id: "fg_2", userId: "user_1", name: "Savings", isDefault: false, createdAt: "2026-02-01T00:00:00.000Z", _count: { obligations: 1 } },
     ];
     mockFindMany.mockResolvedValue(records);
 
@@ -133,9 +133,13 @@ describe("GET /api/fund-groups", () => {
       where: {
         userId: "user_1",
       },
-      orderBy: {
-        createdAt: "desc",
+      include: {
+        _count: { select: { obligations: true } },
       },
+      orderBy: [
+        { isDefault: "desc" },
+        { createdAt: "asc" },
+      ],
     });
   });
 
@@ -153,9 +157,13 @@ describe("GET /api/fund-groups", () => {
       where: {
         userId: "user_2",
       },
-      orderBy: {
-        createdAt: "desc",
+      include: {
+        _count: { select: { obligations: true } },
       },
+      orderBy: [
+        { isDefault: "desc" },
+        { createdAt: "asc" },
+      ],
     });
   });
 

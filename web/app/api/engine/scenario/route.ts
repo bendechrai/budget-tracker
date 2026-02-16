@@ -7,7 +7,7 @@ import { generateSnapshot } from "@/lib/engine/snapshot";
 import { projectTimeline } from "@/lib/engine/timeline";
 import type {
   ObligationInput,
-  FundBalanceInput,
+  FundGroupBalanceInput,
   WhatIfOverrides,
 } from "@/lib/engine/calculate";
 import type { EscalationRule } from "@/lib/engine/escalation";
@@ -93,12 +93,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       },
     });
 
-    const fundBalances = await prisma.fundBalance.findMany({
-      where: {
-        obligation: {
-          userId: user.id,
-        },
-      },
+    const fundGroups = await prisma.fundGroup.findMany({
+      where: { userId: user.id },
     });
 
     const obligationInputs: ObligationInput[] = obligations.map((o) => ({
@@ -120,14 +116,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       })),
     }));
 
-    const fundBalanceInputs: FundBalanceInput[] = fundBalances.map((fb) => ({
-      obligationId: fb.obligationId,
-      currentBalance: fb.currentBalance,
+    const fundGroupBalanceInputs: FundGroupBalanceInput[] = fundGroups.map((fg) => ({
+      fundGroupId: fg.id,
+      currentBalance: fg.currentBalance,
     }));
 
     const engineInput = {
       obligations: obligationInputs,
-      fundBalances: fundBalanceInputs,
+      fundGroupBalances: fundGroupBalanceInputs,
       maxContributionPerCycle: user.maxContributionPerCycle,
       cycleConfig,
     };
@@ -165,7 +161,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     const scenarioTimeline = projectTimeline({
       obligations: allScenarioObligations,
-      fundBalances: fundBalanceInputs,
+      fundGroupBalances: fundGroupBalanceInputs,
       currentFundBalance: user.currentFundBalance,
       contributionPerCycle: scenario.totalContributionPerCycle,
       cycleConfig: engineInput.cycleConfig,

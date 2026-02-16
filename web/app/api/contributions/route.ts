@@ -3,12 +3,12 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth/getCurrentUser";
 import { logError } from "@/lib/logging";
 import { calculateAndSnapshot } from "@/lib/engine/snapshot";
-import { cycleDaysToConfig } from "@/lib/engine/calculate";
-import type { ObligationInput, FundBalanceInput } from "@/lib/engine/calculate";
+import { resolveCycleConfig } from "@/lib/engine/calculate";
+import type { ObligationInput, FundGroupBalanceInput } from "@/lib/engine/calculate";
 import type { ContributionType } from "@/app/generated/prisma/client";
 
 interface ContributionBody {
-  obligationId: string;
+  fundGroupId: string;
   amount: number;
   type: ContributionType;
   note?: string | null;
@@ -25,14 +25,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     const body = (await request.json()) as Partial<ContributionBody>;
 
-    // Validate obligationId
+    // Validate fundGroupId
     if (
-      !body.obligationId ||
-      typeof body.obligationId !== "string" ||
-      body.obligationId.trim() === ""
+      !body.fundGroupId ||
+      typeof body.fundGroupId !== "string" ||
+      body.fundGroupId.trim() === ""
     ) {
       return NextResponse.json(
-        { error: "obligationId is required" },
+        { error: "fundGroupId is required" },
         { status: 400 }
       );
     }
@@ -60,24 +60,23 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    // Verify the obligation exists and belongs to the user
-    const obligation = await prisma.obligation.findUnique({
-      where: { id: body.obligationId },
+    // Verify the fund group exists and belongs to the user
+    const fundGroup = await prisma.fundGroup.findUnique({
+      where: { id: body.fundGroupId },
     });
 
-    if (!obligation || obligation.userId !== user.id) {
+    if (!fundGroup || fundGroup.userId !== user.id) {
       return NextResponse.json(
-        { error: "obligation not found" },
+        { error: "fund group not found" },
         { status: 404 }
       );
     }
 
-    // Record the contribution and update fund balance in a transaction
-    const { fundBalance } = await prisma.$transaction(async (tx) => {
-      // Create the contribution record
+    // Record the contribution and update fund group balance in a transaction
+    const updatedFundGroup = await prisma.$transaction(async (tx) => {
       await tx.contributionRecord.create({
         data: {
-          obligationId: body.obligationId!,
+          fundGroupId: body.fundGroupId!,
           amount: body.amount!,
           date: new Date(),
           type: body.type!,
@@ -85,24 +84,30 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         },
       });
 
-      // Upsert the fund balance
-      const updatedFundBalance = await tx.fundBalance.upsert({
-        where: { obligationId: body.obligationId! },
-        create: {
-          obligationId: body.obligationId!,
-          currentBalance: body.amount!,
-        },
-        update: {
+      return tx.fundGroup.update({
+        where: { id: body.fundGroupId! },
+        data: {
           currentBalance: {
             increment: body.amount!,
           },
         },
       });
-
-      return { fundBalance: updatedFundBalance };
     });
 
     // Trigger engine recalculation
+    const incomeSources = await prisma.incomeSource.findMany({
+      where: { userId: user.id, isActive: true },
+      select: { frequency: true, isIrregular: true, isActive: true, isPaused: true },
+    });
+
+    const cycleConfig = resolveCycleConfig(
+      {
+        contributionCycleType: user.contributionCycleType ?? null,
+        contributionPayDays: user.contributionPayDays ?? [],
+      },
+      incomeSources,
+    );
+
     const obligations = await prisma.obligation.findMany({
       where: {
         userId: user.id,
@@ -114,12 +119,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       },
     });
 
-    const fundBalances = await prisma.fundBalance.findMany({
-      where: {
-        obligation: {
-          userId: user.id,
-        },
-      },
+    const fundGroups = await prisma.fundGroup.findMany({
+      where: { userId: user.id },
     });
 
     const obligationInputs: ObligationInput[] = obligations.map((o) => ({
@@ -141,16 +142,16 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       })),
     }));
 
-    const fundBalanceInputs: FundBalanceInput[] = fundBalances.map((fb) => ({
-      obligationId: fb.obligationId,
-      currentBalance: fb.currentBalance,
+    const fundGroupBalanceInputs: FundGroupBalanceInput[] = fundGroups.map((fg) => ({
+      fundGroupId: fg.id,
+      currentBalance: fg.currentBalance,
     }));
 
     const { snapshot } = calculateAndSnapshot({
       obligations: obligationInputs,
-      fundBalances: fundBalanceInputs,
+      fundGroupBalances: fundGroupBalanceInputs,
       maxContributionPerCycle: user.maxContributionPerCycle,
-      cycleConfig: cycleDaysToConfig(user.contributionCycleDays),
+      cycleConfig,
     });
 
     await prisma.engineSnapshot.create({
@@ -161,10 +162,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         nextActionAmount: snapshot.nextActionAmount,
         nextActionDate: snapshot.nextActionDate,
         nextActionDescription: snapshot.nextActionDescription,
+        nextActionFundGroupId: snapshot.nextActionFundGroupId,
       },
     });
 
-    return NextResponse.json(fundBalance, { status: 201 });
+    return NextResponse.json(updatedFundGroup, { status: 201 });
   } catch (error) {
     logError("failed to record contribution", error);
     return NextResponse.json(

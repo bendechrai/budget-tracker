@@ -4,7 +4,7 @@ import { getCurrentUser } from "@/lib/auth/getCurrentUser";
 import { logError } from "@/lib/logging";
 import { calculateAndSnapshot } from "@/lib/engine/snapshot";
 import { applyPendingEscalations } from "@/lib/engine/applyEscalations";
-import type { ObligationInput, FundBalanceInput } from "@/lib/engine/calculate";
+import type { ObligationInput, FundGroupBalanceInput } from "@/lib/engine/calculate";
 import { resolveCycleConfig } from "@/lib/engine/calculate";
 
 export async function POST(): Promise<NextResponse> {
@@ -44,13 +44,9 @@ export async function POST(): Promise<NextResponse> {
       },
     });
 
-    // Fetch fund balances for all user obligations
-    const fundBalances = await prisma.fundBalance.findMany({
-      where: {
-        obligation: {
-          userId: user.id,
-        },
-      },
+    // Fetch fund group balances
+    const fundGroups = await prisma.fundGroup.findMany({
+      where: { userId: user.id },
     });
 
     // Map to engine input types
@@ -73,15 +69,15 @@ export async function POST(): Promise<NextResponse> {
       })),
     }));
 
-    const fundBalanceInputs: FundBalanceInput[] = fundBalances.map((fb) => ({
-      obligationId: fb.obligationId,
-      currentBalance: fb.currentBalance,
+    const fundGroupBalanceInputs: FundGroupBalanceInput[] = fundGroups.map((fg) => ({
+      fundGroupId: fg.id,
+      currentBalance: fg.currentBalance,
     }));
 
     // Run engine calculation and generate snapshot
     const { snapshot } = calculateAndSnapshot({
       obligations: obligationInputs,
-      fundBalances: fundBalanceInputs,
+      fundGroupBalances: fundGroupBalanceInputs,
       maxContributionPerCycle: user.maxContributionPerCycle,
       cycleConfig,
     });
@@ -96,6 +92,7 @@ export async function POST(): Promise<NextResponse> {
         nextActionDate: snapshot.nextActionDate,
         nextActionDescription: snapshot.nextActionDescription,
         nextActionObligationId: snapshot.nextActionObligationId,
+        nextActionFundGroupId: snapshot.nextActionFundGroupId,
       },
     });
 

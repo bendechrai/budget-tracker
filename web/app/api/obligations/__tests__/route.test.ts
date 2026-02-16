@@ -12,6 +12,7 @@ const mockObligationFindUnique = vi.fn();
 const mockObligationFindMany = vi.fn();
 const mockCustomScheduleEntryCreateMany = vi.fn();
 const mockFundGroupFindUnique = vi.fn();
+const mockFundGroupFindFirst = vi.fn();
 const mockTransaction = vi.fn();
 
 vi.mock("@/lib/prisma", () => ({
@@ -27,6 +28,7 @@ vi.mock("@/lib/prisma", () => ({
     },
     fundGroup: {
       findUnique: (...args: unknown[]) => mockFundGroupFindUnique(...args),
+      findFirst: (...args: unknown[]) => mockFundGroupFindFirst(...args),
     },
     $transaction: (...args: unknown[]) => mockTransaction(...args),
   },
@@ -107,6 +109,13 @@ describe("POST /api/obligations", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     setupTransaction();
+    mockFundGroupFindFirst.mockResolvedValue({
+      id: "fg_default",
+      userId: "user_1",
+      name: "Default",
+      isDefault: true,
+      currentBalance: 0,
+    });
   });
 
   it("returns 201 for a recurring obligation", async () => {
@@ -128,7 +137,7 @@ describe("POST /api/obligations", () => {
       isPaused: false,
       isActive: true,
       isArchived: false,
-      fundGroupId: null,
+      fundGroupId: "fg_default",
       customEntries: [],
     };
     mockObligationCreate.mockResolvedValue(createdRecord);
@@ -149,7 +158,7 @@ describe("POST /api/obligations", () => {
         amount: 22.99,
         frequency: "monthly",
         frequencyDays: null,
-        fundGroupId: null,
+        fundGroupId: "fg_default",
       }),
     });
   });
@@ -713,7 +722,6 @@ describe("GET /api/obligations", () => {
       include: {
         customEntries: true,
         fundGroup: true,
-        fundBalance: true,
       },
       orderBy: {
         nextDueDate: "asc",
@@ -756,7 +764,6 @@ describe("GET /api/obligations", () => {
       include: {
         customEntries: true,
         fundGroup: true,
-        fundBalance: true,
       },
       orderBy: {
         nextDueDate: "asc",
@@ -843,7 +850,6 @@ describe("GET /api/obligations", () => {
       include: {
         customEntries: true,
         fundGroup: true,
-        fundBalance: true,
       },
       orderBy: {
         nextDueDate: "asc",

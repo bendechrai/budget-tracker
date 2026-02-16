@@ -6,7 +6,7 @@ import { logError } from "@/lib/logging";
 
 interface ContributionRecord {
   id: string;
-  obligationId: string;
+  fundGroupId: string;
   amount: number;
   date: string;
   type: "contribution" | "manual_adjustment";
@@ -15,7 +15,7 @@ interface ContributionRecord {
 }
 
 interface ContributionHistoryProps {
-  obligationId: string;
+  fundGroupId: string;
 }
 
 function formatDate(dateStr: string): string {
@@ -29,7 +29,7 @@ function formatDate(dateStr: string): string {
 }
 
 export default function ContributionHistory({
-  obligationId,
+  fundGroupId,
 }: ContributionHistoryProps) {
   const [contributions, setContributions] = useState<ContributionRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -37,7 +37,7 @@ export default function ContributionHistory({
 
   const fetchContributions = useCallback(async () => {
     try {
-      const res = await fetch(`/api/contributions/${obligationId}`);
+      const res = await fetch(`/api/contributions/${fundGroupId}`);
       if (!res.ok) {
         setError("Failed to load contribution history");
         return;
@@ -50,7 +50,7 @@ export default function ContributionHistory({
     } finally {
       setLoading(false);
     }
-  }, [obligationId]);
+  }, [fundGroupId]);
 
   useEffect(() => {
     void fetchContributions();

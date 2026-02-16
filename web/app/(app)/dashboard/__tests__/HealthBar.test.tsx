@@ -1,237 +1,123 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, waitFor, cleanup, fireEvent } from "@testing-library/react";
+import { describe, it, expect, vi, afterEach } from "vitest";
+import { render, screen, cleanup } from "@testing-library/react";
 import HealthBar from "../HealthBar";
+import type { FundGroupHealth } from "../HealthBar";
 
 vi.mock("next/navigation", () => ({
   usePathname: vi.fn(() => "/dashboard"),
   useRouter: vi.fn(() => ({ push: vi.fn() })),
 }));
 
-vi.mock("@/lib/logging", () => ({
-  logError: vi.fn(),
-}));
-
-function mockFetchResponse(data: unknown, status = 200) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { "Content-Type": "application/json" },
-  });
-}
-
-const mockObligations = [
-  {
-    id: "ob1",
-    name: "Rent",
-    amount: 2000,
-    fundGroupId: "fg1",
-    fundGroup: { id: "fg1", name: "Housing" },
-    fundBalance: { currentBalance: 1500 },
-  },
-  {
-    id: "ob2",
-    name: "Netflix",
-    amount: 22.99,
-    fundGroupId: "fg2",
-    fundGroup: { id: "fg2", name: "Entertainment" },
-    fundBalance: { currentBalance: 22.99 },
-  },
-  {
-    id: "ob3",
-    name: "Car Rego",
-    amount: 850,
-    fundGroupId: null,
-    fundGroup: null,
-    fundBalance: { currentBalance: 200 },
-  },
+const mockFundGroups: FundGroupHealth[] = [
+  { id: "fg1", name: "Housing", funded: 1500, required: 2000 },
+  { id: "fg2", name: "Entertainment", funded: 22.99, required: 22.99 },
+  { id: "fg3", name: "Car", funded: 200, required: 850 },
 ];
 
 describe("HealthBar", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    global.fetch = vi.fn();
-  });
-
   afterEach(() => {
     cleanup();
   });
 
-  it("renders the progress bar with correct percentage", () => {
-    render(<HealthBar totalFunded={3200} totalRequired={4100} />);
+  it("renders a progress bar for each fund group", () => {
+    render(<HealthBar fundGroups={mockFundGroups} />);
 
-    const progressBar = screen.getByRole("progressbar");
-    expect(progressBar).toBeDefined();
-    expect(progressBar.getAttribute("aria-valuenow")).toBe("78");
-    expect(progressBar.getAttribute("aria-label")).toBe("78% funded");
+    const progressBars = screen.getAllByRole("progressbar");
+    expect(progressBars).toHaveLength(3);
   });
 
-  it("shows absolute amounts", () => {
-    render(<HealthBar totalFunded={3200} totalRequired={4100} />);
+  it("shows fund group names", () => {
+    render(<HealthBar fundGroups={mockFundGroups} />);
 
-    expect(
-      screen.getByText("$3200.00 of $4100.00 set aside")
-    ).toBeDefined();
-  });
-
-  it("shows green color when funding is at 90% or above", () => {
-    render(<HealthBar totalFunded={9000} totalRequired={10000} />);
-
-    const progressBar = screen.getByRole("progressbar");
-    expect(progressBar.getAttribute("aria-valuenow")).toBe("90");
-    expect(screen.getByText("90%")).toBeDefined();
-  });
-
-  it("shows amber color when funding is between 60% and 89%", () => {
-    render(<HealthBar totalFunded={7500} totalRequired={10000} />);
-
-    const progressBar = screen.getByRole("progressbar");
-    expect(progressBar.getAttribute("aria-valuenow")).toBe("75");
-    expect(screen.getByText("75%")).toBeDefined();
-  });
-
-  it("shows red color when funding is below 60%", () => {
-    render(<HealthBar totalFunded={5000} totalRequired={10000} />);
-
-    const progressBar = screen.getByRole("progressbar");
-    expect(progressBar.getAttribute("aria-valuenow")).toBe("50");
-    expect(screen.getByText("50%")).toBeDefined();
-  });
-
-  it("handles zero total required gracefully", () => {
-    render(<HealthBar totalFunded={0} totalRequired={0} />);
-
-    const progressBar = screen.getByRole("progressbar");
-    expect(progressBar.getAttribute("aria-valuenow")).toBe("0");
-    expect(screen.getByText("0%")).toBeDefined();
-  });
-
-  it("expands to show group breakdown on click", async () => {
-    vi.mocked(global.fetch).mockResolvedValue(
-      mockFetchResponse(mockObligations)
-    );
-
-    render(<HealthBar totalFunded={1722.99} totalRequired={2872.99} />);
-
-    const expandButton = screen.getByRole("button");
-    expect(expandButton.getAttribute("aria-expanded")).toBe("false");
-
-    fireEvent.click(expandButton);
-
-    expect(expandButton.getAttribute("aria-expanded")).toBe("true");
-
-    await waitFor(() => {
-      expect(screen.getByText("Housing")).toBeDefined();
-    });
-
+    expect(screen.getByText("Housing")).toBeDefined();
     expect(screen.getByText("Entertainment")).toBeDefined();
-    expect(screen.getByText("Ungrouped")).toBeDefined();
+    expect(screen.getByText("Car")).toBeDefined();
   });
 
-  it("shows per-group funded amounts in breakdown", async () => {
-    vi.mocked(global.fetch).mockResolvedValue(
-      mockFetchResponse(mockObligations)
-    );
+  it("shows funded/required amounts for each fund", () => {
+    render(<HealthBar fundGroups={mockFundGroups} />);
 
-    render(<HealthBar totalFunded={1722.99} totalRequired={2872.99} />);
-
-    fireEvent.click(screen.getByRole("button"));
-
-    await waitFor(() => {
-      expect(screen.getByText("$1500.00 / $2000.00")).toBeDefined();
-    });
-
+    expect(screen.getByText("$1500.00 / $2000.00")).toBeDefined();
     expect(screen.getByText("$22.99 / $22.99")).toBeDefined();
     expect(screen.getByText("$200.00 / $850.00")).toBeDefined();
   });
 
-  it("shows no groups message when obligations list is empty", async () => {
-    vi.mocked(global.fetch).mockResolvedValue(mockFetchResponse([]));
+  it("calculates correct percentages per fund", () => {
+    render(<HealthBar fundGroups={mockFundGroups} />);
 
-    render(<HealthBar totalFunded={0} totalRequired={0} />);
+    const progressBars = screen.getAllByRole("progressbar");
+    // Housing: 1500/2000 = 75%
+    expect(progressBars[0].getAttribute("aria-valuenow")).toBe("75");
+    expect(progressBars[0].getAttribute("aria-label")).toBe("Housing 75% funded");
 
-    fireEvent.click(screen.getByRole("button"));
+    // Entertainment: 22.99/22.99 = 100%
+    expect(progressBars[1].getAttribute("aria-valuenow")).toBe("100");
+    expect(progressBars[1].getAttribute("aria-label")).toBe("Entertainment 100% funded");
 
-    await waitFor(() => {
-      expect(
-        screen.getByText("No obligations to break down")
-      ).toBeDefined();
-    });
+    // Car: 200/850 = 24%
+    expect(progressBars[2].getAttribute("aria-valuenow")).toBe("24");
+    expect(progressBars[2].getAttribute("aria-label")).toBe("Car 24% funded");
   });
 
-  it("collapses breakdown on second click", async () => {
-    vi.mocked(global.fetch).mockResolvedValue(
-      mockFetchResponse(mockObligations)
-    );
-
-    render(<HealthBar totalFunded={1722.99} totalRequired={2872.99} />);
-
-    const button = screen.getByRole("button");
-
-    fireEvent.click(button);
-    await waitFor(() => {
-      expect(screen.getByText("Housing")).toBeDefined();
-    });
-
-    fireEvent.click(button);
-    expect(screen.queryByText("Housing")).toBeNull();
-  });
-
-  it("applies green threshold at exactly 90%", () => {
-    render(<HealthBar totalFunded={900} totalRequired={1000} />);
-
-    const progressBar = screen.getByRole("progressbar");
-    expect(progressBar.getAttribute("aria-valuenow")).toBe("90");
-  });
-
-  it("applies amber threshold at exactly 60%", () => {
-    render(<HealthBar totalFunded={600} totalRequired={1000} />);
-
-    const progressBar = screen.getByRole("progressbar");
-    expect(progressBar.getAttribute("aria-valuenow")).toBe("60");
-  });
-
-  it("applies red threshold at 59%", () => {
-    render(<HealthBar totalFunded={590} totalRequired={1000} />);
-
-    const progressBar = screen.getByRole("progressbar");
-    expect(progressBar.getAttribute("aria-valuenow")).toBe("59");
-  });
-
-  it("displays scenario values when scenario props are provided", () => {
+  it("shows green color for 90%+ funded", () => {
     render(
-      <HealthBar
-        totalFunded={3200}
-        totalRequired={4100}
-        scenarioTotalFunded={2000}
-        scenarioTotalRequired={2100}
-      />
+      <HealthBar fundGroups={[{ id: "fg1", name: "Bills", funded: 900, required: 1000 }]} />
     );
 
-    // Should show scenario amounts, not actual
-    expect(
-      screen.getByText("$2000.00 of $2100.00 set aside")
-    ).toBeDefined();
-
-    // Scenario percentage: 2000/2100 = ~95%
-    const progressBar = screen.getByRole("progressbar");
-    expect(progressBar.getAttribute("aria-valuenow")).toBe("95");
-    expect(progressBar.getAttribute("aria-label")).toBe("95% funded");
+    const bar = screen.getByRole("progressbar");
+    expect(bar.getAttribute("aria-valuenow")).toBe("90");
+    expect(screen.getByText("90%")).toBeDefined();
   });
 
-  it("shows scenario label when scenario props are provided", () => {
+  it("shows amber color for 60-89% funded", () => {
     render(
-      <HealthBar
-        totalFunded={3200}
-        totalRequired={4100}
-        scenarioTotalFunded={2000}
-        scenarioTotalRequired={2100}
-      />
+      <HealthBar fundGroups={[{ id: "fg1", name: "Bills", funded: 750, required: 1000 }]} />
     );
 
-    expect(screen.getByText("Fund health (scenario)")).toBeDefined();
+    const bar = screen.getByRole("progressbar");
+    expect(bar.getAttribute("aria-valuenow")).toBe("75");
+    expect(screen.getByText("75%")).toBeDefined();
   });
 
-  it("shows normal label when no scenario props", () => {
-    render(<HealthBar totalFunded={3200} totalRequired={4100} />);
+  it("shows red color for below 60% funded", () => {
+    render(
+      <HealthBar fundGroups={[{ id: "fg1", name: "Bills", funded: 500, required: 1000 }]} />
+    );
+
+    const bar = screen.getByRole("progressbar");
+    expect(bar.getAttribute("aria-valuenow")).toBe("50");
+    expect(screen.getByText("50%")).toBeDefined();
+  });
+
+  it("handles zero required gracefully", () => {
+    render(
+      <HealthBar fundGroups={[{ id: "fg1", name: "Empty", funded: 0, required: 0 }]} />
+    );
+
+    const bar = screen.getByRole("progressbar");
+    expect(bar.getAttribute("aria-valuenow")).toBe("0");
+    expect(screen.getByText("0%")).toBeDefined();
+  });
+
+  it("clamps percentage at 100% when overfunded", () => {
+    render(
+      <HealthBar fundGroups={[{ id: "fg1", name: "Extra", funded: 1500, required: 1000 }]} />
+    );
+
+    const bar = screen.getByRole("progressbar");
+    // aria-valuenow shows actual percentage (150)
+    expect(bar.getAttribute("aria-valuenow")).toBe("150");
+    // but width would be clamped (tested via style, not easily in jsdom)
+  });
+
+  it("returns null when no fund groups", () => {
+    const { container } = render(<HealthBar fundGroups={[]} />);
+
+    expect(container.innerHTML).toBe("");
+  });
+
+  it("shows the Fund health header", () => {
+    render(<HealthBar fundGroups={mockFundGroups} />);
 
     expect(screen.getByText("Fund health")).toBeDefined();
   });

@@ -6,13 +6,14 @@ import styles from "./dashboard.module.css";
 import { logError } from "@/lib/logging";
 import { useWhatIf } from "@/app/contexts/WhatIfContext";
 import HealthBar from "./HealthBar";
+import type { FundGroupHealth } from "./HealthBar";
 import TimelineChart from "./TimelineChart";
 import UpcomingObligations from "./UpcomingObligations";
 import NudgeCards from "./NudgeCards";
 import ScenarioBanner from "@/app/components/ScenarioBanner";
 import ContributionModal from "@/app/(app)/obligations/ContributionModal";
 import CatchUpModal from "./CatchUpModal";
-import type { CatchUpObligation } from "./CatchUpModal";
+import type { CatchUpFundGroup } from "./CatchUpModal";
 
 interface EngineSnapshot {
   id: string;
@@ -24,7 +25,15 @@ interface EngineSnapshot {
   nextActionDate: string;
   nextActionDescription: string;
   nextActionObligationId: string | null;
+  nextActionFundGroupId: string | null;
   calculatedAt: string;
+}
+
+interface FundGroupData {
+  id: string;
+  name: string;
+  currentBalance: number;
+  _count: { obligations: number };
 }
 
 interface ObligationData {
@@ -32,7 +41,8 @@ interface ObligationData {
   name: string;
   amount: number;
   nextDueDate: string;
-  fundBalance: { currentBalance: number } | null;
+  fundGroupId: string;
+  fundGroup: { id: string; name: string; currentBalance: number };
 }
 
 interface ScenarioSnapshot {
@@ -89,6 +99,7 @@ export default function DashboardPage() {
   const [error, setError] = useState("");
   const [hasObligations, setHasObligations] = useState<boolean | null>(null);
   const [obligations, setObligations] = useState<ObligationData[]>([]);
+  const [fundGroups, setFundGroups] = useState<FundGroupData[]>([]);
   const [scenarioSnapshot, setScenarioSnapshot] =
     useState<ScenarioSnapshot | null>(null);
   const [scenarioTimeline, setScenarioTimeline] =
@@ -101,9 +112,10 @@ export default function DashboardPage() {
 
   const fetchData = useCallback(async () => {
     try {
-      const [snapshotRes, obligationsRes] = await Promise.all([
+      const [snapshotRes, obligationsRes, fundGroupsRes] = await Promise.all([
         fetch("/api/engine/recalculate", { method: "POST" }),
         fetch("/api/obligations"),
+        fetch("/api/fund-groups"),
       ]);
 
       if (obligationsRes.ok) {
@@ -112,6 +124,11 @@ export default function DashboardPage() {
         setHasObligations(oblData.length > 0);
       } else {
         setHasObligations(false);
+      }
+
+      if (fundGroupsRes.ok) {
+        const fgData = (await fundGroupsRes.json()) as FundGroupData[];
+        setFundGroups(fgData);
       }
 
       if (!snapshotRes.ok) {
@@ -220,27 +237,43 @@ export default function DashboardPage() {
     displaySnapshot.nextActionAmount === 0 &&
     displaySnapshot.totalRequired > 0;
 
-  // Find the obligation for the hero card's "Mark as done" action
-  const nextActionObligation =
-    snapshot?.nextActionObligationId
-      ? obligations.find((o) => o.id === snapshot.nextActionObligationId) ?? null
+  // Find the fund group for the hero card's "Mark as done" action
+  const nextActionFundGroup =
+    snapshot?.nextActionFundGroupId
+      ? fundGroups.find((fg) => fg.id === snapshot.nextActionFundGroupId) ?? null
       : null;
 
-  // Determine which obligations are underfunded (for catch-up button)
-  const underfundedObligations: CatchUpObligation[] = obligations
-    .filter((o) => {
-      const balance = o.fundBalance?.currentBalance ?? 0;
-      return balance < o.amount;
-    })
-    .map((o) => ({
-      id: o.id,
-      name: o.name,
-      amountNeeded: o.amount,
-      currentBalance: o.fundBalance?.currentBalance ?? 0,
-      nextDueDate: o.nextDueDate,
+  // Compute total required per fund group from obligations
+  const fundGroupRequired = new Map<string, number>();
+  for (const o of obligations) {
+    const current = fundGroupRequired.get(o.fundGroupId) ?? 0;
+    fundGroupRequired.set(o.fundGroupId, current + o.amount);
+  }
+
+  // Build per-fund-group health data for the health bar
+  const fundGroupHealthData: FundGroupHealth[] = fundGroups
+    .filter((fg) => fg._count.obligations > 0)
+    .map((fg) => ({
+      id: fg.id,
+      name: fg.name,
+      funded: fg.currentBalance,
+      required: fundGroupRequired.get(fg.id) ?? 0,
     }));
 
-  const showCatchUpButton = underfundedObligations.length > 1 && !isActive;
+  // Determine which fund groups are underfunded (for catch-up button)
+  const underfundedFundGroups: CatchUpFundGroup[] = fundGroups
+    .filter((fg) => {
+      const required = fundGroupRequired.get(fg.id) ?? 0;
+      return required > 0 && fg.currentBalance < required;
+    })
+    .map((fg) => ({
+      id: fg.id,
+      name: fg.name,
+      amountNeeded: fundGroupRequired.get(fg.id) ?? 0,
+      currentBalance: fg.currentBalance,
+    }));
+
+  const showCatchUpButton = underfundedFundGroups.length > 1 && !isActive;
 
   return (
     <div className={styles.page}>
@@ -329,7 +362,7 @@ export default function DashboardPage() {
                   Due by {formatDate(displaySnapshot.nextActionDate)}
                 </p>
                 <div className={styles.heroActions}>
-                  {!isActive && snapshot?.nextActionObligationId && (
+                  {!isActive && snapshot?.nextActionFundGroupId && (
                     <button
                       type="button"
                       className={styles.markDoneButton}
@@ -355,18 +388,7 @@ export default function DashboardPage() {
 
             {snapshot && (
               <HealthBar
-                totalFunded={snapshot.totalFunded}
-                totalRequired={snapshot.totalRequired}
-                scenarioTotalFunded={
-                  isActive && scenarioSnapshot
-                    ? scenarioSnapshot.totalFunded
-                    : undefined
-                }
-                scenarioTotalRequired={
-                  isActive && scenarioSnapshot
-                    ? scenarioSnapshot.totalRequired
-                    : undefined
-                }
+                fundGroups={fundGroupHealthData}
               />
             )}
           </div>
@@ -386,12 +408,12 @@ export default function DashboardPage() {
         )}
       </div>
 
-      {showContributionModal && nextActionObligation && snapshot && (
+      {showContributionModal && nextActionFundGroup && snapshot && (
         <ContributionModal
-          obligationId={nextActionObligation.id}
-          obligationName={nextActionObligation.name}
-          currentBalance={nextActionObligation.fundBalance?.currentBalance ?? 0}
-          amountNeeded={nextActionObligation.amount}
+          fundGroupId={nextActionFundGroup.id}
+          fundGroupName={nextActionFundGroup.name}
+          currentBalance={nextActionFundGroup.currentBalance}
+          amountNeeded={fundGroupRequired.get(nextActionFundGroup.id) ?? 0}
           recommendedContribution={snapshot.nextActionAmount}
           onClose={() => setShowContributionModal(false)}
           onSaved={() => setShowContributionModal(false)}
@@ -400,7 +422,7 @@ export default function DashboardPage() {
 
       {showCatchUpModal && (
         <CatchUpModal
-          obligations={underfundedObligations}
+          fundGroups={underfundedFundGroups}
           onClose={() => setShowCatchUpModal(false)}
           onSaved={() => setShowCatchUpModal(false)}
         />

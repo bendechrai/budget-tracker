@@ -2,14 +2,16 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
 const mockFindUnique = vi.fn();
-const mockCreate = vi.fn();
+const mockUserCreate = vi.fn();
+const mockFundGroupCreate = vi.fn();
+const mockTransaction = vi.fn();
 
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     user: {
       findUnique: (...args: unknown[]) => mockFindUnique(...args),
-      create: (...args: unknown[]) => mockCreate(...args),
     },
+    $transaction: (...args: unknown[]) => mockTransaction(...args),
   },
 }));
 
@@ -19,6 +21,10 @@ vi.mock("@/lib/auth/password", () => ({
 
 vi.mock("@/lib/auth/session", () => ({
   createSession: vi.fn().mockResolvedValue(undefined),
+}));
+
+vi.mock("@/lib/email/send", () => ({
+  sendWelcomeEmail: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock("@/lib/logging", () => ({
@@ -35,17 +41,41 @@ function makeRequest(body: Record<string, unknown>): NextRequest {
   });
 }
 
+function setupTransaction() {
+  mockTransaction.mockImplementation(
+    async (fn: (tx: Record<string, Record<string, (...args: unknown[]) => unknown>>) => Promise<unknown>) => {
+      const txClient = {
+        user: {
+          create: (...args: unknown[]) => mockUserCreate(...args),
+        },
+        fundGroup: {
+          create: (...args: unknown[]) => mockFundGroupCreate(...args),
+        },
+      };
+      return fn(txClient);
+    }
+  );
+}
+
 describe("POST /api/auth/signup", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    setupTransaction();
   });
 
   it("creates a user and returns 201 with valid data", async () => {
     mockFindUnique.mockResolvedValue(null);
-    mockCreate.mockResolvedValue({
+    mockUserCreate.mockResolvedValue({
       id: "user_1",
       email: "test@example.com",
       onboardingComplete: false,
+    });
+    mockFundGroupCreate.mockResolvedValue({
+      id: "fg_1",
+      userId: "user_1",
+      name: "Default Sinking Fund",
+      isDefault: true,
+      currentBalance: 0,
     });
 
     const res = await POST(makeRequest({
@@ -60,8 +90,16 @@ describe("POST /api/auth/signup", () => {
     expect(mockFindUnique).toHaveBeenCalledWith({
       where: { email: "test@example.com" },
     });
-    expect(mockCreate).toHaveBeenCalledWith({
+    expect(mockUserCreate).toHaveBeenCalledWith({
       data: { email: "test@example.com", passwordHash: "hashed_password" },
+    });
+    expect(mockFundGroupCreate).toHaveBeenCalledWith({
+      data: {
+        userId: "user_1",
+        name: "Default Sinking Fund",
+        isDefault: true,
+        currentBalance: 0,
+      },
     });
   });
 
@@ -76,7 +114,7 @@ describe("POST /api/auth/signup", () => {
     expect(res.status).toBe(409);
     const data = await res.json();
     expect(data.error).toBe("email already registered");
-    expect(mockCreate).not.toHaveBeenCalled();
+    expect(mockUserCreate).not.toHaveBeenCalled();
   });
 
   it("returns 400 for short password", async () => {
@@ -120,10 +158,17 @@ describe("POST /api/auth/signup", () => {
 
   it("normalizes email to lowercase and trims whitespace", async () => {
     mockFindUnique.mockResolvedValue(null);
-    mockCreate.mockResolvedValue({
+    mockUserCreate.mockResolvedValue({
       id: "user_2",
       email: "user@example.com",
       onboardingComplete: false,
+    });
+    mockFundGroupCreate.mockResolvedValue({
+      id: "fg_2",
+      userId: "user_2",
+      name: "Default Sinking Fund",
+      isDefault: true,
+      currentBalance: 0,
     });
 
     await POST(makeRequest({

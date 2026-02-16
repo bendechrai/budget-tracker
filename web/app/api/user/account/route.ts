@@ -42,6 +42,14 @@ export async function DELETE(request: NextRequest): Promise<NextResponse> {
       // AI interaction logs
       await tx.aIInteractionLog.deleteMany({ where: { userId: user.id } });
 
+      // Import files (via batches)
+      await tx.importFile.deleteMany({
+        where: { batch: { userId: user.id } },
+      });
+
+      // Import batches
+      await tx.importBatch.deleteMany({ where: { userId: user.id } });
+
       // Import logs
       await tx.importLog.deleteMany({ where: { userId: user.id } });
 
@@ -53,14 +61,9 @@ export async function DELETE(request: NextRequest): Promise<NextResponse> {
         where: { obligation: { userId: user.id } },
       });
 
-      // Contribution records (via obligations)
+      // Contribution records (via fund groups)
       await tx.contributionRecord.deleteMany({
-        where: { obligation: { userId: user.id } },
-      });
-
-      // Fund balances (via obligations)
-      await tx.fundBalance.deleteMany({
-        where: { obligation: { userId: user.id } },
+        where: { fundGroup: { userId: user.id } },
       });
 
       // Custom schedule entries (via obligations)

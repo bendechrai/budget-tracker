@@ -162,7 +162,7 @@ function buildIncomeSourcesCsv(
 function buildContributionsCsv(
   records: Array<{
     id: string;
-    obligationId: string;
+    fundGroupId: string;
     amount: number;
     date: Date;
     type: string;
@@ -172,7 +172,7 @@ function buildContributionsCsv(
 ): string {
   const header = toCsvRow([
     "id",
-    "obligationId",
+    "fundGroupId",
     "amount",
     "date",
     "type",
@@ -182,7 +182,7 @@ function buildContributionsCsv(
   const rows = records.map((r) =>
     toCsvRow([
       r.id,
-      r.obligationId,
+      r.fundGroupId,
       String(r.amount),
       formatDate(r.date),
       r.type,
@@ -215,7 +215,7 @@ export async function POST(): Promise<NextResponse> {
           orderBy: { createdAt: "desc" },
         }),
         prisma.contributionRecord.findMany({
-          where: { obligation: { userId: user.id } },
+          where: { fundGroup: { userId: user.id } },
           orderBy: { date: "desc" },
         }),
       ]);

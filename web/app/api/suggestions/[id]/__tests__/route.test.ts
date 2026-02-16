@@ -10,6 +10,7 @@ const mockSuggestionFindUnique = vi.fn();
 const mockSuggestionUpdate = vi.fn();
 const mockIncomeSourceCreate = vi.fn();
 const mockObligationCreate = vi.fn();
+const mockFundGroupFindFirst = vi.fn();
 const mockTransaction = vi.fn();
 
 vi.mock("@/lib/prisma", () => ({
@@ -23,6 +24,9 @@ vi.mock("@/lib/prisma", () => ({
     },
     obligation: {
       create: (...args: unknown[]) => mockObligationCreate(...args),
+    },
+    fundGroup: {
+      findFirst: (...args: unknown[]) => mockFundGroupFindFirst(...args),
     },
     $transaction: (...args: unknown[]) => mockTransaction(...args),
   },
@@ -85,6 +89,9 @@ function setupTransaction() {
         suggestion: {
           update: (...args: unknown[]) => mockSuggestionUpdate(...args),
         },
+        fundGroup: {
+          findFirst: (...args: unknown[]) => mockFundGroupFindFirst(...args),
+        },
       };
       return fn(txClient);
     }
@@ -101,6 +108,12 @@ describe("PUT /api/suggestions/[id]", () => {
     mockSuggestionUpdate.mockResolvedValue({
       ...mockPendingSuggestion,
       status: "dismissed",
+    });
+    mockFundGroupFindFirst.mockResolvedValue({
+      id: "fg_default",
+      userId: "user_1",
+      name: "Default Sinking Fund",
+      isDefault: true,
     });
     setupTransaction();
   });

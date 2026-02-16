@@ -3,11 +3,11 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth/getCurrentUser";
 import { logError } from "@/lib/logging";
 import { calculateAndSnapshot } from "@/lib/engine/snapshot";
-import { cycleDaysToConfig } from "@/lib/engine/calculate";
-import type { ObligationInput, FundBalanceInput } from "@/lib/engine/calculate";
+import { resolveCycleConfig } from "@/lib/engine/calculate";
+import type { ObligationInput, FundGroupBalanceInput } from "@/lib/engine/calculate";
 
 interface BulkContributionItem {
-  obligationId: string;
+  fundGroupId: string;
   amount: number;
 }
 
@@ -34,9 +34,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     // Validate each item
     for (const item of body.contributions) {
-      if (!item.obligationId || typeof item.obligationId !== "string" || item.obligationId.trim() === "") {
+      if (!item.fundGroupId || typeof item.fundGroupId !== "string" || item.fundGroupId.trim() === "") {
         return NextResponse.json(
-          { error: "each contribution must have a valid obligationId" },
+          { error: "each contribution must have a valid fundGroupId" },
           { status: 400 }
         );
       }
@@ -54,33 +54,31 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       }
     }
 
-    // Verify all obligations exist and belong to the user
-    const obligationIds = body.contributions.map((c) => c.obligationId);
-    const obligations = await prisma.obligation.findMany({
-      where: { id: { in: obligationIds } },
+    // Verify all fund groups exist and belong to the user
+    const fundGroupIds = body.contributions.map((c) => c.fundGroupId);
+    const fundGroups = await prisma.fundGroup.findMany({
+      where: { id: { in: fundGroupIds } },
     });
 
-    const userObligationIds = new Set(
-      obligations.filter((o) => o.userId === user.id).map((o) => o.id)
+    const userFundGroupIds = new Set(
+      fundGroups.filter((fg) => fg.userId === user.id).map((fg) => fg.id)
     );
 
-    for (const id of obligationIds) {
-      if (!userObligationIds.has(id)) {
+    for (const id of fundGroupIds) {
+      if (!userFundGroupIds.has(id)) {
         return NextResponse.json(
-          { error: "obligation not found" },
+          { error: "fund group not found" },
           { status: 404 }
         );
       }
     }
 
-    // Record all contributions and update fund balances in a single transaction
-    const updatedBalances = await prisma.$transaction(async (tx) => {
-      const balances = [];
-
+    // Record all contributions and update balances in a single transaction
+    await prisma.$transaction(async (tx) => {
       for (const item of body.contributions!) {
         await tx.contributionRecord.create({
           data: {
-            obligationId: item.obligationId,
+            fundGroupId: item.fundGroupId,
             amount: item.amount,
             date: new Date(),
             type: "contribution",
@@ -88,26 +86,31 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           },
         });
 
-        const updatedFundBalance = await tx.fundBalance.upsert({
-          where: { obligationId: item.obligationId },
-          create: {
-            obligationId: item.obligationId,
-            currentBalance: item.amount,
-          },
-          update: {
+        await tx.fundGroup.update({
+          where: { id: item.fundGroupId },
+          data: {
             currentBalance: {
               increment: item.amount,
             },
           },
         });
-
-        balances.push(updatedFundBalance);
       }
-
-      return balances;
     });
 
     // Trigger one engine recalculation
+    const incomeSources = await prisma.incomeSource.findMany({
+      where: { userId: user.id, isActive: true },
+      select: { frequency: true, isIrregular: true, isActive: true, isPaused: true },
+    });
+
+    const cycleConfig = resolveCycleConfig(
+      {
+        contributionCycleType: user.contributionCycleType ?? null,
+        contributionPayDays: user.contributionPayDays ?? [],
+      },
+      incomeSources,
+    );
+
     const allObligations = await prisma.obligation.findMany({
       where: {
         userId: user.id,
@@ -119,12 +122,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       },
     });
 
-    const fundBalances = await prisma.fundBalance.findMany({
-      where: {
-        obligation: {
-          userId: user.id,
-        },
-      },
+    const allFundGroups = await prisma.fundGroup.findMany({
+      where: { userId: user.id },
     });
 
     const obligationInputs: ObligationInput[] = allObligations.map((o) => ({
@@ -146,16 +145,16 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       })),
     }));
 
-    const fundBalanceInputs: FundBalanceInput[] = fundBalances.map((fb) => ({
-      obligationId: fb.obligationId,
-      currentBalance: fb.currentBalance,
+    const fundGroupBalanceInputs: FundGroupBalanceInput[] = allFundGroups.map((fg) => ({
+      fundGroupId: fg.id,
+      currentBalance: fg.currentBalance,
     }));
 
     const { snapshot } = calculateAndSnapshot({
       obligations: obligationInputs,
-      fundBalances: fundBalanceInputs,
+      fundGroupBalances: fundGroupBalanceInputs,
       maxContributionPerCycle: user.maxContributionPerCycle,
-      cycleConfig: cycleDaysToConfig(user.contributionCycleDays),
+      cycleConfig,
     });
 
     await prisma.engineSnapshot.create({
@@ -166,10 +165,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         nextActionAmount: snapshot.nextActionAmount,
         nextActionDate: snapshot.nextActionDate,
         nextActionDescription: snapshot.nextActionDescription,
+        nextActionFundGroupId: snapshot.nextActionFundGroupId,
       },
     });
 
-    return NextResponse.json({ balances: updatedBalances }, { status: 201 });
+    return NextResponse.json({ success: true }, { status: 201 });
   } catch (error) {
     logError("failed to record bulk contributions", error);
     return NextResponse.json(

@@ -13,26 +13,6 @@ vi.mock("@/lib/logging", () => ({
   logError: vi.fn(),
 }));
 
-vi.mock("../ContributionModal", () => ({
-  default: ({ obligationName, onClose, onSaved }: { obligationName: string; onClose: () => void; onSaved: () => void }) => (
-    <div data-testid="contribution-modal">
-      <span data-testid="contribution-modal-name">{obligationName}</span>
-      <button data-testid="contribution-modal-close" onClick={onClose}>Close</button>
-      <button data-testid="contribution-modal-save" onClick={onSaved}>Save</button>
-    </div>
-  ),
-}));
-
-vi.mock("../AdjustBalanceModal", () => ({
-  default: ({ obligationName, onClose, onSaved }: { obligationName: string; onClose: () => void; onSaved: () => void }) => (
-    <div data-testid="adjust-balance-modal">
-      <span data-testid="adjust-balance-modal-name">{obligationName}</span>
-      <button data-testid="adjust-balance-modal-close" onClick={onClose}>Close</button>
-      <button data-testid="adjust-balance-modal-save" onClick={onSaved}>Save</button>
-    </div>
-  ),
-}));
-
 const mockToggleObligation = vi.fn();
 const mockOverrideAmount = vi.fn();
 const mockAddHypothetical = vi.fn();
@@ -83,10 +63,9 @@ const mockObligations = [
     nextDueDate: "2026-03-15T00:00:00.000Z",
     isPaused: false,
     isArchived: false,
-    fundGroupId: null,
-    fundGroup: null,
+    fundGroupId: "g0",
+    fundGroup: { id: "g0", name: "Ungrouped" },
     customEntries: [],
-    fundBalance: { currentBalance: 18.39 },
   },
   {
     id: "2",
@@ -103,7 +82,6 @@ const mockObligations = [
     fundGroupId: "g1",
     fundGroup: { id: "g1", name: "Bills" },
     customEntries: [],
-    fundBalance: { currentBalance: 100 },
   },
   {
     id: "3",
@@ -117,10 +95,9 @@ const mockObligations = [
     nextDueDate: "2026-07-01T00:00:00.000Z",
     isPaused: true,
     isArchived: false,
-    fundGroupId: null,
-    fundGroup: null,
+    fundGroupId: "g0",
+    fundGroup: { id: "g0", name: "Ungrouped" },
     customEntries: [],
-    fundBalance: null,
   },
 ];
 
@@ -137,10 +114,9 @@ const pastDueObligation = {
   nextDueDate: "2025-01-15T00:00:00.000Z",
   isPaused: false,
   isArchived: false,
-  fundGroupId: null,
-  fundGroup: null,
+  fundGroupId: "g0",
+  fundGroup: { id: "g0", name: "Ungrouped" },
   customEntries: [],
-  fundBalance: null,
 };
 
 const mockEscalations: Record<string, unknown[]> = {};
@@ -608,10 +584,9 @@ describe("ObligationsPage", () => {
       nextDueDate: "2025-06-01T00:00:00.000Z",
       isPaused: false,
       isArchived: true,
-      fundGroupId: null,
-      fundGroup: null,
+      fundGroupId: "g0",
+      fundGroup: { id: "g0", name: "Ungrouped" },
       customEntries: [],
-      fundBalance: null,
     };
 
     mockFetchResponses(mockObligations, [archivedOb]);
@@ -639,10 +614,9 @@ describe("ObligationsPage", () => {
       nextDueDate: "2024-06-01T00:00:00.000Z",
       isPaused: false,
       isArchived: false,
-      fundGroupId: null,
-      fundGroup: null,
+      fundGroupId: "g0",
+      fundGroup: { id: "g0", name: "Ungrouped" },
       customEntries: [],
-      fundBalance: null,
     };
 
     // The auto-archive sends a PUT for the completed obligation
@@ -704,10 +678,9 @@ describe("ObligationsPage", () => {
       nextDueDate: "2024-12-01T00:00:00.000Z",
       isPaused: false,
       isArchived: false,
-      fundGroupId: null,
-      fundGroup: null,
+      fundGroupId: "g0",
+      fundGroup: { id: "g0", name: "Ungrouped" },
       customEntries: [],
-      fundBalance: null,
     };
 
     vi.mocked(global.fetch).mockImplementation((input: string | URL | Request) => {
@@ -766,10 +739,9 @@ describe("ObligationsPage", () => {
       nextDueDate: "2024-06-01T00:00:00.000Z",
       isPaused: true,
       isArchived: false,
-      fundGroupId: null,
-      fundGroup: null,
+      fundGroupId: "g0",
+      fundGroup: { id: "g0", name: "Ungrouped" },
       customEntries: [],
-      fundBalance: null,
     };
 
     mockFetchResponses([pausedCompleted]);
@@ -797,10 +769,9 @@ describe("ObligationsPage", () => {
       nextDueDate: "2025-06-01T00:00:00.000Z",
       isPaused: false,
       isArchived: true,
-      fundGroupId: null,
-      fundGroup: null,
+      fundGroupId: "g0",
+      fundGroup: { id: "g0", name: "Ungrouped" },
       customEntries: [],
-      fundBalance: null,
     };
 
     mockFetchResponses([], [archivedOb]);
@@ -1274,199 +1245,4 @@ describe("ObligationsPage", () => {
     });
   });
 
-  // Fund balance display tests
-
-  it("renders fund balance for each obligation", async () => {
-    mockFetchResponses(mockObligations);
-
-    render(<ObligationsPage />);
-
-    await waitFor(() => {
-      expect(screen.getByText("Netflix")).toBeDefined();
-    });
-
-    // Netflix: $18.39 of $22.99 = 80% → green
-    expect(screen.getByTestId("fund-balance-1")).toBeDefined();
-    expect(screen.getByText(/\$18\.39 of \$22\.99 saved/)).toBeDefined();
-
-    // Tax Repayment: $100.00 of $200.00 = 50% → amber
-    expect(screen.getByTestId("fund-balance-2")).toBeDefined();
-    expect(screen.getByText(/\$100\.00 of \$200\.00 saved/)).toBeDefined();
-
-    // Car Rego: no fund balance = $0.00 of $850.00 = 0% → red
-    expect(screen.getByTestId("fund-balance-3")).toBeDefined();
-    expect(screen.getByText(/\$0\.00 of \$850\.00 saved/)).toBeDefined();
-  });
-
-  it("renders fund balance with correct color coding", async () => {
-    // Netflix: 18.39/22.99 = 80% → green
-    // Tax Repayment: 100/200 = 50% → amber
-    // Car Rego: 0/850 = 0% → red
-    mockFetchResponses(mockObligations);
-
-    render(<ObligationsPage />);
-
-    await waitFor(() => {
-      expect(screen.getByText("Netflix")).toBeDefined();
-    });
-
-    const netflixProgress = screen.getByTestId("fund-progress-1");
-    expect(netflixProgress.style.width).toBe("80%");
-
-    const taxProgress = screen.getByTestId("fund-progress-2");
-    expect(taxProgress.style.width).toBe("50%");
-
-    const carProgress = screen.getByTestId("fund-progress-3");
-    expect(carProgress.style.width).toBe("0%");
-  });
-
-  it("renders Record contribution button for each obligation", async () => {
-    mockFetchResponses(mockObligations);
-
-    render(<ObligationsPage />);
-
-    await waitFor(() => {
-      expect(screen.getByText("Netflix")).toBeDefined();
-    });
-
-    expect(screen.getByTestId("contribute-button-1")).toBeDefined();
-    expect(screen.getByTestId("contribute-button-2")).toBeDefined();
-    expect(screen.getByTestId("contribute-button-3")).toBeDefined();
-  });
-
-  it("opens contribution modal when Record contribution is clicked", async () => {
-    const user = userEvent.setup();
-    mockFetchResponses(mockObligations);
-
-    render(<ObligationsPage />);
-
-    await waitFor(() => {
-      expect(screen.getByText("Netflix")).toBeDefined();
-    });
-
-    await user.click(screen.getByTestId("contribute-button-1"));
-
-    expect(screen.getByTestId("contribution-modal")).toBeDefined();
-    expect(screen.getByTestId("contribution-modal-name").textContent).toBe("Netflix");
-  });
-
-  it("closes contribution modal when close is clicked", async () => {
-    const user = userEvent.setup();
-    mockFetchResponses(mockObligations);
-
-    render(<ObligationsPage />);
-
-    await waitFor(() => {
-      expect(screen.getByText("Netflix")).toBeDefined();
-    });
-
-    await user.click(screen.getByTestId("contribute-button-1"));
-    expect(screen.getByTestId("contribution-modal")).toBeDefined();
-
-    await user.click(screen.getByTestId("contribution-modal-close"));
-
-    await waitFor(() => {
-      expect(screen.queryByTestId("contribution-modal")).toBeNull();
-    });
-  });
-
-  it("refreshes obligations after contribution is saved", async () => {
-    const user = userEvent.setup();
-    mockFetchResponses(mockObligations);
-
-    render(<ObligationsPage />);
-
-    await waitFor(() => {
-      expect(screen.getByText("Netflix")).toBeDefined();
-    });
-
-    const fetchCallsBefore = vi.mocked(global.fetch).mock.calls.length;
-
-    await user.click(screen.getByTestId("contribute-button-1"));
-    await user.click(screen.getByTestId("contribution-modal-save"));
-
-    // Modal should close
-    await waitFor(() => {
-      expect(screen.queryByTestId("contribution-modal")).toBeNull();
-    });
-
-    // fetch should have been called again to refresh obligations
-    expect(vi.mocked(global.fetch).mock.calls.length).toBeGreaterThan(fetchCallsBefore);
-  });
-
-  // Adjust balance button tests
-
-  it("renders Adjust balance button for each obligation", async () => {
-    mockFetchResponses(mockObligations);
-
-    render(<ObligationsPage />);
-
-    await waitFor(() => {
-      expect(screen.getByText("Netflix")).toBeDefined();
-    });
-
-    expect(screen.getByTestId("adjust-balance-button-1")).toBeDefined();
-    expect(screen.getByTestId("adjust-balance-button-2")).toBeDefined();
-    expect(screen.getByTestId("adjust-balance-button-3")).toBeDefined();
-  });
-
-  it("opens adjust balance modal when Adjust balance is clicked", async () => {
-    const user = userEvent.setup();
-    mockFetchResponses(mockObligations);
-
-    render(<ObligationsPage />);
-
-    await waitFor(() => {
-      expect(screen.getByText("Netflix")).toBeDefined();
-    });
-
-    await user.click(screen.getByTestId("adjust-balance-button-1"));
-
-    expect(screen.getByTestId("adjust-balance-modal")).toBeDefined();
-    expect(screen.getByTestId("adjust-balance-modal-name").textContent).toBe("Netflix");
-  });
-
-  it("closes adjust balance modal when close is clicked", async () => {
-    const user = userEvent.setup();
-    mockFetchResponses(mockObligations);
-
-    render(<ObligationsPage />);
-
-    await waitFor(() => {
-      expect(screen.getByText("Netflix")).toBeDefined();
-    });
-
-    await user.click(screen.getByTestId("adjust-balance-button-1"));
-    expect(screen.getByTestId("adjust-balance-modal")).toBeDefined();
-
-    await user.click(screen.getByTestId("adjust-balance-modal-close"));
-
-    await waitFor(() => {
-      expect(screen.queryByTestId("adjust-balance-modal")).toBeNull();
-    });
-  });
-
-  it("refreshes obligations after balance adjustment is saved", async () => {
-    const user = userEvent.setup();
-    mockFetchResponses(mockObligations);
-
-    render(<ObligationsPage />);
-
-    await waitFor(() => {
-      expect(screen.getByText("Netflix")).toBeDefined();
-    });
-
-    const fetchCallsBefore = vi.mocked(global.fetch).mock.calls.length;
-
-    await user.click(screen.getByTestId("adjust-balance-button-1"));
-    await user.click(screen.getByTestId("adjust-balance-modal-save"));
-
-    // Modal should close
-    await waitFor(() => {
-      expect(screen.queryByTestId("adjust-balance-modal")).toBeNull();
-    });
-
-    // fetch should have been called again to refresh obligations
-    expect(vi.mocked(global.fetch).mock.calls.length).toBeGreaterThan(fetchCallsBefore);
-  });
 });

@@ -5,8 +5,8 @@ import styles from "./adjust-balance-modal.module.css";
 import { logError } from "@/lib/logging";
 
 interface AdjustBalanceModalProps {
-  obligationId: string;
-  obligationName: string;
+  fundGroupId: string;
+  fundGroupName: string;
   currentBalance: number;
   onClose: () => void;
   onSaved: () => void;
@@ -19,8 +19,8 @@ type ModalStatus =
   | { type: "error"; message: string };
 
 export default function AdjustBalanceModal({
-  obligationId,
-  obligationName,
+  fundGroupId,
+  fundGroupName,
   currentBalance,
   onClose,
   onSaved,
@@ -44,7 +44,7 @@ export default function AdjustBalanceModal({
     setStatus({ type: "loading" });
 
     try {
-      const res = await fetch(`/api/fund-balances/${obligationId}`, {
+      const res = await fetch(`/api/fund-groups/${fundGroupId}/balance`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ balance: parsed }),
@@ -63,7 +63,7 @@ export default function AdjustBalanceModal({
       logError("failed to adjust fund balance", err);
       setStatus({ type: "error", message });
     }
-  }, [balance, obligationId, onSaved]);
+  }, [balance, fundGroupId, onSaved]);
 
   const isLoading = status.type === "loading";
 
@@ -72,7 +72,7 @@ export default function AdjustBalanceModal({
       <div
         className={styles.modal}
         role="dialog"
-        aria-label={`Adjust balance for ${obligationName}`}
+        aria-label={`Adjust balance for ${fundGroupName}`}
         data-testid="adjust-balance-modal"
       >
         <div className={styles.modalHeader}>
@@ -90,9 +90,9 @@ export default function AdjustBalanceModal({
 
         <div className={styles.content}>
           <div className={styles.fieldRow}>
-            <span className={styles.fieldLabel}>Obligation</span>
+            <span className={styles.fieldLabel}>Fund</span>
             <span className={styles.fieldValue} data-testid="adjust-balance-modal-name">
-              {obligationName}
+              {fundGroupName}
             </span>
           </div>
           <div className={styles.fieldRow}>

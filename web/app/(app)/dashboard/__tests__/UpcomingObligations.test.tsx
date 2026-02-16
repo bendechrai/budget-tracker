@@ -28,7 +28,8 @@ const mockObligations = [
     isPaused: false,
     type: "recurring",
     frequency: "monthly",
-    fundBalance: { currentBalance: 2000 },
+    fundGroupId: "fg-1",
+    fundGroup: { id: "fg-1", name: "Housing", currentBalance: 2000 },
   },
   {
     id: "ob2",
@@ -38,7 +39,8 @@ const mockObligations = [
     isPaused: false,
     type: "recurring",
     frequency: "monthly",
-    fundBalance: { currentBalance: 10 },
+    fundGroupId: "fg-2",
+    fundGroup: { id: "fg-2", name: "Entertainment", currentBalance: 10 },
   },
   {
     id: "ob3",
@@ -48,7 +50,8 @@ const mockObligations = [
     isPaused: false,
     type: "recurring",
     frequency: "monthly",
-    fundBalance: null,
+    fundGroupId: "fg-3",
+    fundGroup: { id: "fg-3", name: "Fitness", currentBalance: 0 },
   },
   {
     id: "ob4",
@@ -58,7 +61,8 @@ const mockObligations = [
     isPaused: false,
     type: "recurring",
     frequency: "quarterly",
-    fundBalance: { currentBalance: 600 },
+    fundGroupId: "fg-4",
+    fundGroup: { id: "fg-4", name: "Transport", currentBalance: 600 },
   },
   {
     id: "ob5",
@@ -68,7 +72,8 @@ const mockObligations = [
     isPaused: true,
     type: "recurring",
     frequency: "monthly",
-    fundBalance: null,
+    fundGroupId: "fg-5",
+    fundGroup: { id: "fg-5", name: "Bills", currentBalance: 0 },
   },
 ];
 
@@ -191,7 +196,8 @@ describe("UpcomingObligations", () => {
         isPaused: false,
         type: "recurring",
         frequency: "weekly",
-        fundBalance: null,
+        fundGroupId: "fg-w",
+        fundGroup: { id: "fg-w", name: "Savings", currentBalance: 0 },
       },
     ];
 
@@ -221,7 +227,8 @@ describe("UpcomingObligations", () => {
         isPaused: false,
         type: "one_off",
         frequency: null,
-        fundBalance: null,
+        fundGroupId: "fg-o",
+        fundGroup: { id: "fg-o", name: "One-offs", currentBalance: 0 },
       },
     ];
 

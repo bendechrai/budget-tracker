@@ -28,7 +28,7 @@ export interface ObligationInput {
   endDate: Date | null;
   isPaused: boolean;
   isActive: boolean;
-  fundGroupId: string | null;
+  fundGroupId: string;
   customEntries?: CustomEntryInput[];
   escalationRules?: EscalationRule[];
 }
@@ -39,8 +39,8 @@ export interface CustomEntryInput {
   isPaid: boolean;
 }
 
-export interface FundBalanceInput {
-  obligationId: string;
+export interface FundGroupBalanceInput {
+  fundGroupId: string;
   currentBalance: number;
 }
 
@@ -51,7 +51,7 @@ export interface CycleConfig {
 
 export interface EngineInput {
   obligations: ObligationInput[];
-  fundBalances: FundBalanceInput[];
+  fundGroupBalances: FundGroupBalanceInput[];
   maxContributionPerCycle: number | null;
   cycleConfig: CycleConfig;
   now?: Date;
@@ -60,15 +60,24 @@ export interface EngineInput {
 export interface ObligationContribution {
   obligationId: string;
   obligationName: string;
-  fundGroupId: string | null;
+  fundGroupId: string;
   amountNeeded: number;
-  currentBalance: number;
-  remaining: number;
   cyclesUntilDue: number;
   contributionPerCycle: number;
   nextDueDate: Date;
-  isFullyFunded: boolean;
   hasShortfall: boolean;
+}
+
+export interface FundGroupContribution {
+  fundGroupId: string;
+  fundGroupName: string;
+  totalRequired: number;
+  currentBalance: number;
+  remaining: number;
+  contributionPerCycle: number;
+  healthPercentage: number;
+  isFullyFunded: boolean;
+  obligationCount: number;
 }
 
 export interface ShortfallWarning {
@@ -83,6 +92,7 @@ export interface ShortfallWarning {
 
 export interface EngineResult {
   contributions: ObligationContribution[];
+  fundGroupContributions: FundGroupContribution[];
   totalRequired: number;
   totalFunded: number;
   totalContributionPerCycle: number;
@@ -348,16 +358,16 @@ export function resolveCycleConfig(
 export function calculateContributions(input: EngineInput): EngineResult {
   const {
     obligations,
-    fundBalances,
+    fundGroupBalances,
     maxContributionPerCycle,
     cycleConfig,
     now = new Date(),
   } = input;
 
-  // Build a lookup for fund balances
-  const balanceMap = new Map<string, number>();
-  for (const fb of fundBalances) {
-    balanceMap.set(fb.obligationId, fb.currentBalance);
+  // Build a lookup for fund group balances
+  const groupBalanceMap = new Map<string, number>();
+  for (const fgb of fundGroupBalances) {
+    groupBalanceMap.set(fgb.fundGroupId, fgb.currentBalance);
   }
 
   // Filter to active, non-paused obligations
@@ -431,30 +441,21 @@ export function calculateContributions(input: EngineInput): EngineResult {
       }
     }
 
-    const currentBalance = balanceMap.get(obligation.id) ?? 0;
-    const remaining = Math.max(0, amountNeeded - currentBalance);
     const cyclesUntilDue = countCyclesBetween(now, nextDueDate, cycleConfig.type, cycleConfig.payDays);
-    const isFullyFunded = remaining <= 0;
 
-    // Adaptive contribution: remaining divided by cycles
-    // If 0 cycles remain (due today/past), the entire remaining is needed now
-    const contributionPerCycle = isFullyFunded
-      ? 0
-      : cyclesUntilDue > 0
-        ? remaining / cyclesUntilDue
-        : remaining;
+    // Per-obligation contribution: amountNeeded / cycles (no per-ob balance)
+    const contributionPerCycle = cyclesUntilDue > 0
+      ? amountNeeded / cyclesUntilDue
+      : amountNeeded;
 
     rawContributions.push({
       obligationId: obligation.id,
       obligationName: obligation.name,
       fundGroupId: obligation.fundGroupId,
       amountNeeded,
-      currentBalance,
-      remaining,
       cyclesUntilDue,
       contributionPerCycle,
       nextDueDate,
-      isFullyFunded,
       hasShortfall: false,
     });
   }
@@ -464,14 +465,95 @@ export function calculateContributions(input: EngineInput): EngineResult {
     (a, b) => a.nextDueDate.getTime() - b.nextDueDate.getTime()
   );
 
-  const totalRequired = rawContributions.reduce(
-    (sum, c) => sum + c.amountNeeded,
-    0
-  );
-  const totalFunded = rawContributions.reduce(
-    (sum, c) => sum + c.currentBalance,
-    0
-  );
+  // Aggregate by fund group
+  const groupMap = new Map<string, {
+    totalRequired: number;
+    contributionPerCycle: number;
+    obligationCount: number;
+  }>();
+
+  for (const c of rawContributions) {
+    const existing = groupMap.get(c.fundGroupId);
+    if (existing) {
+      existing.totalRequired += c.amountNeeded;
+      existing.contributionPerCycle += c.contributionPerCycle;
+      existing.obligationCount += 1;
+    } else {
+      groupMap.set(c.fundGroupId, {
+        totalRequired: c.amountNeeded,
+        contributionPerCycle: c.contributionPerCycle,
+        obligationCount: 1,
+      });
+    }
+  }
+
+  // Also add fund groups that have a balance but no active obligations
+  for (const fgb of fundGroupBalances) {
+    if (!groupMap.has(fgb.fundGroupId)) {
+      groupMap.set(fgb.fundGroupId, {
+        totalRequired: 0,
+        contributionPerCycle: 0,
+        obligationCount: 0,
+      });
+    }
+  }
+
+  const fundGroupContributions: FundGroupContribution[] = [];
+  let totalRequired = 0;
+  let totalFunded = 0;
+
+  for (const [groupId, data] of groupMap) {
+    const currentBalance = groupBalanceMap.get(groupId) ?? 0;
+    const remaining = Math.max(0, data.totalRequired - currentBalance);
+    const healthPct = data.totalRequired > 0
+      ? (currentBalance / data.totalRequired) * 100
+      : currentBalance > 0 ? 100 : 0;
+
+    totalRequired += data.totalRequired;
+    totalFunded += currentBalance;
+
+    // Find group name from obligations (first match)
+    const groupName = obligations.find((o) => o.fundGroupId === groupId)?.fundGroupId ?? groupId;
+
+    fundGroupContributions.push({
+      fundGroupId: groupId,
+      fundGroupName: groupName,
+      totalRequired: data.totalRequired,
+      currentBalance,
+      remaining,
+      contributionPerCycle: data.contributionPerCycle,
+      healthPercentage: healthPct,
+      isFullyFunded: remaining <= 0,
+      obligationCount: data.obligationCount,
+    });
+  }
+
+  // Adjust per-obligation contributions for fund group balances
+  // Distribute fund group balance proportionally across obligations in the group
+  for (const fgc of fundGroupContributions) {
+    if (fgc.currentBalance <= 0 || fgc.totalRequired <= 0) continue;
+
+    const groupObligations = rawContributions.filter(
+      (c) => c.fundGroupId === fgc.fundGroupId
+    );
+
+    for (const c of groupObligations) {
+      // Pro-rate the balance across obligations proportionally
+      const share = c.amountNeeded / fgc.totalRequired;
+      const balanceShare = fgc.currentBalance * share;
+      const remaining = Math.max(0, c.amountNeeded - balanceShare);
+
+      c.contributionPerCycle = c.cyclesUntilDue > 0
+        ? remaining / c.cyclesUntilDue
+        : remaining;
+    }
+
+    // Recalculate group contribution per cycle from adjusted obligations
+    fgc.contributionPerCycle = groupObligations.reduce(
+      (sum, c) => sum + c.contributionPerCycle, 0
+    );
+  }
+
   const rawTotalPerCycle = rawContributions.reduce(
     (sum, c) => sum + c.contributionPerCycle,
     0
@@ -488,7 +570,7 @@ export function calculateContributions(input: EngineInput): EngineResult {
     let remainingCapacity = maxContributionPerCycle;
 
     for (const contribution of rawContributions) {
-      if (contribution.isFullyFunded) continue;
+      if (contribution.contributionPerCycle <= 0) continue;
 
       if (remainingCapacity >= contribution.contributionPerCycle) {
         remainingCapacity -= contribution.contributionPerCycle;
@@ -504,7 +586,6 @@ export function calculateContributions(input: EngineInput): EngineResult {
         const shortfallPerCycle = originalPerCycle - allocated;
         const totalShortfall = shortfallPerCycle * Math.max(1, contribution.cyclesUntilDue);
         const amountCanFund =
-          contribution.currentBalance +
           allocated * Math.max(1, contribution.cyclesUntilDue);
 
         shortfallWarnings.push({
@@ -512,7 +593,7 @@ export function calculateContributions(input: EngineInput): EngineResult {
           obligationName: contribution.obligationName,
           amountNeeded: contribution.amountNeeded,
           amountCanFund: Math.min(amountCanFund, contribution.amountNeeded),
-          shortfall: Math.min(totalShortfall, contribution.remaining),
+          shortfall: Math.min(totalShortfall, contribution.amountNeeded),
           dueDate: contribution.nextDueDate,
           message: `You need $${contribution.amountNeeded.toFixed(2)} for ${contribution.obligationName} by ${contribution.nextDueDate.toISOString().split("T")[0]} but can only save $${amountCanFund.toFixed(2)} at current capacity`,
         });
@@ -521,26 +602,25 @@ export function calculateContributions(input: EngineInput): EngineResult {
 
     return {
       contributions: rawContributions,
+      fundGroupContributions,
       totalRequired,
       totalFunded,
       totalContributionPerCycle: maxContributionPerCycle,
       shortfallWarnings,
-      isFullyFunded:
-        rawContributions.length > 0 &&
-        rawContributions.every((c) => c.isFullyFunded),
+      isFullyFunded: fundGroupContributions.every((fgc) => fgc.isFullyFunded),
       capacityExceeded: true,
     };
   }
 
   return {
     contributions: rawContributions,
+    fundGroupContributions,
     totalRequired,
     totalFunded,
     totalContributionPerCycle: rawTotalPerCycle,
     shortfallWarnings,
-    isFullyFunded:
-      rawContributions.length > 0 &&
-      rawContributions.every((c) => c.isFullyFunded),
+    isFullyFunded: fundGroupContributions.length > 0 &&
+      fundGroupContributions.every((fgc) => fgc.isFullyFunded),
     capacityExceeded: false,
   };
 }

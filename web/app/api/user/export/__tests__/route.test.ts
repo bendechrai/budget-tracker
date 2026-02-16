@@ -135,7 +135,7 @@ describe("POST /api/user/export", () => {
     mockContributionFindMany.mockResolvedValue([
       {
         id: "con_1",
-        obligationId: "obl_1",
+        fundGroupId: "fg_1",
         amount: 500,
         date: new Date("2024-01-15"),
         type: "contribution",
@@ -180,7 +180,7 @@ describe("POST /api/user/export", () => {
 
     // Contributions CSV
     const conCsv = appendCalls[3][0] as string;
-    expect(conCsv).toContain("id,obligationId,amount,date,type,note,createdAt");
+    expect(conCsv).toContain("id,fundGroupId,amount,date,type,note,createdAt");
     expect(conCsv).toContain("con_1");
     expect(appendCalls[3][1]).toEqual({ name: "contributions.csv" });
   });
@@ -209,7 +209,7 @@ describe("POST /api/user/export", () => {
     );
     expect(mockContributionFindMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { obligation: { userId: "user_42" } },
+        where: { fundGroup: { userId: "user_42" } },
       }),
     );
   });

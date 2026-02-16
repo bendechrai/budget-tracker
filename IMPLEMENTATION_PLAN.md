@@ -933,3 +933,89 @@
   - Spec: `specs/08-dashboard.md`
   - Acceptance: Dashboard hero card shows total contribution per cycle across all obligations (e.g. "$587.50 per fortnight") as the primary figure, with the most urgent obligation shown below. Engine snapshot includes `totalContributionPerCycle` and `cyclePeriodLabel` in API response.
   - Tests: 4 new perCycleLabel tests, updated dashboard page tests and API route tests
+
+### Spec 07b — Fund group rework (funds as first-class entities)
+
+- [x] **Prisma migration — restructure models for fund-group-level balances**
+  - Files: `web/prisma/schema.prisma`, `web/prisma/migrations/20260216000000_fund_group_rework/`, `web/prisma/migrations/20260216000001_add_fund_group_id_to_snapshot/`
+  - Spec: `specs/07b-fund-group-rework.md`
+  - Acceptance: FundGroup gains `isDefault` and `currentBalance`. Obligation `fundGroupId` becomes non-nullable. ContributionRecord references `fundGroupId` instead of `obligationId`. FundBalance model deleted. EngineSnapshot gains `nextActionFundGroupId`. Default fund created for existing users; orphaned obligations assigned. Migration runs cleanly.
+  - Tests: Migration applies; Prisma generate succeeds
+
+- [x] **Create default fund group on signup**
+  - Files: `web/app/api/auth/signup/route.ts`, `web/app/api/auth/signup/__tests__/route.test.ts`, `web/e2e/global-setup.ts`
+  - Spec: `specs/07b-fund-group-rework.md`
+  - Acceptance: Signup creates user + default fund group ("Default Sinking Fund", isDefault=true, currentBalance=0) in a single transaction. E2E global setup creates default fund for test user.
+  - Tests: Signup test verifies transaction creates both user and fund group
+
+- [x] **Engine — add fund group aggregation to output**
+  - Files: `web/lib/engine/calculate.ts`, `web/lib/engine/snapshot.ts`, `web/lib/engine/timeline.ts`, `web/lib/engine/__tests__/calculate.test.ts`, `web/lib/engine/__tests__/snapshot.test.ts`, `web/lib/engine/__tests__/timeline.test.ts`
+  - Spec: `specs/07b-fund-group-rework.md`
+  - Acceptance: Engine accepts fund group balances instead of per-obligation FundBalance. Output includes per-fund-group aggregation (totalRequired, currentBalance, remaining, contributionPerCycle, healthPercentage). Snapshot targets most underfunded fund group for next action. Timeline uses fund group balances.
+  - Tests: All engine tests updated and passing
+
+- [x] **Rewrite contribution and balance APIs for fund groups**
+  - Files: `web/app/api/contributions/route.ts`, `web/app/api/contributions/bulk/route.ts`, `web/app/api/contributions/[obligationId]/route.ts`, `web/app/api/fund-groups/[id]/balance/route.ts` (new), plus test files
+  - Spec: `specs/07b-fund-group-rework.md`
+  - Acceptance: POST /api/contributions accepts `fundGroupId` instead of `obligationId`, increments FundGroup.currentBalance. Bulk contributions target fund groups. GET /api/contributions/[id] looks up by fund group first, then obligation. New PUT /api/fund-groups/[id]/balance sets exact balance with manual_adjustment record. Old fund-balances routes deleted.
+  - Tests: All contribution and balance API tests updated and passing
+
+- [x] **Update fund group APIs — delete guards, ordering, counts**
+  - Files: `web/app/api/fund-groups/route.ts`, `web/app/api/fund-groups/[id]/route.ts`, plus test files
+  - Spec: `specs/07b-fund-group-rework.md`
+  - Acceptance: GET returns `isDefault`, `currentBalance`, `_count.obligations`, ordered by isDefault desc then createdAt asc. DELETE rejects with 400 if default, 409 if fund has obligations.
+  - Tests: Fund group API tests updated and passing
+
+- [x] **Auto-assign default fund on obligation and suggestion creation**
+  - Files: `web/app/api/obligations/route.ts`, `web/app/api/suggestions/[id]/route.ts`, plus test files
+  - Spec: `specs/07b-fund-group-rework.md`
+  - Acceptance: POST /api/obligations assigns default fund group when no fundGroupId provided. Accepted suggestions assign default fund group.
+  - Tests: Obligation and suggestion API tests updated and passing
+
+- [x] **Rewrite engine API routes for fund group balances**
+  - Files: `web/app/api/engine/recalculate/route.ts`, `web/app/api/engine/scenario/route.ts`, `web/app/api/engine/timeline/route.ts`, plus test files
+  - Spec: `specs/07b-fund-group-rework.md`
+  - Acceptance: Recalculate, scenario, and timeline routes fetch fund group balances instead of FundBalance records. Pass fund group data to engine calculations.
+  - Tests: All engine route tests updated and passing
+
+- [x] **Rewrite ContributionModal, AdjustBalanceModal, ContributionHistory for fund groups**
+  - Files: `web/app/(app)/obligations/ContributionModal.tsx`, `web/app/(app)/obligations/AdjustBalanceModal.tsx`, `web/app/(app)/obligations/ContributionHistory.tsx`, plus test files
+  - Spec: `specs/07b-fund-group-rework.md`
+  - Acceptance: ContributionModal accepts fundGroupId/Name, shows fund balance and target. AdjustBalanceModal calls /api/fund-groups/[id]/balance. ContributionHistory queries by fundGroupId.
+  - Tests: All modal and history component tests updated and passing
+
+- [x] **Rewrite CatchUpModal for fund groups**
+  - Files: `web/app/(app)/dashboard/CatchUpModal.tsx`, `web/app/(app)/dashboard/__tests__/CatchUpModal.test.tsx`
+  - Spec: `specs/07b-fund-group-rework.md`
+  - Acceptance: CatchUpModal distributes lump sum across underfunded fund groups (not obligations). Dashboard passes underfunded fund group data.
+  - Tests: CatchUpModal tests updated and passing
+
+- [x] **Remove per-obligation fund balance UI from obligations page**
+  - Files: `web/app/(app)/obligations/page.tsx`, `web/app/(app)/obligations/__tests__/page.test.tsx`
+  - Spec: `specs/07b-fund-group-rework.md`
+  - Acceptance: Per-obligation fund balance display (progress bar, "Record contribution", "Adjust balance") removed from obligation cards. ObligationForm updated for fund group dropdown.
+  - Tests: Obligations page tests updated and passing
+
+- [x] **Dashboard hero card targets most underfunded fund group**
+  - Files: `web/app/(app)/dashboard/page.tsx`, `web/app/(app)/dashboard/__tests__/page.test.tsx`
+  - Spec: `specs/07b-fund-group-rework.md`
+  - Acceptance: Hero card "Mark as done" opens ContributionModal with the most underfunded fund group. Next action description references fund group name.
+  - Tests: Dashboard page tests pass
+
+- [x] **Dashboard HealthBar — show individual fund bars instead of aggregate**
+  - Files: `web/app/(app)/dashboard/HealthBar.tsx`, `web/app/(app)/dashboard/health-bar.module.css`, `web/app/(app)/dashboard/page.tsx`, `web/app/(app)/dashboard/__tests__/HealthBar.test.tsx`
+  - Spec: `specs/07b-fund-group-rework.md`
+  - Acceptance: HealthBar shows each fund group as its own progress bar with name, balance/target, and percentage. No aggregate roll-up or expand/collapse. Dashboard passes fund group health data as props.
+  - Tests: 11 HealthBar tests, 17 dashboard page tests — all passing
+
+- [x] **Update user export and account deletion for schema changes**
+  - Files: `web/app/api/user/export/route.ts`, `web/app/api/user/account/route.ts`, `web/e2e/global-teardown.ts`, plus test files
+  - Spec: `specs/07b-fund-group-rework.md`
+  - Acceptance: Export uses fundGroupId for contribution records. Account deletion includes ImportFile and ImportBatch cleanup (discovered during testing). E2E teardown updated.
+  - Tests: Export and account deletion tests updated and passing
+
+- [x] **Update all test files for fund group rework schema changes**
+  - Files: 30+ test files across engine, API routes, dashboard, and obligations
+  - Spec: `specs/07b-fund-group-rework.md`
+  - Acceptance: All 1,225+ tests across 95 files pass. No type errors. No lint errors.
+  - Tests: Full suite green

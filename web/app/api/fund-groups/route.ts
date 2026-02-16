@@ -18,9 +18,15 @@ export async function GET(): Promise<NextResponse> {
       where: {
         userId: user.id,
       },
-      orderBy: {
-        createdAt: "desc",
+      include: {
+        _count: {
+          select: { obligations: true },
+        },
       },
+      orderBy: [
+        { isDefault: "desc" },
+        { createdAt: "asc" },
+      ],
     });
 
     return NextResponse.json(fundGroups);

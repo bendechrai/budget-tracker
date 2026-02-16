@@ -17,7 +17,7 @@ export interface ObligationFormData {
   startDate: string;
   endDate: string | null;
   nextDueDate: string;
-  fundGroupId: string | null;
+  fundGroupId: string | undefined;
   customEntries: { dueDate: string; amount: number }[];
 }
 
@@ -207,7 +207,7 @@ export default function ObligationForm({
       startDate,
       endDate: finalEndDate,
       nextDueDate,
-      fundGroupId: fundGroupId || null,
+      fundGroupId: fundGroupId || undefined,
       customEntries: parsedCustomEntries,
     };
 
@@ -431,7 +431,7 @@ export default function ObligationForm({
       {fundGroups && fundGroups.length > 0 && (
         <div className={styles.field}>
           <label className={styles.label} htmlFor="obligation-fund-group">
-            Fund Group
+            Sinking Fund
           </label>
           <select
             id="obligation-fund-group"
@@ -439,7 +439,6 @@ export default function ObligationForm({
             value={fundGroupId}
             onChange={(e) => setFundGroupId(e.target.value)}
           >
-            <option value="">None (default group)</option>
             {fundGroups.map((g) => (
               <option key={g.id} value={g.id}>
                 {g.name}

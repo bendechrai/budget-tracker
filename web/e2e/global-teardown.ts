@@ -28,13 +28,14 @@ async function globalTeardown(): Promise<void> {
         where: { suggestion: { userId: user.id } },
       });
       await prisma.suggestion.deleteMany({ where: { userId: user.id } });
+      await prisma.importFile.deleteMany({
+        where: { batch: { userId: user.id } },
+      });
+      await prisma.importBatch.deleteMany({ where: { userId: user.id } });
       await prisma.importLog.deleteMany({ where: { userId: user.id } });
       await prisma.transaction.deleteMany({ where: { userId: user.id } });
       await prisma.contributionRecord.deleteMany({
-        where: { obligation: { userId: user.id } },
-      });
-      await prisma.fundBalance.deleteMany({
-        where: { obligation: { userId: user.id } },
+        where: { fundGroup: { userId: user.id } },
       });
       await prisma.escalation.deleteMany({
         where: { obligation: { userId: user.id } },

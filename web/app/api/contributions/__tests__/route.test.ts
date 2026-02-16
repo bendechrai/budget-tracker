@@ -6,23 +6,29 @@ vi.mock("@/lib/auth/getCurrentUser", () => ({
   getCurrentUser: (...args: unknown[]) => mockGetCurrentUser(...args),
 }));
 
-const mockObligationFindUnique = vi.fn();
 const mockObligationFindMany = vi.fn();
-const mockFundBalanceFindMany = vi.fn();
+const mockFundGroupFindUnique = vi.fn();
+const mockFundGroupFindMany = vi.fn();
+const mockFundGroupUpdate = vi.fn();
 const mockEngineSnapshotCreate = vi.fn();
+const mockIncomeSourceFindMany = vi.fn();
 const mockTransaction = vi.fn();
 
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     obligation: {
-      findUnique: (...args: unknown[]) => mockObligationFindUnique(...args),
       findMany: (...args: unknown[]) => mockObligationFindMany(...args),
     },
-    fundBalance: {
-      findMany: (...args: unknown[]) => mockFundBalanceFindMany(...args),
+    fundGroup: {
+      findUnique: (...args: unknown[]) => mockFundGroupFindUnique(...args),
+      findMany: (...args: unknown[]) => mockFundGroupFindMany(...args),
+      update: (...args: unknown[]) => mockFundGroupUpdate(...args),
     },
     engineSnapshot: {
       create: (...args: unknown[]) => mockEngineSnapshotCreate(...args),
+    },
+    incomeSource: {
+      findMany: (...args: unknown[]) => mockIncomeSourceFindMany(...args),
     },
     $transaction: (...args: unknown[]) => mockTransaction(...args),
   },
@@ -38,13 +44,28 @@ vi.mock("@/lib/engine/snapshot", () => ({
     mockCalculateAndSnapshot(...args),
 }));
 
+const mockResolveCycleConfig = vi.fn();
+vi.mock("@/lib/engine/calculate", () => ({
+  resolveCycleConfig: (...args: unknown[]) =>
+    mockResolveCycleConfig(...args),
+}));
+
 import { POST } from "../route";
 
 const mockUser = {
   id: "user_1",
   email: "test@example.com",
   maxContributionPerCycle: 500,
-  contributionCycleDays: 14,
+  contributionCycleType: "fortnightly" as const,
+  contributionPayDays: [] as number[],
+};
+
+const mockFundGroup = {
+  id: "fg_1",
+  userId: "user_1",
+  name: "Default",
+  isDefault: true,
+  currentBalance: 200,
 };
 
 const mockObligation = {
@@ -60,14 +81,15 @@ const mockObligation = {
   isPaused: false,
   isActive: true,
   isArchived: false,
-  fundGroupId: null,
+  fundGroupId: "fg_1",
 };
 
-const mockFundBalanceResult = {
-  id: "fb_1",
-  obligationId: "obl_1",
-  currentBalance: 200,
-  lastUpdatedAt: new Date(),
+const mockUpdatedFundGroup = {
+  id: "fg_1",
+  userId: "user_1",
+  name: "Default",
+  isDefault: true,
+  currentBalance: 300,
 };
 
 const mockSnapshotData = {
@@ -78,6 +100,7 @@ const mockSnapshotData = {
   nextActionAmount: 185.71,
   nextActionDate: new Date("2025-06-15"),
   nextActionDescription: "Set aside $185.71 for Rent by 2025-06-15",
+  nextActionFundGroupId: "fg_1",
 };
 
 function createRequest(body: Record<string, unknown>): NextRequest {
@@ -92,24 +115,26 @@ describe("POST /api/contributions", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockGetCurrentUser.mockResolvedValue(mockUser);
-    mockObligationFindUnique.mockResolvedValue(mockObligation);
+    mockFundGroupFindUnique.mockResolvedValue(mockFundGroup);
     mockTransaction.mockImplementation(
       async (fn: (tx: Record<string, unknown>) => Promise<unknown>) => {
         const tx = {
           contributionRecord: {
             create: vi.fn().mockResolvedValue({ id: "cr_1" }),
           },
-          fundBalance: {
-            upsert: vi.fn().mockResolvedValue(mockFundBalanceResult),
+          fundGroup: {
+            update: vi.fn().mockResolvedValue(mockUpdatedFundGroup),
           },
         };
         return fn(tx);
       }
     );
+    mockIncomeSourceFindMany.mockResolvedValue([]);
+    mockResolveCycleConfig.mockReturnValue({ type: "fortnightly", payDays: [] });
     mockObligationFindMany.mockResolvedValue([
       { ...mockObligation, customEntries: [] },
     ]);
-    mockFundBalanceFindMany.mockResolvedValue([mockFundBalanceResult]);
+    mockFundGroupFindMany.mockResolvedValue([mockUpdatedFundGroup]);
     mockCalculateAndSnapshot.mockReturnValue({
       result: {},
       snapshot: mockSnapshotData,
@@ -125,7 +150,7 @@ describe("POST /api/contributions", () => {
     mockGetCurrentUser.mockResolvedValue(null);
 
     const req = createRequest({
-      obligationId: "obl_1",
+      fundGroupId: "fg_1",
       amount: 100,
       type: "contribution",
     });
@@ -136,7 +161,7 @@ describe("POST /api/contributions", () => {
     expect(data.error).toBe("unauthorized");
   });
 
-  it("returns 400 when obligationId is missing", async () => {
+  it("returns 400 when fundGroupId is missing", async () => {
     const req = createRequest({
       amount: 100,
       type: "contribution",
@@ -145,12 +170,12 @@ describe("POST /api/contributions", () => {
 
     expect(res.status).toBe(400);
     const data = await res.json();
-    expect(data.error).toBe("obligationId is required");
+    expect(data.error).toBe("fundGroupId is required");
   });
 
   it("returns 400 when amount is missing", async () => {
     const req = createRequest({
-      obligationId: "obl_1",
+      fundGroupId: "fg_1",
       type: "contribution",
     });
     const res = await POST(req);
@@ -162,7 +187,7 @@ describe("POST /api/contributions", () => {
 
   it("returns 400 when type is invalid", async () => {
     const req = createRequest({
-      obligationId: "obl_1",
+      fundGroupId: "fg_1",
       amount: 100,
       type: "invalid_type",
     });
@@ -175,11 +200,11 @@ describe("POST /api/contributions", () => {
     );
   });
 
-  it("returns 404 when obligation does not exist", async () => {
-    mockObligationFindUnique.mockResolvedValue(null);
+  it("returns 404 when fund group does not exist", async () => {
+    mockFundGroupFindUnique.mockResolvedValue(null);
 
     const req = createRequest({
-      obligationId: "obl_nonexistent",
+      fundGroupId: "fg_nonexistent",
       amount: 100,
       type: "contribution",
     });
@@ -187,17 +212,17 @@ describe("POST /api/contributions", () => {
 
     expect(res.status).toBe(404);
     const data = await res.json();
-    expect(data.error).toBe("obligation not found");
+    expect(data.error).toBe("fund group not found");
   });
 
-  it("returns 404 when obligation belongs to another user", async () => {
-    mockObligationFindUnique.mockResolvedValue({
-      ...mockObligation,
+  it("returns 404 when fund group belongs to another user", async () => {
+    mockFundGroupFindUnique.mockResolvedValue({
+      ...mockFundGroup,
       userId: "other_user",
     });
 
     const req = createRequest({
-      obligationId: "obl_1",
+      fundGroupId: "fg_1",
       amount: 100,
       type: "contribution",
     });
@@ -205,12 +230,12 @@ describe("POST /api/contributions", () => {
 
     expect(res.status).toBe(404);
     const data = await res.json();
-    expect(data.error).toBe("obligation not found");
+    expect(data.error).toBe("fund group not found");
   });
 
-  it("records a contribution and returns updated fund balance", async () => {
+  it("records a contribution and returns updated fund group", async () => {
     const req = createRequest({
-      obligationId: "obl_1",
+      fundGroupId: "fg_1",
       amount: 100,
       type: "contribution",
     });
@@ -218,8 +243,8 @@ describe("POST /api/contributions", () => {
 
     expect(res.status).toBe(201);
     const data = await res.json();
-    expect(data.obligationId).toBe("obl_1");
-    expect(data.currentBalance).toBe(200);
+    expect(data.id).toBe("fg_1");
+    expect(data.currentBalance).toBe(300);
   });
 
   it("creates contribution record in transaction", async () => {
@@ -230,8 +255,8 @@ describe("POST /api/contributions", () => {
           contributionRecord: {
             create: vi.fn().mockResolvedValue({ id: "cr_1" }),
           },
-          fundBalance: {
-            upsert: vi.fn().mockResolvedValue(mockFundBalanceResult),
+          fundGroup: {
+            update: vi.fn().mockResolvedValue(mockUpdatedFundGroup),
           },
         };
         capturedTxCreate = tx.contributionRecord.create;
@@ -240,7 +265,7 @@ describe("POST /api/contributions", () => {
     );
 
     const req = createRequest({
-      obligationId: "obl_1",
+      fundGroupId: "fg_1",
       amount: 100,
       type: "contribution",
       note: "Weekly savings",
@@ -249,7 +274,7 @@ describe("POST /api/contributions", () => {
 
     expect(capturedTxCreate).toHaveBeenCalledWith({
       data: expect.objectContaining({
-        obligationId: "obl_1",
+        fundGroupId: "fg_1",
         amount: 100,
         type: "contribution",
         note: "Weekly savings",
@@ -257,37 +282,33 @@ describe("POST /api/contributions", () => {
     });
   });
 
-  it("upserts fund balance in transaction", async () => {
-    let capturedTxUpsert: ReturnType<typeof vi.fn> | undefined;
+  it("updates fund group balance in transaction", async () => {
+    let capturedTxUpdate: ReturnType<typeof vi.fn> | undefined;
     mockTransaction.mockImplementation(
       async (fn: (tx: Record<string, unknown>) => Promise<unknown>) => {
         const tx = {
           contributionRecord: {
             create: vi.fn().mockResolvedValue({ id: "cr_1" }),
           },
-          fundBalance: {
-            upsert: vi.fn().mockResolvedValue(mockFundBalanceResult),
+          fundGroup: {
+            update: vi.fn().mockResolvedValue(mockUpdatedFundGroup),
           },
         };
-        capturedTxUpsert = tx.fundBalance.upsert;
+        capturedTxUpdate = tx.fundGroup.update;
         return fn(tx);
       }
     );
 
     const req = createRequest({
-      obligationId: "obl_1",
+      fundGroupId: "fg_1",
       amount: 100,
       type: "contribution",
     });
     await POST(req);
 
-    expect(capturedTxUpsert).toHaveBeenCalledWith({
-      where: { obligationId: "obl_1" },
-      create: {
-        obligationId: "obl_1",
-        currentBalance: 100,
-      },
-      update: {
+    expect(capturedTxUpdate).toHaveBeenCalledWith({
+      where: { id: "fg_1" },
+      data: {
         currentBalance: {
           increment: 100,
         },
@@ -297,7 +318,7 @@ describe("POST /api/contributions", () => {
 
   it("records a manual adjustment", async () => {
     const req = createRequest({
-      obligationId: "obl_1",
+      fundGroupId: "fg_1",
       amount: -50,
       type: "manual_adjustment",
       note: "Correction",
@@ -309,7 +330,7 @@ describe("POST /api/contributions", () => {
 
   it("triggers engine recalculation after recording contribution", async () => {
     const req = createRequest({
-      obligationId: "obl_1",
+      fundGroupId: "fg_1",
       amount: 100,
       type: "contribution",
     });
@@ -322,10 +343,10 @@ describe("POST /api/contributions", () => {
           name: "Rent",
         }),
       ],
-      fundBalances: [
+      fundGroupBalances: [
         {
-          obligationId: "obl_1",
-          currentBalance: 200,
+          fundGroupId: "fg_1",
+          currentBalance: 300,
         },
       ],
       maxContributionPerCycle: 500,
@@ -340,15 +361,16 @@ describe("POST /api/contributions", () => {
         nextActionAmount: 185.71,
         nextActionDate: new Date("2025-06-15"),
         nextActionDescription: "Set aside $185.71 for Rent by 2025-06-15",
+        nextActionFundGroupId: "fg_1",
       },
     });
   });
 
   it("returns 500 on internal error", async () => {
-    mockObligationFindUnique.mockRejectedValue(new Error("DB error"));
+    mockFundGroupFindUnique.mockRejectedValue(new Error("DB error"));
 
     const req = createRequest({
-      obligationId: "obl_1",
+      fundGroupId: "fg_1",
       amount: 100,
       type: "contribution",
     });

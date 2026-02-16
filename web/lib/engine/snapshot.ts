@@ -9,6 +9,7 @@ export interface SnapshotData {
   nextActionDate: Date;
   nextActionDescription: string;
   nextActionObligationId: string | null;
+  nextActionFundGroupId: string | null;
 }
 
 /**
@@ -54,7 +55,7 @@ export function perCycleLabel(cycleType: CycleConfig["type"]): string {
  * If there are no obligations, it prompts the user to add some.
  */
 export function generateSnapshot(engineResult: EngineResult, cycleConfig?: CycleConfig): SnapshotData {
-  const { contributions, totalRequired, totalFunded, totalContributionPerCycle, isFullyFunded } = engineResult;
+  const { contributions, fundGroupContributions, totalRequired, totalFunded, totalContributionPerCycle, isFullyFunded } = engineResult;
 
   const periodLabel = cycleConfig ? perCycleLabel(cycleConfig.type) : "per cycle";
 
@@ -69,6 +70,7 @@ export function generateSnapshot(engineResult: EngineResult, cycleConfig?: Cycle
       nextActionDate: new Date(),
       nextActionDescription: "Add your first obligation to get started",
       nextActionObligationId: null,
+      nextActionFundGroupId: null,
     };
   }
 
@@ -90,11 +92,47 @@ export function generateSnapshot(engineResult: EngineResult, cycleConfig?: Cycle
       nextActionDate: nearestDueDate,
       nextActionDescription: "You're fully covered!",
       nextActionObligationId: null,
+      nextActionFundGroupId: null,
     };
   }
 
-  // Find the most urgent under-funded obligation (already sorted by due date)
-  const underFunded = contributions.filter((c) => !c.isFullyFunded);
+  // Find the most underfunded fund group (lowest health %)
+  const underFundedGroups = fundGroupContributions
+    .filter((fgc) => !fgc.isFullyFunded && fgc.totalRequired > 0)
+    .sort((a, b) => a.healthPercentage - b.healthPercentage);
+
+  if (underFundedGroups.length > 0) {
+    const targetGroup = underFundedGroups[0];
+
+    // Find the nearest due date among obligations in this group
+    const groupObligations = contributions.filter(
+      (c) => c.fundGroupId === targetGroup.fundGroupId
+    );
+    const nearestDueDate = groupObligations.length > 0
+      ? groupObligations.reduce(
+          (earliest, c) =>
+            c.nextDueDate.getTime() < earliest.getTime() ? c.nextDueDate : earliest,
+          groupObligations[0].nextDueDate
+        )
+      : new Date();
+
+    return {
+      totalRequired,
+      totalFunded,
+      totalContributionPerCycle,
+      cyclePeriodLabel: periodLabel,
+      nextActionAmount: targetGroup.contributionPerCycle,
+      nextActionDate: nearestDueDate,
+      nextActionDescription: cycleConfig
+        ? `Set aside $${targetGroup.contributionPerCycle.toFixed(2)} ${cyclePeriodLabel(cycleConfig.type)} for ${targetGroup.fundGroupName}`
+        : `Set aside $${targetGroup.contributionPerCycle.toFixed(2)} for ${targetGroup.fundGroupName}`,
+      nextActionObligationId: null,
+      nextActionFundGroupId: targetGroup.fundGroupId,
+    };
+  }
+
+  // Fallback to per-obligation (shouldn't normally reach here)
+  const underFunded = contributions.filter((c) => c.contributionPerCycle > 0);
   const nextAction = underFunded[0];
 
   return {
@@ -108,6 +146,7 @@ export function generateSnapshot(engineResult: EngineResult, cycleConfig?: Cycle
       ? `Set aside $${nextAction.contributionPerCycle.toFixed(2)} ${cyclePeriodLabel(cycleConfig.type)} for ${nextAction.obligationName}`
       : `Set aside $${nextAction.contributionPerCycle.toFixed(2)} for ${nextAction.obligationName} by ${nextAction.nextDueDate.toISOString().split("T")[0]}`,
     nextActionObligationId: nextAction.obligationId,
+    nextActionFundGroupId: nextAction.fundGroupId,
   };
 }
 

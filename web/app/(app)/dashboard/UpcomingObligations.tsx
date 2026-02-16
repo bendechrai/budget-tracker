@@ -15,7 +15,8 @@ interface ObligationData {
   frequencyDays?: number | null;
   endDate?: string | null;
   customEntries?: { dueDate: string; amount: number }[];
-  fundBalance: { currentBalance: number } | null;
+  fundGroupId: string;
+  fundGroup: { id: string; name: string; currentBalance: number };
 }
 
 interface ProjectedObligation extends ObligationData {
@@ -149,7 +150,7 @@ function projectOccurrences(
 function getFundStatus(
   obligation: ObligationData
 ): "fully-funded" | "partially-funded" | "unfunded" {
-  const balance = obligation.fundBalance?.currentBalance ?? 0;
+  const balance = obligation.fundGroup?.currentBalance ?? 0;
   if (balance >= obligation.amount) return "fully-funded";
   if (balance > 0) return "partially-funded";
   return "unfunded";

@@ -75,10 +75,23 @@ export async function DELETE(
       return NextResponse.json({ error: "not found" }, { status: 404 });
     }
 
-    await prisma.obligation.updateMany({
+    if (existing.isDefault) {
+      return NextResponse.json(
+        { error: "cannot delete the default fund group" },
+        { status: 400 }
+      );
+    }
+
+    const obligationCount = await prisma.obligation.count({
       where: { fundGroupId: id },
-      data: { fundGroupId: null },
     });
+
+    if (obligationCount > 0) {
+      return NextResponse.json(
+        { error: "cannot delete a fund group that has obligations" },
+        { status: 409 }
+      );
+    }
 
     await prisma.fundGroup.delete({
       where: { id },

@@ -4,16 +4,15 @@ import { useState, useCallback, useMemo } from "react";
 import styles from "./catchup-modal.module.css";
 import { logError } from "@/lib/logging";
 
-export interface CatchUpObligation {
+export interface CatchUpFundGroup {
   id: string;
   name: string;
   amountNeeded: number;
   currentBalance: number;
-  nextDueDate: string;
 }
 
 interface CatchUpModalProps {
-  obligations: CatchUpObligation[];
+  fundGroups: CatchUpFundGroup[];
   onClose: () => void;
   onSaved: () => void;
 }
@@ -25,36 +24,38 @@ type ModalStatus =
   | { type: "error"; message: string };
 
 interface AllocationEntry {
-  obligationId: string;
+  fundGroupId: string;
   amount: string;
 }
 
 /**
- * Distributes a lump sum across obligations prioritized by nearest due date.
- * Each obligation gets up to its remaining shortfall before the next one receives funds.
+ * Distributes a lump sum across fund groups prioritized by largest shortfall.
+ * Each fund group gets up to its remaining shortfall before the next one receives funds.
  */
 function distributeByPriority(
   total: number,
-  obligations: CatchUpObligation[]
+  fundGroups: CatchUpFundGroup[]
 ): AllocationEntry[] {
-  // Sort by nearest due date
-  const sorted = [...obligations].sort(
-    (a, b) => new Date(a.nextDueDate).getTime() - new Date(b.nextDueDate).getTime()
-  );
+  // Sort by largest shortfall first
+  const sorted = [...fundGroups].sort((a, b) => {
+    const shortfallA = Math.max(0, a.amountNeeded - a.currentBalance);
+    const shortfallB = Math.max(0, b.amountNeeded - b.currentBalance);
+    return shortfallB - shortfallA;
+  });
 
   let remaining = total;
   const allocations: AllocationEntry[] = [];
 
-  for (const obl of sorted) {
-    const shortfall = Math.max(0, obl.amountNeeded - obl.currentBalance);
+  for (const fg of sorted) {
+    const shortfall = Math.max(0, fg.amountNeeded - fg.currentBalance);
     if (shortfall <= 0) {
-      allocations.push({ obligationId: obl.id, amount: "0" });
+      allocations.push({ fundGroupId: fg.id, amount: "0" });
       continue;
     }
 
     const allocated = Math.min(remaining, shortfall);
     allocations.push({
-      obligationId: obl.id,
+      fundGroupId: fg.id,
       amount: allocated > 0 ? allocated.toFixed(2) : "0",
     });
     remaining = Math.max(0, remaining - allocated);
@@ -64,15 +65,15 @@ function distributeByPriority(
 }
 
 export default function CatchUpModal({
-  obligations,
+  fundGroups,
   onClose,
   onSaved,
 }: CatchUpModalProps) {
   const totalShortfall = useMemo(() => {
-    return obligations.reduce((sum, o) => {
-      return sum + Math.max(0, o.amountNeeded - o.currentBalance);
+    return fundGroups.reduce((sum, fg) => {
+      return sum + Math.max(0, fg.amountNeeded - fg.currentBalance);
     }, 0);
-  }, [obligations]);
+  }, [fundGroups]);
 
   const allFunded = totalShortfall <= 0;
 
@@ -90,16 +91,16 @@ export default function CatchUpModal({
     }
 
     setValidationError("");
-    const distributed = distributeByPriority(parsed, obligations);
+    const distributed = distributeByPriority(parsed, fundGroups);
     setAllocations(distributed);
     setShowPreview(true);
-  }, [lumpSum, obligations]);
+  }, [lumpSum, fundGroups]);
 
   const handleAllocationChange = useCallback(
-    (obligationId: string, value: string) => {
+    (fundGroupId: string, value: string) => {
       setAllocations((prev) =>
         prev.map((a) =>
-          a.obligationId === obligationId ? { ...a, amount: value } : a
+          a.fundGroupId === fundGroupId ? { ...a, amount: value } : a
         )
       );
     },
@@ -125,7 +126,7 @@ export default function CatchUpModal({
     // Filter to non-zero allocations
     const contributions = allocations
       .map((a) => ({
-        obligationId: a.obligationId,
+        fundGroupId: a.fundGroupId,
         amount: parseFloat(a.amount),
       }))
       .filter((c) => !isNaN(c.amount) && c.amount > 0);
@@ -163,14 +164,14 @@ export default function CatchUpModal({
 
   const isLoading = status.type === "loading";
 
-  // Map obligations by ID for display in preview
-  const obligationMap = useMemo(() => {
-    const map = new Map<string, CatchUpObligation>();
-    for (const o of obligations) {
-      map.set(o.id, o);
+  // Map fund groups by ID for display in preview
+  const fundGroupMap = useMemo(() => {
+    const map = new Map<string, CatchUpFundGroup>();
+    for (const fg of fundGroups) {
+      map.set(fg.id, fg);
     }
     return map;
-  }, [obligations]);
+  }, [fundGroups]);
 
   return (
     <div className={styles.overlay} data-testid="catchup-modal-overlay">
@@ -235,16 +236,16 @@ export default function CatchUpModal({
               <p className={styles.distributionTitle}>Distribution Preview</p>
               <div className={styles.distributionList}>
                 {allocations.map((alloc) => {
-                  const obl = obligationMap.get(alloc.obligationId);
-                  if (!obl) return null;
-                  const shortfall = Math.max(0, obl.amountNeeded - obl.currentBalance);
+                  const fg = fundGroupMap.get(alloc.fundGroupId);
+                  if (!fg) return null;
+                  const shortfall = Math.max(0, fg.amountNeeded - fg.currentBalance);
                   return (
                     <div
-                      key={alloc.obligationId}
+                      key={alloc.fundGroupId}
                       className={styles.distributionRow}
-                      data-testid={`catchup-row-${alloc.obligationId}`}
+                      data-testid={`catchup-row-${alloc.fundGroupId}`}
                     >
-                      <span className={styles.distributionName}>{obl.name}</span>
+                      <span className={styles.distributionName}>{fg.name}</span>
                       <span className={styles.distributionShortfall}>
                         needs ${shortfall.toFixed(2)}
                       </span>
@@ -253,13 +254,13 @@ export default function CatchUpModal({
                         className={styles.distributionAmountInput}
                         value={alloc.amount}
                         onChange={(e) =>
-                          handleAllocationChange(alloc.obligationId, e.target.value)
+                          handleAllocationChange(alloc.fundGroupId, e.target.value)
                         }
                         step="0.01"
                         min="0"
                         disabled={isLoading}
-                        data-testid={`catchup-alloc-${alloc.obligationId}`}
-                        aria-label={`Allocation for ${obl.name}`}
+                        data-testid={`catchup-alloc-${alloc.fundGroupId}`}
+                        aria-label={`Allocation for ${fg.name}`}
                       />
                     </div>
                   );

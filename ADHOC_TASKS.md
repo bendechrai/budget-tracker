@@ -45,6 +45,10 @@ Use this wherever `frequency === "custom"` and `frequencyDays` is set, replacing
 
 ---
 
+During onboarding, uploading PDFs currently blocks the user until processing finishes. The upload itself happens quickly — it's the background processing that's slow. After uploading, the user should be able to proceed to the next onboarding step immediately without waiting for processing to complete.
+
+---
+
 ## Completed
 
 ---

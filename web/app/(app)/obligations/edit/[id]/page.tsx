@@ -31,7 +31,7 @@ interface ObligationResponse {
   startDate: string;
   endDate: string | null;
   nextDueDate: string;
-  fundGroupId: string | null;
+  fundGroupId: string;
   customEntries: CustomScheduleEntry[];
 }
 
@@ -164,7 +164,7 @@ export default function EditObligationPage({
               onSubmit={handleSubmit}
               submitLabel="Save Changes"
             />
-            <ContributionHistory obligationId={obligation.id} />
+            <ContributionHistory fundGroupId={obligation.fundGroupId} />
           </>
         )}
       </div>

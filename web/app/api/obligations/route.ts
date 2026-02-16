@@ -61,7 +61,6 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       include: {
         customEntries: true,
         fundGroup: true,
-        fundBalance: true,
       },
       orderBy: {
         nextDueDate: "asc",
@@ -265,8 +264,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       }
     }
 
-    // Validate fundGroupId if provided
-    if (body.fundGroupId !== undefined && body.fundGroupId !== null) {
+    // Resolve fundGroupId: use provided value, or fall back to user's default
+    let resolvedFundGroupId: string;
+    if (body.fundGroupId) {
       const fundGroup = await prisma.fundGroup.findUnique({
         where: { id: body.fundGroupId },
       });
@@ -276,6 +276,18 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           { status: 400 }
         );
       }
+      resolvedFundGroupId = fundGroup.id;
+    } else {
+      const defaultFundGroup = await prisma.fundGroup.findFirst({
+        where: { userId: user.id, isDefault: true },
+      });
+      if (!defaultFundGroup) {
+        return NextResponse.json(
+          { error: "no default fund group found" },
+          { status: 500 }
+        );
+      }
+      resolvedFundGroupId = defaultFundGroup.id;
     }
 
     // Create obligation with custom entries in a transaction
@@ -298,7 +310,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           startDate,
           endDate,
           nextDueDate,
-          fundGroupId: body.fundGroupId ?? null,
+          fundGroupId: resolvedFundGroupId,
         },
       });
 

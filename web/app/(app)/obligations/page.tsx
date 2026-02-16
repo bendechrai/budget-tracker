@@ -8,8 +8,6 @@ import SparkleButton from "@/app/components/SparkleButton";
 import { useWhatIf } from "@/app/contexts/WhatIfContext";
 import HypotheticalForm from "./HypotheticalForm";
 import EscalationForm from "./EscalationForm";
-import ContributionModal from "./ContributionModal";
-import AdjustBalanceModal from "./AdjustBalanceModal";
 
 interface FundGroup {
   id: string;
@@ -34,10 +32,6 @@ interface CustomScheduleEntry {
   isPaid: boolean;
 }
 
-interface FundBalanceData {
-  currentBalance: number;
-}
-
 interface Obligation {
   id: string;
   name: string;
@@ -50,10 +44,9 @@ interface Obligation {
   nextDueDate: string;
   isPaused: boolean;
   isArchived: boolean;
-  fundGroupId: string | null;
-  fundGroup: FundGroup | null;
+  fundGroupId: string;
+  fundGroup: FundGroup;
   customEntries: CustomScheduleEntry[];
-  fundBalance: FundBalanceData | null;
 }
 
 const TYPE_LABELS: Record<string, string> = {
@@ -118,14 +111,6 @@ function formatEscalationRecurrence(esc: Escalation): string {
   return `Every ${esc.intervalMonths} months`;
 }
 
-function getFundStatusColor(currentBalance: number, amountNeeded: number): "green" | "amber" | "red" {
-  if (amountNeeded <= 0) return "green";
-  const pct = (currentBalance / amountNeeded) * 100;
-  if (pct >= 80) return "green";
-  if (pct >= 40) return "amber";
-  return "red";
-}
-
 function isPastDue(nextDueDate: string): boolean {
   const due = new Date(nextDueDate);
   const now = new Date();
@@ -163,30 +148,20 @@ interface GroupedObligations {
 
 function groupByFundGroup(obligations: Obligation[]): GroupedObligations[] {
   const groups = new Map<string, Obligation[]>();
-  const defaultKey = "__default__";
 
   for (const ob of obligations) {
-    const key = ob.fundGroupId ?? defaultKey;
-    const existing = groups.get(key);
+    const existing = groups.get(ob.fundGroupId);
     if (existing) {
       existing.push(ob);
     } else {
-      groups.set(key, [ob]);
+      groups.set(ob.fundGroupId, [ob]);
     }
   }
 
   const result: GroupedObligations[] = [];
 
-  // Default group first
-  const defaultGroup = groups.get(defaultKey);
-  if (defaultGroup) {
-    result.push({ groupName: "Ungrouped", obligations: defaultGroup });
-    groups.delete(defaultKey);
-  }
-
-  // Named groups
   for (const [, obs] of groups) {
-    const groupName = obs[0].fundGroup?.name ?? "Unknown";
+    const groupName = obs[0].fundGroup.name;
     result.push({ groupName, obligations: obs });
   }
 
@@ -203,8 +178,6 @@ export default function ObligationsPage() {
   const [escalations, setEscalations] = useState<Map<string, Escalation[]>>(new Map());
   const [expandedEscalations, setExpandedEscalations] = useState<Set<string>>(new Set());
   const [escalationFormTarget, setEscalationFormTarget] = useState<string | null>(null);
-  const [contributionTarget, setContributionTarget] = useState<Obligation | null>(null);
-  const [adjustBalanceTarget, setAdjustBalanceTarget] = useState<Obligation | null>(null);
   const { overrides, toggleObligation, overrideAmount, addHypothetical, removeHypothetical } = useWhatIf();
 
   const archiveObligation = useCallback(async (ob: Obligation) => {
@@ -465,42 +438,6 @@ export default function ObligationsPage() {
                             <> · Ends: {formatDate(ob.endDate)}</>
                           )}
                         </span>
-                        {(() => {
-                          const balance = ob.fundBalance?.currentBalance ?? 0;
-                          const needed = ob.amount;
-                          const pct = needed > 0 ? Math.min(100, Math.round((balance / needed) * 100)) : 100;
-                          const color = getFundStatusColor(balance, needed);
-                          return (
-                            <div className={styles.fundBalanceRow} data-testid={`fund-balance-${ob.id}`}>
-                              <div className={styles.fundProgressBar}>
-                                <div
-                                  className={`${styles.fundProgressFill} ${styles[`fundProgress_${color}`]}`}
-                                  style={{ width: `${pct}%` }}
-                                  data-testid={`fund-progress-${ob.id}`}
-                                />
-                              </div>
-                              <span className={`${styles.fundBalanceText} ${styles[`fundText_${color}`]}`}>
-                                ${balance.toFixed(2)} of ${needed.toFixed(2)} saved ({pct}%)
-                              </span>
-                              <button
-                                type="button"
-                                className={styles.contributeButton}
-                                onClick={() => setContributionTarget(ob)}
-                                data-testid={`contribute-button-${ob.id}`}
-                              >
-                                Record contribution
-                              </button>
-                              <button
-                                type="button"
-                                className={styles.contributeButton}
-                                onClick={() => setAdjustBalanceTarget(ob)}
-                                data-testid={`adjust-balance-button-${ob.id}`}
-                              >
-                                Adjust balance
-                              </button>
-                            </div>
-                          );
-                        })()}
                       </div>
                       <div className={styles.listItemActions}>
                         <label className={styles.whatIfToggle} data-testid={`whatif-toggle-${ob.id}`}>
@@ -705,34 +642,6 @@ export default function ObligationsPage() {
               />
             )}
           </div>
-        )}
-
-        {contributionTarget && (
-          <ContributionModal
-            obligationId={contributionTarget.id}
-            obligationName={contributionTarget.name}
-            currentBalance={contributionTarget.fundBalance?.currentBalance ?? 0}
-            amountNeeded={contributionTarget.amount}
-            recommendedContribution={Math.max(0, contributionTarget.amount - (contributionTarget.fundBalance?.currentBalance ?? 0))}
-            onClose={() => setContributionTarget(null)}
-            onSaved={() => {
-              setContributionTarget(null);
-              void fetchObligations();
-            }}
-          />
-        )}
-
-        {adjustBalanceTarget && (
-          <AdjustBalanceModal
-            obligationId={adjustBalanceTarget.id}
-            obligationName={adjustBalanceTarget.name}
-            currentBalance={adjustBalanceTarget.fundBalance?.currentBalance ?? 0}
-            onClose={() => setAdjustBalanceTarget(null)}
-            onSaved={() => {
-              setAdjustBalanceTarget(null);
-              void fetchObligations();
-            }}
-          />
         )}
 
         {!loading && hasAnyObligations && (

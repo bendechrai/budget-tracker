@@ -52,8 +52,19 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     const passwordHash = await hashPassword(password);
 
-    const user = await prisma.user.create({
-      data: { email, passwordHash },
+    const user = await prisma.$transaction(async (tx) => {
+      const created = await tx.user.create({
+        data: { email, passwordHash },
+      });
+      await tx.fundGroup.create({
+        data: {
+          userId: created.id,
+          name: "Default Sinking Fund",
+          isDefault: true,
+          currentBalance: 0,
+        },
+      });
+      return created;
     });
 
     await createSession(user.id, user.onboardingComplete);

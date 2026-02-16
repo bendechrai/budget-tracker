@@ -18,7 +18,7 @@ function makeObligation(
     endDate: null,
     isPaused: false,
     isActive: true,
-    fundGroupId: null,
+    fundGroupId: "fg-1",
     ...overrides,
   };
 }
@@ -30,7 +30,7 @@ const MONTHLY_CYCLE: CycleConfig = { type: "monthly", payDays: [1] };
 function makeInput(overrides: Partial<TimelineInput> = {}): TimelineInput {
   return {
     obligations: [makeObligation()],
-    fundBalances: [],
+    fundGroupBalances: [],
     currentFundBalance: 0,
     contributionPerCycle: 400,
     cycleConfig: MONTHLY_CYCLE,

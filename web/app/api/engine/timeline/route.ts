@@ -4,7 +4,7 @@ import { getCurrentUser } from "@/lib/auth/getCurrentUser";
 import { logError } from "@/lib/logging";
 import { calculateContributions, resolveCycleConfig } from "@/lib/engine/calculate";
 import { projectTimeline } from "@/lib/engine/timeline";
-import type { ObligationInput, FundBalanceInput } from "@/lib/engine/calculate";
+import type { ObligationInput, FundGroupBalanceInput } from "@/lib/engine/calculate";
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
@@ -45,12 +45,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       },
     });
 
-    const fundBalances = await prisma.fundBalance.findMany({
-      where: {
-        obligation: {
-          userId: user.id,
-        },
-      },
+    const fundGroups = await prisma.fundGroup.findMany({
+      where: { userId: user.id },
     });
 
     const obligationInputs: ObligationInput[] = obligations.map((o) => ({
@@ -72,21 +68,21 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       })),
     }));
 
-    const fundBalanceInputs: FundBalanceInput[] = fundBalances.map((fb) => ({
-      obligationId: fb.obligationId,
-      currentBalance: fb.currentBalance,
+    const fundGroupBalanceInputs: FundGroupBalanceInput[] = fundGroups.map((fg) => ({
+      fundGroupId: fg.id,
+      currentBalance: fg.currentBalance,
     }));
 
     const engineResult = calculateContributions({
       obligations: obligationInputs,
-      fundBalances: fundBalanceInputs,
+      fundGroupBalances: fundGroupBalanceInputs,
       maxContributionPerCycle: user.maxContributionPerCycle,
       cycleConfig,
     });
 
     const timeline = projectTimeline({
       obligations: obligationInputs,
-      fundBalances: fundBalanceInputs,
+      fundGroupBalances: fundGroupBalanceInputs,
       currentFundBalance: user.currentFundBalance,
       contributionPerCycle: engineResult.totalContributionPerCycle,
       cycleConfig,

@@ -15,20 +15,33 @@ export async function GET(
 
     const { obligationId } = await params;
 
-    // Verify obligation exists and belongs to user
-    const obligation = await prisma.obligation.findUnique({
+    // The param can be a fundGroupId directly — check fund group first
+    const fundGroup = await prisma.fundGroup.findUnique({
       where: { id: obligationId },
     });
 
-    if (!obligation || obligation.userId !== user.id) {
-      return NextResponse.json(
-        { error: "obligation not found" },
-        { status: 404 }
-      );
+    let fundGroupId: string;
+
+    if (fundGroup && fundGroup.userId === user.id) {
+      fundGroupId = fundGroup.id;
+    } else {
+      // Fall back to looking up via obligation
+      const obligation = await prisma.obligation.findUnique({
+        where: { id: obligationId },
+      });
+
+      if (!obligation || obligation.userId !== user.id) {
+        return NextResponse.json(
+          { error: "not found" },
+          { status: 404 }
+        );
+      }
+
+      fundGroupId = obligation.fundGroupId;
     }
 
     const contributions = await prisma.contributionRecord.findMany({
-      where: { obligationId },
+      where: { fundGroupId },
       orderBy: { date: "desc" },
     });
 

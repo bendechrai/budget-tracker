@@ -1,7 +1,7 @@
 import {
   getNextDueDateAfter,
   type ObligationInput,
-  type FundBalanceInput,
+  type FundGroupBalanceInput,
   type CustomEntryInput,
   type CycleConfig,
 } from "./calculate";
@@ -9,7 +9,7 @@ import { getAmountAtDate } from "./escalation";
 
 export interface TimelineInput {
   obligations: ObligationInput[];
-  fundBalances: FundBalanceInput[];
+  fundGroupBalances: FundGroupBalanceInput[];
   /** Total current fund balance across all obligations */
   currentFundBalance: number;
   /** Contribution amount per cycle (from engine calculation) */

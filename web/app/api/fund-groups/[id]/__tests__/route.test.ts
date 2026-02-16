@@ -10,7 +10,7 @@ vi.mock("@/lib/auth/getCurrentUser", () => ({
 const mockFindUnique = vi.fn();
 const mockUpdate = vi.fn();
 const mockDelete = vi.fn();
-const mockUpdateMany = vi.fn();
+const mockObligationCount = vi.fn();
 
 vi.mock("@/lib/prisma", () => ({
   prisma: {
@@ -20,7 +20,7 @@ vi.mock("@/lib/prisma", () => ({
       delete: (...args: unknown[]) => mockDelete(...args),
     },
     obligation: {
-      updateMany: (...args: unknown[]) => mockUpdateMany(...args),
+      count: (...args: unknown[]) => mockObligationCount(...args),
     },
   },
 }));
@@ -164,14 +164,15 @@ describe("DELETE /api/fund-groups/[id]", () => {
     vi.clearAllMocks();
   });
 
-  it("returns 200 and deletes fund group, unassigning obligations", async () => {
+  it("returns 200 and deletes empty non-default fund group", async () => {
     mockGetCurrentUser.mockResolvedValue({ id: "user_1", email: "test@example.com" });
     mockFindUnique.mockResolvedValue({
       id: "fg_1",
       userId: "user_1",
       name: "Bills",
+      isDefault: false,
     });
-    mockUpdateMany.mockResolvedValue({ count: 2 });
+    mockObligationCount.mockResolvedValue(0);
     mockDelete.mockResolvedValue({ id: "fg_1" });
 
     const res = await DELETE(makeDeleteRequest("fg_1"), makeParams("fg_1"));
@@ -180,14 +181,44 @@ describe("DELETE /api/fund-groups/[id]", () => {
     const data = await res.json();
     expect(data).toEqual({ success: true });
 
-    expect(mockUpdateMany).toHaveBeenCalledWith({
-      where: { fundGroupId: "fg_1" },
-      data: { fundGroupId: null },
-    });
-
     expect(mockDelete).toHaveBeenCalledWith({
       where: { id: "fg_1" },
     });
+  });
+
+  it("returns 400 when trying to delete default fund group", async () => {
+    mockGetCurrentUser.mockResolvedValue({ id: "user_1", email: "test@example.com" });
+    mockFindUnique.mockResolvedValue({
+      id: "fg_1",
+      userId: "user_1",
+      name: "Default Sinking Fund",
+      isDefault: true,
+    });
+
+    const res = await DELETE(makeDeleteRequest("fg_1"), makeParams("fg_1"));
+
+    expect(res.status).toBe(400);
+    const data = await res.json();
+    expect(data.error).toBe("cannot delete the default fund group");
+    expect(mockDelete).not.toHaveBeenCalled();
+  });
+
+  it("returns 409 when fund group has obligations", async () => {
+    mockGetCurrentUser.mockResolvedValue({ id: "user_1", email: "test@example.com" });
+    mockFindUnique.mockResolvedValue({
+      id: "fg_1",
+      userId: "user_1",
+      name: "Bills",
+      isDefault: false,
+    });
+    mockObligationCount.mockResolvedValue(2);
+
+    const res = await DELETE(makeDeleteRequest("fg_1"), makeParams("fg_1"));
+
+    expect(res.status).toBe(409);
+    const data = await res.json();
+    expect(data.error).toBe("cannot delete a fund group that has obligations");
+    expect(mockDelete).not.toHaveBeenCalled();
   });
 
   it("returns 401 when not authenticated", async () => {
@@ -210,7 +241,7 @@ describe("DELETE /api/fund-groups/[id]", () => {
     expect(res.status).toBe(404);
     const data = await res.json();
     expect(data.error).toBe("not found");
-    expect(mockUpdateMany).not.toHaveBeenCalled();
+    expect(mockObligationCount).not.toHaveBeenCalled();
     expect(mockDelete).not.toHaveBeenCalled();
   });
 
@@ -227,7 +258,7 @@ describe("DELETE /api/fund-groups/[id]", () => {
     expect(res.status).toBe(404);
     const data = await res.json();
     expect(data.error).toBe("not found");
-    expect(mockUpdateMany).not.toHaveBeenCalled();
+    expect(mockObligationCount).not.toHaveBeenCalled();
     expect(mockDelete).not.toHaveBeenCalled();
   });
 });

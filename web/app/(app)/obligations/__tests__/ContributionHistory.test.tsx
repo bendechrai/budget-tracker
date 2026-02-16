@@ -9,7 +9,7 @@ vi.mock("@/lib/logging", () => ({
 const mockContributions = [
   {
     id: "cr_2",
-    obligationId: "obl_1",
+    fundGroupId: "fg_1",
     amount: 200,
     date: "2025-06-10T00:00:00.000Z",
     type: "contribution",
@@ -18,7 +18,7 @@ const mockContributions = [
   },
   {
     id: "cr_1",
-    obligationId: "obl_1",
+    fundGroupId: "fg_1",
     amount: -50,
     date: "2025-06-01T00:00:00.000Z",
     type: "manual_adjustment",
@@ -45,7 +45,7 @@ describe("ContributionHistory", () => {
       })
     );
 
-    render(<ContributionHistory obligationId="obl_1" />);
+    render(<ContributionHistory fundGroupId="fg_1" />);
 
     await waitFor(() => {
       expect(screen.getByTestId("contribution-history-list")).toBeDefined();
@@ -63,7 +63,7 @@ describe("ContributionHistory", () => {
       })
     );
 
-    render(<ContributionHistory obligationId="obl_1" />);
+    render(<ContributionHistory fundGroupId="fg_1" />);
 
     await waitFor(() => {
       expect(screen.getByTestId("contribution-amount-cr_2").textContent).toBe("+$200.00");
@@ -78,7 +78,7 @@ describe("ContributionHistory", () => {
       })
     );
 
-    render(<ContributionHistory obligationId="obl_1" />);
+    render(<ContributionHistory fundGroupId="fg_1" />);
 
     await waitFor(() => {
       expect(screen.getByTestId("contribution-amount-cr_1").textContent).toBe("-$50.00");
@@ -93,7 +93,7 @@ describe("ContributionHistory", () => {
       })
     );
 
-    render(<ContributionHistory obligationId="obl_1" />);
+    render(<ContributionHistory fundGroupId="fg_1" />);
 
     await waitFor(() => {
       expect(screen.getByTestId("contribution-history-list")).toBeDefined();
@@ -112,7 +112,7 @@ describe("ContributionHistory", () => {
       })
     );
 
-    render(<ContributionHistory obligationId="obl_1" />);
+    render(<ContributionHistory fundGroupId="fg_1" />);
 
     await waitFor(() => {
       expect(screen.getByTestId("contribution-history-list")).toBeDefined();
@@ -129,7 +129,7 @@ describe("ContributionHistory", () => {
       })
     );
 
-    render(<ContributionHistory obligationId="obl_1" />);
+    render(<ContributionHistory fundGroupId="fg_1" />);
 
     await waitFor(() => {
       expect(screen.getByTestId("contribution-history-empty")).toBeDefined();
@@ -148,7 +148,7 @@ describe("ContributionHistory", () => {
       })
     );
 
-    render(<ContributionHistory obligationId="obl_1" />);
+    render(<ContributionHistory fundGroupId="fg_1" />);
 
     await waitFor(() => {
       expect(screen.getByTestId("contribution-history-error")).toBeDefined();
@@ -159,7 +159,7 @@ describe("ContributionHistory", () => {
     );
   });
 
-  it("fetches contributions for the correct obligation", async () => {
+  it("fetches contributions for the correct fund group", async () => {
     vi.mocked(global.fetch).mockResolvedValueOnce(
       new Response(JSON.stringify([]), {
         status: 200,
@@ -167,17 +167,17 @@ describe("ContributionHistory", () => {
       })
     );
 
-    render(<ContributionHistory obligationId="obl_42" />);
+    render(<ContributionHistory fundGroupId="fg_42" />);
 
     await waitFor(() => {
-      expect(global.fetch).toHaveBeenCalledWith("/api/contributions/obl_42");
+      expect(global.fetch).toHaveBeenCalledWith("/api/contributions/fg_42");
     });
   });
 
   it("shows loading state initially", () => {
     vi.mocked(global.fetch).mockReturnValueOnce(new Promise(() => {}));
 
-    render(<ContributionHistory obligationId="obl_1" />);
+    render(<ContributionHistory fundGroupId="fg_1" />);
 
     expect(screen.getByTestId("contribution-history-loading")).toBeDefined();
   });

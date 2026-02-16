@@ -8,8 +8,8 @@ vi.mock("@/lib/logging", () => ({
 }));
 
 const defaultProps = {
-  obligationId: "ob-1",
-  obligationName: "Netflix",
+  fundGroupId: "fg-1",
+  fundGroupName: "Netflix",
   currentBalance: 10,
   amountNeeded: 22.99,
   recommendedContribution: 6.5,
@@ -93,7 +93,7 @@ describe("ContributionModal", () => {
   it("submits contribution successfully", async () => {
     const user = userEvent.setup();
     vi.mocked(global.fetch).mockResolvedValueOnce(
-      new Response(JSON.stringify({ obligationId: "ob-1", currentBalance: 16.5 }), {
+      new Response(JSON.stringify({ fundGroupId: "fg-1", currentBalance: 16.5 }), {
         status: 201,
         headers: { "Content-Type": "application/json" },
       })
@@ -109,7 +109,7 @@ describe("ContributionModal", () => {
         expect.objectContaining({
           method: "POST",
           body: JSON.stringify({
-            obligationId: "ob-1",
+            fundGroupId: "fg-1",
             amount: 6.5,
             type: "contribution",
           }),

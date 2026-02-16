@@ -80,13 +80,16 @@ enum ObligationType {
 }
 
 model FundGroup {
-  id          String       @id @default(cuid())
-  userId      String
-  name        String
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  user        User         @relation(fields: [userId], references: [id])
-  obligations Obligation[]
+  id             String               @id @default(cuid())
+  userId         String
+  name           String
+  isDefault      Boolean              @default(false)
+  currentBalance Float                @default(0)
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+  user           User                 @relation(fields: [userId], references: [id])
+  obligations    Obligation[]
+  contributions  ContributionRecord[]
 
   @@index([userId])
 }
@@ -105,15 +108,13 @@ model Obligation {
   isPaused      Boolean             @default(false)
   isActive      Boolean             @default(true)
   isArchived    Boolean             @default(false)
-  fundGroupId   String?
+  fundGroupId   String
   createdAt     DateTime            @default(now())
   updatedAt     DateTime            @updatedAt
   user          User                @relation(fields: [userId], references: [id])
-  fundGroup     FundGroup?          @relation(fields: [fundGroupId], references: [id])
+  fundGroup     FundGroup           @relation(fields: [fundGroupId], references: [id])
   customEntries CustomScheduleEntry[]
   linkedSuggestions Suggestion[]
-  fundBalance      FundBalance?
-  contributions    ContributionRecord[]
   escalations      Escalation[]
 
   @@index([userId])
@@ -260,25 +261,17 @@ enum ContributionType {
   manual_adjustment
 }
 
-model FundBalance {
-  id            String     @id @default(cuid())
-  obligationId  String     @unique
-  currentBalance Float     @default(0)
-  lastUpdatedAt DateTime   @updatedAt
-  obligation    Obligation @relation(fields: [obligationId], references: [id], onDelete: Cascade)
-}
-
 model ContributionRecord {
-  id           String           @id @default(cuid())
-  obligationId String
-  amount       Float
-  date         DateTime
-  type         ContributionType
-  note         String?
-  createdAt    DateTime         @default(now())
-  obligation   Obligation       @relation(fields: [obligationId], references: [id], onDelete: Cascade)
+  id          String           @id @default(cuid())
+  fundGroupId String
+  amount      Float
+  date        DateTime
+  type        ContributionType
+  note        String?
+  createdAt   DateTime         @default(now())
+  fundGroup   FundGroup        @relation(fields: [fundGroupId], references: [id], onDelete: Cascade)
 
-  @@index([obligationId])
+  @@index([fundGroupId])
 }
 
 model EngineSnapshot {
@@ -291,6 +284,7 @@ model EngineSnapshot {
   nextActionDate          DateTime
   nextActionDescription   String
   nextActionObligationId  String?
+  nextActionFundGroupId   String?
   user                    User     @relation(fields: [userId], references: [id])
 
   @@index([userId])

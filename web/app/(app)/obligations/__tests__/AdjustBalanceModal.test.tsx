@@ -8,8 +8,8 @@ vi.mock("@/lib/logging", () => ({
 }));
 
 const defaultProps = {
-  obligationId: "ob-1",
-  obligationName: "Netflix",
+  fundGroupId: "fg-1",
+  fundGroupName: "Netflix",
   currentBalance: 50,
   onClose: vi.fn(),
   onSaved: vi.fn(),
@@ -51,7 +51,7 @@ describe("AdjustBalanceModal", () => {
   it("submits adjustment successfully", async () => {
     const user = userEvent.setup();
     vi.mocked(global.fetch).mockResolvedValueOnce(
-      new Response(JSON.stringify({ obligationId: "ob-1", currentBalance: 75.5 }), {
+      new Response(JSON.stringify({ fundGroupId: "fg-1", currentBalance: 75.5 }), {
         status: 200,
         headers: { "Content-Type": "application/json" },
       })
@@ -67,7 +67,7 @@ describe("AdjustBalanceModal", () => {
 
     await waitFor(() => {
       expect(global.fetch).toHaveBeenCalledWith(
-        "/api/fund-balances/ob-1",
+        "/api/fund-groups/fg-1/balance",
         expect.objectContaining({
           method: "PUT",
           body: JSON.stringify({ balance: 75.5 }),
@@ -84,7 +84,7 @@ describe("AdjustBalanceModal", () => {
   it("supports decreasing balance", async () => {
     const user = userEvent.setup();
     vi.mocked(global.fetch).mockResolvedValueOnce(
-      new Response(JSON.stringify({ obligationId: "ob-1", currentBalance: 20 }), {
+      new Response(JSON.stringify({ fundGroupId: "fg-1", currentBalance: 20 }), {
         status: 200,
         headers: { "Content-Type": "application/json" },
       })
@@ -100,7 +100,7 @@ describe("AdjustBalanceModal", () => {
 
     await waitFor(() => {
       expect(global.fetch).toHaveBeenCalledWith(
-        "/api/fund-balances/ob-1",
+        "/api/fund-groups/fg-1/balance",
         expect.objectContaining({
           method: "PUT",
           body: JSON.stringify({ balance: 20 }),

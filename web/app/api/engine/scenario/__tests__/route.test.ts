@@ -7,7 +7,7 @@ vi.mock("@/lib/auth/getCurrentUser", () => ({
 }));
 
 const mockObligationFindMany = vi.fn();
-const mockFundBalanceFindMany = vi.fn();
+const mockFundGroupFindMany = vi.fn();
 const mockIncomeSourceFindMany = vi.fn();
 
 vi.mock("@/lib/prisma", () => ({
@@ -15,8 +15,8 @@ vi.mock("@/lib/prisma", () => ({
     obligation: {
       findMany: (...args: unknown[]) => mockObligationFindMany(...args),
     },
-    fundBalance: {
-      findMany: (...args: unknown[]) => mockFundBalanceFindMany(...args),
+    fundGroup: {
+      findMany: (...args: unknown[]) => mockFundGroupFindMany(...args),
     },
     incomeSource: {
       findMany: (...args: unknown[]) => mockIncomeSourceFindMany(...args),
@@ -81,12 +81,11 @@ const mockObligations = [
   },
 ];
 
-const mockFundBalances = [
+const mockFundGroups = [
   {
-    id: "fb_1",
-    obligationId: "obl_1",
+    id: "fg_1",
+    userId: "user_1",
     currentBalance: 300,
-    lastUpdatedAt: new Date(),
   },
 ];
 
@@ -124,7 +123,7 @@ describe("POST /api/engine/scenario", () => {
     vi.clearAllMocks();
     mockGetCurrentUser.mockResolvedValue(mockUser);
     mockObligationFindMany.mockResolvedValue(mockObligations);
-    mockFundBalanceFindMany.mockResolvedValue(mockFundBalances);
+    mockFundGroupFindMany.mockResolvedValue(mockFundGroups);
     mockIncomeSourceFindMany.mockResolvedValue([]);
     mockResolveCycleConfig.mockReturnValue({ type: "fortnightly", payDays: [] });
     mockCalculateWithWhatIf.mockReturnValue({

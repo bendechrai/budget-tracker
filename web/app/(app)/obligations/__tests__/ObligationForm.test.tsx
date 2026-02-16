@@ -139,7 +139,7 @@ describe("ObligationForm", () => {
       startDate: "2026-01-01",
       endDate: null,
       nextDueDate: "2026-02-01",
-      fundGroupId: null,
+      fundGroupId: undefined,
       customEntries: [],
     });
   });
@@ -168,7 +168,7 @@ describe("ObligationForm", () => {
       startDate: "2026-01-01",
       endDate: null,
       nextDueDate: "2026-07-15",
-      fundGroupId: null,
+      fundGroupId: undefined,
       customEntries: [],
     });
   });
@@ -210,7 +210,7 @@ describe("ObligationForm", () => {
       startDate: "2026-09-01",
       endDate: null,
       nextDueDate: "2026-09-15",
-      fundGroupId: null,
+      fundGroupId: undefined,
       customEntries: [{ dueDate: "2026-09-15", amount: 180 }],
     });
   });
@@ -308,7 +308,7 @@ describe("ObligationForm", () => {
           startDate: "2026-01-01",
           endDate: null,
           nextDueDate: "2026-02-01",
-          fundGroupId: null,
+          fundGroupId: undefined,
           customEntries: [],
         }}
         onSubmit={mockSubmit}
@@ -353,16 +353,16 @@ describe("ObligationForm", () => {
       />
     );
 
-    const select = screen.getByLabelText("Fund Group") as HTMLSelectElement;
+    const select = screen.getByLabelText("Sinking Fund") as HTMLSelectElement;
     const options = Array.from(select.options).map((o) => o.textContent);
 
-    expect(options).toEqual(["None (default group)", "Housing", "Insurance"]);
+    expect(options).toEqual(["Housing", "Insurance"]);
   });
 
   it("does not render fund group dropdown when no groups", () => {
     render(<ObligationForm onSubmit={mockSubmit} submitLabel="Create" />);
 
-    expect(screen.queryByLabelText("Fund Group")).toBeNull();
+    expect(screen.queryByLabelText("Sinking Fund")).toBeNull();
   });
 
   it("shows error from onSubmit rejection", async () => {

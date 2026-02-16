@@ -9,14 +9,11 @@ function makeContribution(
   return {
     obligationId: "obl-1",
     obligationName: "Rent",
-    fundGroupId: null,
+    fundGroupId: "fg-1",
     amountNeeded: 1200,
-    currentBalance: 0,
-    remaining: 1200,
     cyclesUntilDue: 1,
     contributionPerCycle: 1200,
     nextDueDate: new Date("2025-04-01"),
-    isFullyFunded: false,
     hasShortfall: false,
     ...overrides,
   };
@@ -27,6 +24,7 @@ function makeEngineResult(
 ): EngineResult {
   return {
     contributions: [makeContribution()],
+    fundGroupContributions: [],
     totalRequired: 1200,
     totalFunded: 0,
     totalContributionPerCycle: 1200,
@@ -65,7 +63,6 @@ describe("generateSnapshot", () => {
             amountNeeded: 1200,
             contributionPerCycle: 1200,
             nextDueDate: new Date("2025-03-15"),
-            isFullyFunded: false,
           }),
           makeContribution({
             obligationId: "obl-far",
@@ -73,7 +70,6 @@ describe("generateSnapshot", () => {
             amountNeeded: 600,
             contributionPerCycle: 200,
             nextDueDate: new Date("2025-06-01"),
-            isFullyFunded: false,
           }),
         ],
       });
@@ -98,14 +94,12 @@ describe("generateSnapshot", () => {
             obligationName: "Rent",
             contributionPerCycle: 600,
             nextDueDate: new Date("2025-04-01"),
-            isFullyFunded: false,
           }),
           makeContribution({
             obligationId: "obl-2",
             obligationName: "Netflix",
             contributionPerCycle: 15,
             nextDueDate: new Date("2025-03-20"),
-            isFullyFunded: false,
           }),
         ],
       });
@@ -128,14 +122,12 @@ describe("generateSnapshot", () => {
             obligationName: "Netflix",
             contributionPerCycle: 0,
             nextDueDate: new Date("2025-03-20"),
-            isFullyFunded: true,
           }),
           makeContribution({
             obligationId: "obl-far",
             obligationName: "Rent",
             contributionPerCycle: 400,
             nextDueDate: new Date("2025-04-01"),
-            isFullyFunded: false,
           }),
         ],
         isFullyFunded: false,
@@ -157,19 +149,13 @@ describe("generateSnapshot", () => {
             obligationId: "obl-1",
             contributionPerCycle: 0,
             nextDueDate: new Date("2025-04-01"),
-            isFullyFunded: true,
             amountNeeded: 500,
-            currentBalance: 500,
-            remaining: 0,
           }),
           makeContribution({
             obligationId: "obl-2",
             contributionPerCycle: 0,
             nextDueDate: new Date("2025-05-01"),
-            isFullyFunded: true,
             amountNeeded: 300,
-            currentBalance: 300,
-            remaining: 0,
           }),
         ],
         totalRequired: 800,
@@ -220,7 +206,6 @@ describe("generateSnapshot", () => {
             obligationName: "Gym Membership",
             contributionPerCycle: 45.5,
             nextDueDate: new Date("2025-04-15"),
-            isFullyFunded: false,
           }),
         ],
       });
@@ -241,7 +226,6 @@ describe("generateSnapshot", () => {
             obligationName: name,
             contributionPerCycle: amount,
             nextDueDate: new Date("2025-04-15"),
-            isFullyFunded: false,
           }),
         ],
       });
@@ -299,10 +283,10 @@ describe("calculateAndSnapshot", () => {
           endDate: null,
           isPaused: false,
           isActive: true,
-          fundGroupId: null,
+          fundGroupId: "fg-1",
         },
       ],
-      fundBalances: [],
+      fundGroupBalances: [],
       maxContributionPerCycle: null,
       cycleConfig: { type: "monthly", payDays: [1] },
       now: NOW,
@@ -311,9 +295,8 @@ describe("calculateAndSnapshot", () => {
     expect(result.totalRequired).toBe(1200);
     expect(result.contributions).toHaveLength(1);
     expect(snapshot.totalRequired).toBe(1200);
-    expect(snapshot.nextActionDescription).toContain("Rent");
     expect(snapshot.nextActionDescription).toContain("this month");
-    expect(snapshot.nextActionObligationId).toBe("obl-1");
+    expect(snapshot.nextActionFundGroupId).toBe("fg-1");
   });
 
   it("returns celebration snapshot when fully funded", () => {
@@ -330,10 +313,10 @@ describe("calculateAndSnapshot", () => {
           endDate: null,
           isPaused: false,
           isActive: true,
-          fundGroupId: null,
+          fundGroupId: "fg-1",
         },
       ],
-      fundBalances: [{ obligationId: "obl-1", currentBalance: 1200 }],
+      fundGroupBalances: [{ fundGroupId: "fg-1", currentBalance: 1200 }],
       maxContributionPerCycle: null,
       cycleConfig: { type: "monthly", payDays: [1] },
       now: NOW,

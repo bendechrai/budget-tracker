@@ -6,7 +6,7 @@ vi.mock("@/lib/auth/getCurrentUser", () => ({
 }));
 
 const mockObligationFindMany = vi.fn();
-const mockFundBalanceFindMany = vi.fn();
+const mockFundGroupFindMany = vi.fn();
 const mockEngineSnapshotCreate = vi.fn();
 const mockIncomeSourceFindMany = vi.fn();
 
@@ -15,8 +15,8 @@ vi.mock("@/lib/prisma", () => ({
     obligation: {
       findMany: (...args: unknown[]) => mockObligationFindMany(...args),
     },
-    fundBalance: {
-      findMany: (...args: unknown[]) => mockFundBalanceFindMany(...args),
+    fundGroup: {
+      findMany: (...args: unknown[]) => mockFundGroupFindMany(...args),
     },
     engineSnapshot: {
       create: (...args: unknown[]) => mockEngineSnapshotCreate(...args),
@@ -74,12 +74,11 @@ const mockObligations = [
   },
 ];
 
-const mockFundBalances = [
+const mockFundGroups = [
   {
-    id: "fb_1",
-    obligationId: "obl_1",
+    id: "fg_1",
+    userId: "user_1",
     currentBalance: 300,
-    lastUpdatedAt: new Date(),
   },
 ];
 
@@ -91,6 +90,8 @@ const mockSnapshotData = {
   nextActionAmount: 171.43,
   nextActionDate: futureDate,
   nextActionDescription: "Set aside $171.43 for Rent by 2025-06-15",
+  nextActionObligationId: "obl_1",
+  nextActionFundGroupId: "fg_1",
 };
 
 const mockSavedSnapshot = {
@@ -106,7 +107,7 @@ describe("POST /api/engine/recalculate", () => {
     mockGetCurrentUser.mockResolvedValue(mockUser);
     mockApplyPendingEscalations.mockResolvedValue({ appliedCount: 0, updatedObligationIds: [] });
     mockObligationFindMany.mockResolvedValue(mockObligations);
-    mockFundBalanceFindMany.mockResolvedValue(mockFundBalances);
+    mockFundGroupFindMany.mockResolvedValue(mockFundGroups);
     mockIncomeSourceFindMany.mockResolvedValue([]);
     mockCalculateAndSnapshot.mockReturnValue({
       result: {},
@@ -149,14 +150,12 @@ describe("POST /api/engine/recalculate", () => {
     });
   });
 
-  it("fetches fund balances for the user's obligations", async () => {
+  it("fetches fund groups for the user", async () => {
     await POST();
 
-    expect(mockFundBalanceFindMany).toHaveBeenCalledWith({
+    expect(mockFundGroupFindMany).toHaveBeenCalledWith({
       where: {
-        obligation: {
-          userId: "user_1",
-        },
+        userId: "user_1",
       },
     });
   });
@@ -227,9 +226,9 @@ describe("POST /api/engine/recalculate", () => {
           customEntries: [],
         },
       ],
-      fundBalances: [
+      fundGroupBalances: [
         {
-          obligationId: "obl_1",
+          fundGroupId: "fg_1",
           currentBalance: 300,
         },
       ],
@@ -250,6 +249,8 @@ describe("POST /api/engine/recalculate", () => {
         nextActionAmount: 171.43,
         nextActionDate: futureDate,
         nextActionDescription: "Set aside $171.43 for Rent by 2025-06-15",
+        nextActionObligationId: "obl_1",
+        nextActionFundGroupId: "fg_1",
       },
     });
 
@@ -265,7 +266,7 @@ describe("POST /api/engine/recalculate", () => {
 
   it("handles no obligations (empty state)", async () => {
     mockObligationFindMany.mockResolvedValue([]);
-    mockFundBalanceFindMany.mockResolvedValue([]);
+    mockFundGroupFindMany.mockResolvedValue([]);
     mockCalculateAndSnapshot.mockReturnValue({
       result: {},
       snapshot: {

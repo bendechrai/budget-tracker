@@ -91,6 +91,7 @@ const mockSnapshot = {
   nextActionDate: "2025-02-14T00:00:00.000Z",
   nextActionDescription: "Set aside $412.00 for Rent by 2025-02-14",
   nextActionObligationId: "ob1",
+  nextActionFundGroupId: "fg1",
   calculatedAt: "2025-02-01T00:00:00.000Z",
 };
 
@@ -104,6 +105,7 @@ const mockFullyFundedSnapshot = {
   nextActionDate: "2025-03-01T00:00:00.000Z",
   nextActionDescription: "You're fully covered!",
   nextActionObligationId: null,
+  nextActionFundGroupId: null,
   calculatedAt: "2025-02-01T00:00:00.000Z",
 };
 
@@ -117,6 +119,7 @@ const mockEmptySnapshot = {
   nextActionDate: "2025-02-01T00:00:00.000Z",
   nextActionDescription: "Add your first obligation to get started",
   nextActionObligationId: null,
+  nextActionFundGroupId: null,
   calculatedAt: "2025-02-01T00:00:00.000Z",
 };
 
@@ -125,8 +128,13 @@ const mockObligationWithBalance = {
   name: "Rent",
   amount: 1200,
   nextDueDate: "2025-02-14T00:00:00.000Z",
-  fundBalance: { currentBalance: 800 },
+  fundGroupId: "fg1",
+  fundGroup: { id: "fg1", name: "Housing", currentBalance: 800 },
 };
+
+const mockFundGroups = [
+  { id: "fg1", name: "Housing", currentBalance: 800, _count: { obligations: 1 } },
+];
 
 const mockScenarioResponse = {
   snapshot: {
@@ -176,8 +184,11 @@ describe("DashboardPage", () => {
     vi.mocked(global.fetch).mockImplementation((url) => {
       if (typeof url === "string" && url.includes("/api/obligations")) {
         return Promise.resolve(
-          mockFetchResponse([{ id: "ob1" }])
+          mockFetchResponse([{ id: "ob1", fundGroupId: "fg1", fundGroup: { id: "fg1", name: "Housing", currentBalance: 800 }, amount: 1200 }])
         );
+      }
+      if (typeof url === "string" && url.includes("/api/fund-groups")) {
+        return Promise.resolve(mockFetchResponse(mockFundGroups));
       }
       if (typeof url === "string" && url.includes("/api/engine/timeline")) {
         return Promise.resolve(mockFetchResponse(mockTimelineData));
@@ -209,8 +220,11 @@ describe("DashboardPage", () => {
     vi.mocked(global.fetch).mockImplementation((url) => {
       if (typeof url === "string" && url.includes("/api/obligations")) {
         return Promise.resolve(
-          mockFetchResponse([{ id: "ob1" }])
+          mockFetchResponse([{ id: "ob1", fundGroupId: "fg1", fundGroup: { id: "fg1", name: "Housing", currentBalance: 1200 }, amount: 1200 }])
         );
+      }
+      if (typeof url === "string" && url.includes("/api/fund-groups")) {
+        return Promise.resolve(mockFetchResponse(mockFundGroups));
       }
       if (typeof url === "string" && url.includes("/api/engine/timeline")) {
         return Promise.resolve(mockFetchResponse(mockTimelineData));
@@ -232,6 +246,9 @@ describe("DashboardPage", () => {
   it("renders empty state when no obligations exist", async () => {
     vi.mocked(global.fetch).mockImplementation((url) => {
       if (typeof url === "string" && url.includes("/api/obligations")) {
+        return Promise.resolve(mockFetchResponse([]));
+      }
+      if (typeof url === "string" && url.includes("/api/fund-groups")) {
         return Promise.resolve(mockFetchResponse([]));
       }
       if (typeof url === "string" && url.includes("/api/engine/timeline")) {
@@ -270,6 +287,9 @@ describe("DashboardPage", () => {
       if (typeof url === "string" && url.includes("/api/obligations")) {
         return Promise.resolve(mockFetchResponse([]));
       }
+      if (typeof url === "string" && url.includes("/api/fund-groups")) {
+        return Promise.resolve(mockFetchResponse([]));
+      }
       if (typeof url === "string" && url.includes("/api/engine/timeline")) {
         return Promise.resolve(mockFetchResponse(mockTimelineData));
       }
@@ -292,6 +312,9 @@ describe("DashboardPage", () => {
       if (typeof url === "string" && url.includes("/api/obligations")) {
         return Promise.resolve(mockFetchResponse([]));
       }
+      if (typeof url === "string" && url.includes("/api/fund-groups")) {
+        return Promise.resolve(mockFetchResponse([]));
+      }
       if (typeof url === "string" && url.includes("/api/engine/timeline")) {
         return Promise.resolve(mockFetchResponse(mockTimelineData));
       }
@@ -309,8 +332,11 @@ describe("DashboardPage", () => {
     vi.mocked(global.fetch).mockImplementation((url) => {
       if (typeof url === "string" && url.includes("/api/obligations")) {
         return Promise.resolve(
-          mockFetchResponse([{ id: "ob1" }])
+          mockFetchResponse([{ id: "ob1", fundGroupId: "fg1", fundGroup: { id: "fg1", name: "Housing", currentBalance: 800 }, amount: 1200 }])
         );
+      }
+      if (typeof url === "string" && url.includes("/api/fund-groups")) {
+        return Promise.resolve(mockFetchResponse(mockFundGroups));
       }
       if (typeof url === "string" && url.includes("/api/engine/timeline")) {
         return Promise.resolve(mockFetchResponse(mockTimelineData));
@@ -345,6 +371,9 @@ describe("DashboardPage", () => {
       if (typeof url === "string" && url.includes("/api/obligations")) {
         return Promise.resolve(mockFetchResponse([]));
       }
+      if (typeof url === "string" && url.includes("/api/fund-groups")) {
+        return Promise.resolve(mockFetchResponse([]));
+      }
       if (typeof url === "string" && url.includes("/api/engine/timeline")) {
         return Promise.resolve(mockFetchResponse(mockTimelineData));
       }
@@ -377,8 +406,11 @@ describe("DashboardPage", () => {
     vi.mocked(global.fetch).mockImplementation((url) => {
       if (typeof url === "string" && url.includes("/api/obligations")) {
         return Promise.resolve(
-          mockFetchResponse([{ id: "ob1" }, { id: "ob2" }])
+          mockFetchResponse([{ id: "ob1", fundGroupId: "fg1", amount: 1200 }, { id: "ob2", fundGroupId: "fg2", amount: 500 }])
         );
+      }
+      if (typeof url === "string" && url.includes("/api/fund-groups")) {
+        return Promise.resolve(mockFetchResponse(mockFundGroups));
       }
       if (typeof url === "string" && url.includes("/api/engine/scenario")) {
         return Promise.resolve(mockFetchResponse(mockScenarioResponse));
@@ -426,8 +458,11 @@ describe("DashboardPage", () => {
     vi.mocked(global.fetch).mockImplementation((url) => {
       if (typeof url === "string" && url.includes("/api/obligations")) {
         return Promise.resolve(
-          mockFetchResponse([{ id: "ob1" }, { id: "ob2" }])
+          mockFetchResponse([{ id: "ob1", fundGroupId: "fg1", amount: 1200 }, { id: "ob2", fundGroupId: "fg2", amount: 500 }])
         );
+      }
+      if (typeof url === "string" && url.includes("/api/fund-groups")) {
+        return Promise.resolve(mockFetchResponse(mockFundGroups));
       }
       if (typeof url === "string" && url.includes("/api/engine/scenario")) {
         return Promise.resolve(mockFetchResponse(scenarioWithNextAction));
@@ -452,12 +487,15 @@ describe("DashboardPage", () => {
     ).toBeDefined();
   });
 
-  it("renders 'Mark as done' button on hero card when obligation ID is present", async () => {
+  it("renders 'Mark as done' button on hero card when fund group ID is present", async () => {
     vi.mocked(global.fetch).mockImplementation((url) => {
       if (typeof url === "string" && url.includes("/api/obligations")) {
         return Promise.resolve(
           mockFetchResponse([mockObligationWithBalance])
         );
+      }
+      if (typeof url === "string" && url.includes("/api/fund-groups")) {
+        return Promise.resolve(mockFetchResponse(mockFundGroups));
       }
       if (typeof url === "string" && url.includes("/api/engine/timeline")) {
         return Promise.resolve(mockFetchResponse(mockTimelineData));
@@ -481,6 +519,9 @@ describe("DashboardPage", () => {
           mockFetchResponse([mockObligationWithBalance])
         );
       }
+      if (typeof url === "string" && url.includes("/api/fund-groups")) {
+        return Promise.resolve(mockFetchResponse(mockFundGroups));
+      }
       if (typeof url === "string" && url.includes("/api/engine/timeline")) {
         return Promise.resolve(mockFetchResponse(mockTimelineData));
       }
@@ -499,8 +540,8 @@ describe("DashboardPage", () => {
       expect(screen.getByTestId("contribution-modal")).toBeDefined();
     });
 
-    // Modal should show the obligation name
-    expect(screen.getByTestId("contribution-modal-name").textContent).toBe("Rent");
+    // Modal should show the fund group name
+    expect(screen.getByTestId("contribution-modal-name").textContent).toBe("Housing");
     // Modal should be pre-filled with the hero card amount
     expect(screen.getByTestId("contribution-modal-amount")).toBeDefined();
     const amountInput = screen.getByTestId("contribution-modal-amount") as HTMLInputElement;
@@ -536,6 +577,9 @@ describe("DashboardPage", () => {
           mockFetchResponse([mockObligationWithBalance])
         );
       }
+      if (typeof url === "string" && url.includes("/api/fund-groups")) {
+        return Promise.resolve(mockFetchResponse(mockFundGroups));
+      }
       if (typeof url === "string" && url.includes("/api/engine/scenario")) {
         return Promise.resolve(mockFetchResponse(scenarioWithNextAction2));
       }
@@ -554,27 +598,37 @@ describe("DashboardPage", () => {
     expect(screen.queryByTestId("hero-mark-done")).toBeNull();
   });
 
-  it("shows 'Catch up' button when multiple obligations are underfunded", async () => {
+  it("shows 'Catch up' button when multiple fund groups are underfunded", async () => {
     const underfundedObligations = [
       {
         id: "ob1",
         name: "Rent",
         amount: 1200,
         nextDueDate: "2025-02-14T00:00:00.000Z",
-        fundBalance: { currentBalance: 800 },
+        fundGroupId: "fg1",
+        fundGroup: { id: "fg1", name: "Housing", currentBalance: 800 },
       },
       {
         id: "ob2",
         name: "Insurance",
         amount: 500,
         nextDueDate: "2025-03-01T00:00:00.000Z",
-        fundBalance: { currentBalance: 100 },
+        fundGroupId: "fg2",
+        fundGroup: { id: "fg2", name: "Protection", currentBalance: 100 },
       },
+    ];
+
+    const underfundedFundGroups = [
+      { id: "fg1", name: "Housing", currentBalance: 800, _count: { obligations: 1 } },
+      { id: "fg2", name: "Protection", currentBalance: 100, _count: { obligations: 1 } },
     ];
 
     vi.mocked(global.fetch).mockImplementation((url) => {
       if (typeof url === "string" && url.includes("/api/obligations")) {
         return Promise.resolve(mockFetchResponse(underfundedObligations));
+      }
+      if (typeof url === "string" && url.includes("/api/fund-groups")) {
+        return Promise.resolve(mockFetchResponse(underfundedFundGroups));
       }
       if (typeof url === "string" && url.includes("/api/engine/timeline")) {
         return Promise.resolve(mockFetchResponse(mockTimelineData));
@@ -591,27 +645,37 @@ describe("DashboardPage", () => {
     expect(screen.getByTestId("catch-up-button").textContent).toBe("Catch up");
   });
 
-  it("hides 'Catch up' button when all obligations are fully funded", async () => {
+  it("hides 'Catch up' button when all fund groups are fully funded", async () => {
     const fullyFundedObligations = [
       {
         id: "ob1",
         name: "Rent",
         amount: 1200,
         nextDueDate: "2025-02-14T00:00:00.000Z",
-        fundBalance: { currentBalance: 1200 },
+        fundGroupId: "fg1",
+        fundGroup: { id: "fg1", name: "Housing", currentBalance: 1200 },
       },
       {
         id: "ob2",
         name: "Insurance",
         amount: 500,
         nextDueDate: "2025-03-01T00:00:00.000Z",
-        fundBalance: { currentBalance: 500 },
+        fundGroupId: "fg2",
+        fundGroup: { id: "fg2", name: "Protection", currentBalance: 500 },
       },
+    ];
+
+    const fullyFundedFundGroups = [
+      { id: "fg1", name: "Housing", currentBalance: 1200, _count: { obligations: 1 } },
+      { id: "fg2", name: "Protection", currentBalance: 500, _count: { obligations: 1 } },
     ];
 
     vi.mocked(global.fetch).mockImplementation((url) => {
       if (typeof url === "string" && url.includes("/api/obligations")) {
         return Promise.resolve(mockFetchResponse(fullyFundedObligations));
+      }
+      if (typeof url === "string" && url.includes("/api/fund-groups")) {
+        return Promise.resolve(mockFetchResponse(fullyFundedFundGroups));
       }
       if (typeof url === "string" && url.includes("/api/engine/timeline")) {
         return Promise.resolve(mockFetchResponse(mockTimelineData));
@@ -628,27 +692,37 @@ describe("DashboardPage", () => {
     expect(screen.queryByTestId("catch-up-button")).toBeNull();
   });
 
-  it("hides 'Catch up' button when only one obligation is underfunded", async () => {
+  it("hides 'Catch up' button when only one fund group is underfunded", async () => {
     const singleUnderfunded = [
       {
         id: "ob1",
         name: "Rent",
         amount: 1200,
         nextDueDate: "2025-02-14T00:00:00.000Z",
-        fundBalance: { currentBalance: 800 },
+        fundGroupId: "fg1",
+        fundGroup: { id: "fg1", name: "Housing", currentBalance: 800 },
       },
       {
         id: "ob2",
         name: "Insurance",
         amount: 500,
         nextDueDate: "2025-03-01T00:00:00.000Z",
-        fundBalance: { currentBalance: 500 },
+        fundGroupId: "fg2",
+        fundGroup: { id: "fg2", name: "Protection", currentBalance: 500 },
       },
+    ];
+
+    const singleUnderfundedFundGroups = [
+      { id: "fg1", name: "Housing", currentBalance: 800, _count: { obligations: 1 } },
+      { id: "fg2", name: "Protection", currentBalance: 500, _count: { obligations: 1 } },
     ];
 
     vi.mocked(global.fetch).mockImplementation((url) => {
       if (typeof url === "string" && url.includes("/api/obligations")) {
         return Promise.resolve(mockFetchResponse(singleUnderfunded));
+      }
+      if (typeof url === "string" && url.includes("/api/fund-groups")) {
+        return Promise.resolve(mockFetchResponse(singleUnderfundedFundGroups));
       }
       if (typeof url === "string" && url.includes("/api/engine/timeline")) {
         return Promise.resolve(mockFetchResponse(mockTimelineData));
@@ -672,20 +746,30 @@ describe("DashboardPage", () => {
         name: "Rent",
         amount: 1200,
         nextDueDate: "2025-02-14T00:00:00.000Z",
-        fundBalance: { currentBalance: 800 },
+        fundGroupId: "fg1",
+        fundGroup: { id: "fg1", name: "Housing", currentBalance: 800 },
       },
       {
         id: "ob2",
         name: "Insurance",
         amount: 500,
         nextDueDate: "2025-03-01T00:00:00.000Z",
-        fundBalance: { currentBalance: 100 },
+        fundGroupId: "fg2",
+        fundGroup: { id: "fg2", name: "Protection", currentBalance: 100 },
       },
+    ];
+
+    const underfundedFundGroups = [
+      { id: "fg1", name: "Housing", currentBalance: 800, _count: { obligations: 1 } },
+      { id: "fg2", name: "Protection", currentBalance: 100, _count: { obligations: 1 } },
     ];
 
     vi.mocked(global.fetch).mockImplementation((url) => {
       if (typeof url === "string" && url.includes("/api/obligations")) {
         return Promise.resolve(mockFetchResponse(underfundedObligations));
+      }
+      if (typeof url === "string" && url.includes("/api/fund-groups")) {
+        return Promise.resolve(mockFetchResponse(underfundedFundGroups));
       }
       if (typeof url === "string" && url.includes("/api/engine/timeline")) {
         return Promise.resolve(mockFetchResponse(mockTimelineData));
