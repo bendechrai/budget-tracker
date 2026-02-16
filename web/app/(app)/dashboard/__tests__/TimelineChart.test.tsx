@@ -185,8 +185,13 @@ describe("TimelineChart", () => {
     });
 
     const dots = screen.getAllByTestId("reference-dot");
-    // 2 expense markers + 1 crunch point = 3 reference dots
-    expect(dots.length).toBe(3);
+    // 2 contribution + 2 expense + 1 crunch = 5 reference dots
+    expect(dots.length).toBe(5);
+
+    const contributionDots = dots.filter(
+      (d) => d.getAttribute("data-fill") === "#3182ce"
+    );
+    expect(contributionDots.length).toBe(2);
 
     const expenseDots = dots.filter(
       (d) => d.getAttribute("data-fill") === "#d69e2e"

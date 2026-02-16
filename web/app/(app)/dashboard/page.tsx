@@ -64,6 +64,7 @@ interface TimelineData {
     obligationName: string;
     amount: number;
   }>;
+  contributionMarkers: Array<{ date: string; amount: number }>;
   crunchPoints: Array<{
     date: string;
     projectedBalance: number;
@@ -347,6 +348,19 @@ export default function DashboardPage() {
                     <HealthBar fundGroups={fundGroupHealthData} />
                   </>
                 )}
+
+                <div className={styles.heroActions}>
+                  {!isActive && fundGroups.length > 0 && (
+                    <button
+                      type="button"
+                      className={styles.confirmBalancesButton}
+                      onClick={() => setShowConfirmBalancesModal(true)}
+                      data-testid="hero-confirm-balances"
+                    >
+                      Confirm fund balances
+                    </button>
+                  )}
+                </div>
               </div>
             )}
 

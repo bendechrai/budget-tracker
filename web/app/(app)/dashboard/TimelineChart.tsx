@@ -27,6 +27,11 @@ interface ExpenseMarker {
   amount: number;
 }
 
+interface ContributionMarker {
+  date: string;
+  amount: number;
+}
+
 interface CrunchPoint {
   date: string;
   projectedBalance: number;
@@ -37,6 +42,7 @@ interface CrunchPoint {
 interface TimelineData {
   dataPoints: TimelineDataPoint[];
   expenseMarkers: ExpenseMarker[];
+  contributionMarkers: ContributionMarker[];
   crunchPoints: CrunchPoint[];
   minProjectedBalance: number;
   startDate: string;
@@ -93,6 +99,7 @@ interface CustomTooltipProps {
   }>;
   label?: number;
   expenseMarkers: ExpenseMarker[];
+  contributionMarkers: ContributionMarker[];
   crunchPoints: CrunchPoint[];
 }
 
@@ -101,12 +108,18 @@ function CustomTooltip({
   payload,
   label,
   expenseMarkers,
+  contributionMarkers,
   crunchPoints,
 }: CustomTooltipProps) {
   if (!active || !payload || !label) return null;
 
   const date = new Date(label);
   const dateStr = date.toISOString().split("T")[0];
+
+  const matchingContributions = contributionMarkers.filter((m) => {
+    const mDate = new Date(m.date).toISOString().split("T")[0];
+    return mDate === dateStr;
+  });
 
   const matchingExpenses = expenseMarkers.filter((m) => {
     const mDate = new Date(m.date).toISOString().split("T")[0];
@@ -135,6 +148,14 @@ function CustomTooltip({
       {payload.map((entry) => (
         <div key={entry.dataKey} style={{ color: entry.color }}>
           {entry.name}: {formatTooltipCurrency(entry.value)}
+        </div>
+      ))}
+      {matchingContributions.map((c, i) => (
+        <div
+          key={`contrib-${c.date}-${i}`}
+          style={{ color: "#3182ce", marginTop: 4, fontSize: 12 }}
+        >
+          Contribution: +{formatTooltipCurrency(c.amount)}
         </div>
       ))}
       {matchingExpenses.map((exp) => (
@@ -186,6 +207,12 @@ export default function TimelineChart({ scenarioData, onPreseedChange }: Timelin
 
   useEffect(() => {
     void fetchTimeline(months);
+  }, [months, fetchTimeline]);
+
+  useEffect(() => {
+    const handleDataChanged = () => void fetchTimeline(months);
+    window.addEventListener("budget-data-changed", handleDataChanged);
+    return () => window.removeEventListener("budget-data-changed", handleDataChanged);
   }, [months, fetchTimeline]);
 
   useEffect(() => {
@@ -248,6 +275,25 @@ export default function TimelineChart({ scenarioData, onPreseedChange }: Timelin
 
     return data.expenseMarkers.map((marker) => {
       const markerDate = new Date(marker.date).toISOString().split("T")[0];
+      // Use the last matching point (post-expense, low balance)
+      const matchingPoints = chartData.filter(
+        (p) => new Date(p.date).toISOString().split("T")[0] === markerDate
+      );
+      const lastPoint = matchingPoints[matchingPoints.length - 1];
+      return {
+        ...marker,
+        x: new Date(marker.date).getTime(),
+        y: lastPoint?.balance ?? 0,
+      };
+    });
+  }, [data, chartData]);
+
+  const contributionMarkerPoints = useMemo(() => {
+    if (!data || chartData.length === 0) return [];
+
+    return (data.contributionMarkers ?? []).map((marker) => {
+      const markerDate = new Date(marker.date).toISOString().split("T")[0];
+      // Use the first matching point (post-contribution, high balance)
       const matchingPoint = chartData.find(
         (p) => new Date(p.date).toISOString().split("T")[0] === markerDate
       );
@@ -325,6 +371,7 @@ export default function TimelineChart({ scenarioData, onPreseedChange }: Timelin
                   content={
                     <CustomTooltip
                       expenseMarkers={data?.expenseMarkers ?? []}
+                      contributionMarkers={data?.contributionMarkers ?? []}
                       crunchPoints={data?.crunchPoints ?? []}
                     />
                   }
@@ -354,6 +401,17 @@ export default function TimelineChart({ scenarioData, onPreseedChange }: Timelin
                     activeDot={{ r: 4 }}
                   />
                 )}
+
+                {contributionMarkerPoints.map((marker, i) => (
+                  <ReferenceDot
+                    key={`contrib-${marker.date}-${i}`}
+                    x={marker.x}
+                    y={marker.y}
+                    r={2}
+                    fill="#3182ce"
+                    stroke="#3182ce"
+                  />
+                ))}
 
                 {expenseMarkerPoints.map((marker) => (
                   <ReferenceDot
