@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, it, expect } from "vitest";
-import { projectTimeline, type TimelineInput } from "../timeline";
+import { projectTimeline, calculateSteadyStatePerCycle, type TimelineInput } from "../timeline";
 import type { ObligationInput, CycleConfig } from "../calculate";
 import type { EscalationRule } from "../escalation";
 
@@ -32,7 +32,6 @@ function makeInput(overrides: Partial<TimelineInput> = {}): TimelineInput {
     obligations: [makeObligation()],
     fundGroupBalances: [],
     currentFundBalance: 0,
-    contributionPerCycle: 400,
     cycleConfig: MONTHLY_CYCLE,
     monthsAhead: 6,
     now: NOW,
@@ -52,21 +51,24 @@ describe("projectTimeline", () => {
     });
 
     it("increases balance on contribution dates", () => {
+      // With an obligation, the derived contribution adds funds at each cycle date
       const result = projectTimeline(
         makeInput({
-          obligations: [],
+          obligations: [
+            makeObligation({
+              amount: 600,
+              nextDueDate: new Date("2025-04-01"),
+            }),
+          ],
           currentFundBalance: 1000,
-          contributionPerCycle: 200,
           cycleConfig: MONTHLY_CYCLE,
           monthsAhead: 2,
         })
       );
 
-      // No expenses, only contributions
       expect(result.contributionMarkers.length).toBeGreaterThan(0);
-      // Balance should increase over time
-      const lastPoint = result.dataPoints[result.dataPoints.length - 1];
-      expect(lastPoint.projectedBalance).toBeGreaterThan(1000);
+      // Each contribution event should add the derived per-cycle amount
+      expect(result.contributionMarkers[0].amount).toBeGreaterThan(0);
     });
 
     it("decreases balance on expense dates", () => {
@@ -79,12 +81,12 @@ describe("projectTimeline", () => {
             }),
           ],
           currentFundBalance: 2000,
-          contributionPerCycle: 0,
           monthsAhead: 2,
         })
       );
 
-      // Find the data point after the expense
+      // Expenses process before contributions on the same date,
+      // so the first data point at Apr 1 reflects the expense deduction
       const afterExpense = result.dataPoints.find(
         (p) =>
           p.date.getTime() ===
@@ -107,7 +109,6 @@ describe("projectTimeline", () => {
             }),
           ],
           currentFundBalance: 1000,
-          contributionPerCycle: 400,
           cycleConfig: MONTHLY_CYCLE,
           monthsAhead: 3,
         })
@@ -116,6 +117,98 @@ describe("projectTimeline", () => {
       // Should have both contributions and expenses
       expect(result.contributionMarkers.length).toBeGreaterThan(0);
       expect(result.expenseMarkers.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe("steady-state contribution calculation", () => {
+    it("derives per-cycle amount from total expenses / cycle count", () => {
+      // $600/month obligation, 3-month window, monthly cycle → 3 expenses, 3 cycles
+      const result = projectTimeline(
+        makeInput({
+          obligations: [
+            makeObligation({
+              amount: 600,
+              nextDueDate: new Date("2025-04-01"),
+              intervalUnit: "month",
+            }),
+          ],
+          cycleConfig: MONTHLY_CYCLE,
+          monthsAhead: 3,
+        })
+      );
+
+      // 3 expenses of $600 = $1800, 3 cycles → $600/cycle
+      expect(result.contributionPerCycle).toBe(600);
+      for (const marker of result.contributionMarkers) {
+        expect(marker.amount).toBe(600);
+      }
+    });
+
+    it("halves per-cycle amount for twice-monthly vs monthly obligations", () => {
+      const obligation = makeObligation({
+        amount: 1000,
+        nextDueDate: new Date("2025-04-01"),
+        intervalUnit: "month",
+      });
+
+      const monthly = projectTimeline(
+        makeInput({
+          obligations: [obligation],
+          cycleConfig: { type: "monthly", payDays: [1] },
+          monthsAhead: 6,
+        })
+      );
+
+      const twiceMonthly = projectTimeline(
+        makeInput({
+          obligations: [obligation],
+          cycleConfig: { type: "twice_monthly", payDays: [1, 15] },
+          monthsAhead: 6,
+        })
+      );
+
+      // Twice-monthly should have ~2x as many markers at ~half the amount
+      expect(twiceMonthly.contributionMarkers.length).toBeGreaterThan(
+        monthly.contributionMarkers.length
+      );
+      expect(twiceMonthly.contributionPerCycle).toBeCloseTo(
+        monthly.contributionPerCycle / 2,
+        0
+      );
+    });
+
+    it("returns zero per-cycle when there are no expenses", () => {
+      const result = projectTimeline(
+        makeInput({
+          obligations: [],
+          monthsAhead: 3,
+        })
+      );
+
+      expect(result.contributionPerCycle).toBe(0);
+      expect(result.contributionMarkers).toHaveLength(0);
+    });
+
+    it("end balance returns to start balance for recurring obligations", () => {
+      // With steady-state contributions exactly matching expenses,
+      // the end balance should equal the start balance
+      const result = projectTimeline(
+        makeInput({
+          obligations: [
+            makeObligation({
+              amount: 500,
+              nextDueDate: new Date("2025-04-01"),
+              intervalUnit: "month",
+            }),
+          ],
+          currentFundBalance: 1000,
+          cycleConfig: MONTHLY_CYCLE,
+          monthsAhead: 6,
+        })
+      );
+
+      const lastPoint = result.dataPoints[result.dataPoints.length - 1];
+      expect(lastPoint.projectedBalance).toBeCloseTo(1000, 0);
     });
   });
 
@@ -244,6 +337,8 @@ describe("projectTimeline", () => {
 
   describe("crunch points detected", () => {
     it("detects crunch point when balance goes negative", () => {
+      // Expense processes before contribution on the same date,
+      // so a large expense causes a temporary dip even with contributions
       const result = projectTimeline(
         makeInput({
           obligations: [
@@ -253,7 +348,6 @@ describe("projectTimeline", () => {
             }),
           ],
           currentFundBalance: 500,
-          contributionPerCycle: 100,
           monthsAhead: 2,
         })
       );
@@ -277,7 +371,6 @@ describe("projectTimeline", () => {
             }),
           ],
           currentFundBalance: 500,
-          contributionPerCycle: 0,
           monthsAhead: 2,
         })
       );
@@ -297,7 +390,6 @@ describe("projectTimeline", () => {
             }),
           ],
           currentFundBalance: 5000,
-          contributionPerCycle: 500,
           monthsAhead: 2,
         })
       );
@@ -310,8 +402,13 @@ describe("projectTimeline", () => {
     it("generates contribution markers at cycle intervals", () => {
       const result = projectTimeline(
         makeInput({
-          obligations: [],
-          contributionPerCycle: 300,
+          obligations: [
+            makeObligation({
+              amount: 900,
+              nextDueDate: new Date("2025-04-01"),
+              intervalUnit: "month",
+            }),
+          ],
           cycleConfig: MONTHLY_CYCLE,
           monthsAhead: 3,
         })
@@ -319,18 +416,18 @@ describe("projectTimeline", () => {
 
       // Monthly on the 1st, start=Mar 1: contributions at Apr 1, May 1, Jun 1
       expect(result.contributionMarkers).toHaveLength(3);
-      expect(result.contributionMarkers[0].amount).toBe(300);
+      // 3 expenses of $900 / 3 cycles = $900/cycle
+      expect(result.contributionMarkers[0].amount).toBe(900);
 
       // First contribution is on the next pay date after start
       const expectedFirst = new Date("2025-04-01T00:00:00.000Z");
       expect(result.contributionMarkers[0].date).toEqual(expectedFirst);
     });
 
-    it("generates no contribution markers when contribution is zero", () => {
+    it("generates no contribution markers when there are no expenses", () => {
       const result = projectTimeline(
         makeInput({
           obligations: [],
-          contributionPerCycle: 0,
           monthsAhead: 3,
         })
       );
@@ -450,16 +547,15 @@ describe("projectTimeline", () => {
         makeInput({
           obligations: [],
           currentFundBalance: 1000,
-          contributionPerCycle: 200,
           monthsAhead: 3,
         })
       );
 
       expect(result.expenseMarkers).toHaveLength(0);
       expect(result.crunchPoints).toHaveLength(0);
-      // Balance only increases
+      // No expenses means no contributions — balance stays the same
       const lastPoint = result.dataPoints[result.dataPoints.length - 1];
-      expect(lastPoint.projectedBalance).toBeGreaterThan(1000);
+      expect(lastPoint.projectedBalance).toBe(1000);
     });
 
     it("handles obligation due date before projection window", () => {
@@ -488,7 +584,6 @@ describe("projectTimeline", () => {
       const result = projectTimeline(
         makeInput({
           obligations: [],
-          contributionPerCycle: 0,
           monthsAhead: 3,
         })
       );
@@ -519,7 +614,6 @@ describe("projectTimeline", () => {
             }),
           ],
           currentFundBalance: 2000,
-          contributionPerCycle: 0,
           monthsAhead: 2,
         })
       );
@@ -532,7 +626,7 @@ describe("projectTimeline", () => {
       );
       expect(apr1Markers).toHaveLength(2);
 
-      // Balance should reflect both deductions
+      // Expenses process before contributions, so balance after both deductions
       const afterBoth = result.dataPoints.find(
         (p) =>
           p.date.getTime() ===
@@ -545,8 +639,13 @@ describe("projectTimeline", () => {
     it("places contribution markers at actual cycle dates for twice_monthly", () => {
       const result = projectTimeline(
         makeInput({
-          obligations: [],
-          contributionPerCycle: 100,
+          obligations: [
+            makeObligation({
+              amount: 400,
+              nextDueDate: new Date("2025-04-01"),
+              intervalUnit: "month",
+            }),
+          ],
           cycleConfig: { type: "twice_monthly", payDays: [1, 15] },
           monthsAhead: 2,
           now: new Date("2025-03-01"),
@@ -602,7 +701,6 @@ describe("projectTimeline", () => {
             }),
           ],
           currentFundBalance: 10000,
-          contributionPerCycle: 0,
           now: ESCALATION_NOW,
           monthsAhead: 6,
         })
@@ -631,7 +729,6 @@ describe("projectTimeline", () => {
 
     it("balance curve reflects stepped amounts from escalation", () => {
       // Rent is $500/month, escalates to $800 on April 1
-      // Start with $5000, no contributions
       const result = projectTimeline(
         makeInput({
           obligations: [
@@ -651,25 +748,20 @@ describe("projectTimeline", () => {
             }),
           ],
           currentFundBalance: 5000,
-          contributionPerCycle: 0,
           now: ESCALATION_NOW,
           monthsAhead: 6,
         })
       );
 
-      // Verify the balance drops more steeply after escalation
-      // Feb: 5000-500=4500, Mar: 4500-500=4000 (next ~30 days)
-      // Apr: 4000-800=3200, May: 3200-800=2400
       const expenseAmounts = result.expenseMarkers.map((m) => m.amount);
       const preEsc = expenseAmounts.filter((a) => a === 500);
       const postEsc = expenseAmounts.filter((a) => a === 800);
       expect(preEsc.length).toBeGreaterThan(0);
       expect(postEsc.length).toBeGreaterThan(0);
 
-      // The final balance should be lower than if we used $500 the whole time
+      // With steady-state contributions, end balance should return to start
       const lastPoint = result.dataPoints[result.dataPoints.length - 1];
-      const totalExpenses = result.expenseMarkers.reduce((s, m) => s + m.amount, 0);
-      expect(lastPoint.projectedBalance).toBe(5000 - totalExpenses);
+      expect(lastPoint.projectedBalance).toBeCloseTo(5000, 0);
     });
 
     it("handles recurring percentage escalation across multiple due dates", () => {
@@ -694,7 +786,6 @@ describe("projectTimeline", () => {
             }),
           ],
           currentFundBalance: 50000,
-          contributionPerCycle: 0,
           now: ESCALATION_NOW,
           monthsAhead: 8,
         })
@@ -786,7 +877,6 @@ describe("projectTimeline", () => {
               // no escalationRules
             }),
           ],
-          contributionPerCycle: 0,
           now: ESCALATION_NOW,
           monthsAhead: 4,
         })
@@ -798,9 +888,9 @@ describe("projectTimeline", () => {
     });
 
     it("crunch point detection uses escalated amounts", () => {
-      // Start with $2500, rent is $1000 but jumps to $2000 in April
-      // Without escalation: Feb $1000, Mar ~$1000 → balance stays positive
-      // With escalation: Apr $2000 → balance goes negative
+      // Start with $0, rent is $1000 but jumps to $2000 in April
+      // The even contribution rate won't cover the larger post-escalation expenses,
+      // causing crunch points when those larger expenses hit
       const result = projectTimeline(
         makeInput({
           obligations: [
@@ -819,18 +909,66 @@ describe("projectTimeline", () => {
               ],
             }),
           ],
-          currentFundBalance: 2500,
-          contributionPerCycle: 0,
+          currentFundBalance: 0,
           now: ESCALATION_NOW,
           monthsAhead: 6,
         })
       );
 
-      // Feb: 2500-1000=1500, Mar: 1500-1000=500, Apr: 500-2000=-1500
+      // Expenses hit before contributions on the same date,
+      // so with $0 balance the first expense causes a crunch
       expect(result.crunchPoints.length).toBeGreaterThanOrEqual(1);
       const crunch = result.crunchPoints[0];
       expect(crunch.projectedBalance).toBeLessThan(0);
       expect(crunch.triggerObligationId).toBe("obl-rent");
+    });
+  });
+
+  describe("calculateSteadyStatePerCycle", () => {
+    it("returns total expenses divided by cycle count", () => {
+      const perCycle = calculateSteadyStatePerCycle({
+        obligations: [
+          makeObligation({
+            amount: 600,
+            nextDueDate: new Date("2025-04-01"),
+            intervalUnit: "month",
+          }),
+        ],
+        cycleConfig: MONTHLY_CYCLE,
+        monthsAhead: 6,
+        now: NOW,
+      });
+
+      // 6 expenses of $600 / 6 monthly cycles = $600
+      expect(perCycle).toBe(600);
+    });
+
+    it("halves amount for twice-monthly contributions", () => {
+      const perCycle = calculateSteadyStatePerCycle({
+        obligations: [
+          makeObligation({
+            amount: 1000,
+            nextDueDate: new Date("2025-04-01"),
+            intervalUnit: "month",
+          }),
+        ],
+        cycleConfig: { type: "twice_monthly", payDays: [1, 15] },
+        monthsAhead: 6,
+        now: NOW,
+      });
+
+      // 6 expenses of $1000 / 12 twice-monthly cycles ≈ $500
+      expect(perCycle).toBeCloseTo(500, 0);
+    });
+
+    it("returns zero when there are no obligations", () => {
+      const perCycle = calculateSteadyStatePerCycle({
+        obligations: [],
+        cycleConfig: MONTHLY_CYCLE,
+        now: NOW,
+      });
+
+      expect(perCycle).toBe(0);
     });
   });
 });

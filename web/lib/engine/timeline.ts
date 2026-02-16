@@ -12,8 +12,6 @@ export interface TimelineInput {
   fundGroupBalances: FundGroupBalanceInput[];
   /** Total current fund balance across all obligations */
   currentFundBalance: number;
-  /** Contribution amount per cycle (from engine calculation) */
-  contributionPerCycle: number;
   /** Cycle configuration for contribution date placement */
   cycleConfig: CycleConfig;
   /** Projection window in months (default 6, max 12) */
@@ -63,6 +61,8 @@ export interface TimelineResult {
   expenseMarkers: ExpenseMarker[];
   contributionMarkers: ContributionMarker[];
   crunchPoints: CrunchPoint[];
+  /** Steady-state contribution per cycle (total expenses / cycle count) */
+  contributionPerCycle: number;
   startDate: Date;
   endDate: Date;
 }
@@ -281,7 +281,6 @@ export function projectTimeline(input: TimelineInput): TimelineResult {
   const {
     obligations,
     currentFundBalance,
-    contributionPerCycle,
     cycleConfig,
     monthsAhead = 6,
     now = new Date(),
@@ -318,10 +317,15 @@ export function projectTimeline(input: TimelineInput): TimelineResult {
   }
   expenseMarkers.sort((a, b) => a.date.getTime() - b.date.getTime());
 
-  // Generate contribution dates within the window
+  // Generate contribution dates and derive per-cycle amount from total expenses
+  const cycleDates = generateCycleDates(startDate, endDate, cycleConfig);
+  const totalExpenses = expenseMarkers.reduce((sum, m) => sum + m.amount, 0);
+  const contributionPerCycle = cycleDates.length > 0 && totalExpenses > 0
+    ? totalExpenses / cycleDates.length
+    : 0;
+
   const contributionMarkers: ContributionMarker[] = [];
   if (contributionPerCycle > 0) {
-    const cycleDates = generateCycleDates(startDate, endDate, cycleConfig);
     for (const date of cycleDates) {
       contributionMarkers.push({
         date: startOfDay(date),
@@ -397,7 +401,58 @@ export function projectTimeline(input: TimelineInput): TimelineResult {
     expenseMarkers,
     contributionMarkers,
     crunchPoints,
+    contributionPerCycle,
     startDate,
     endDate,
   };
+}
+
+/**
+ * Calculates the steady-state contribution per cycle: total expenses in the
+ * projection window divided evenly across the contribution cycle dates.
+ *
+ * Used by the dashboard header to show the per-cycle amount assuming
+ * the fund is already pre-funded.
+ */
+export function calculateSteadyStatePerCycle(input: {
+  obligations: ObligationInput[];
+  cycleConfig: CycleConfig;
+  monthsAhead?: number;
+  now?: Date;
+  overrides?: WhatIfOverrides;
+}): number {
+  const {
+    obligations,
+    cycleConfig,
+    monthsAhead = 12,
+    now = new Date(),
+    overrides,
+  } = input;
+
+  const clampedMonths = Math.max(1, Math.min(12, monthsAhead));
+  const startDate = startOfDay(now);
+  const endDate = startOfDay(addMonths(startDate, clampedMonths));
+
+  const excludeIds = new Set(overrides?.excludeObligationIds ?? []);
+  const activeObligations = obligations.filter(
+    (o) => o.isActive && !o.isPaused && !excludeIds.has(o.id)
+  );
+  const amountOverrides = overrides?.amountOverrides ?? {};
+  const hypotheticals = overrides?.hypotheticalObligations ?? [];
+  const allObligations = [...activeObligations, ...hypotheticals];
+
+  let totalExpenses = 0;
+  for (const obligation of allObligations) {
+    const markers = collectDueDates(
+      obligation,
+      startDate,
+      endDate,
+      amountOverrides[obligation.id]
+    );
+    totalExpenses += markers.reduce((sum, m) => sum + m.amount, 0);
+  }
+
+  const cycleDates = generateCycleDates(startDate, endDate, cycleConfig);
+  if (cycleDates.length === 0) return 0;
+  return totalExpenses / cycleDates.length;
 }

@@ -43,6 +43,12 @@ vi.mock("@/lib/engine/applyEscalations", () => ({
     mockApplyPendingEscalations(...args),
 }));
 
+const mockCalculateSteadyStatePerCycle = vi.fn();
+vi.mock("@/lib/engine/timeline", () => ({
+  calculateSteadyStatePerCycle: (...args: unknown[]) =>
+    mockCalculateSteadyStatePerCycle(...args),
+}));
+
 import { POST } from "../route";
 
 const mockUser = {
@@ -115,6 +121,7 @@ describe("POST /api/engine/recalculate", () => {
       snapshot: mockSnapshotData,
     });
     mockEngineSnapshotCreate.mockResolvedValue(mockSavedSnapshot);
+    mockCalculateSteadyStatePerCycle.mockReturnValue(171.43);
   });
 
   it("returns 401 when not authenticated", async () => {

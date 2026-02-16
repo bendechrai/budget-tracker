@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/auth/getCurrentUser";
 import { logError } from "@/lib/logging";
 import { calculateAndSnapshot } from "@/lib/engine/snapshot";
 import { applyPendingEscalations } from "@/lib/engine/applyEscalations";
+import { calculateSteadyStatePerCycle } from "@/lib/engine/timeline";
 import type { ObligationInput, FundGroupBalanceInput } from "@/lib/engine/calculate";
 import { resolveCycleConfig } from "@/lib/engine/calculate";
 
@@ -97,10 +98,16 @@ export async function POST(): Promise<NextResponse> {
       },
     });
 
+    // Calculate steady-state per-cycle contribution (total expenses / cycles)
+    const steadyStatePerCycle = calculateSteadyStatePerCycle({
+      obligations: obligationInputs,
+      cycleConfig,
+    });
+
     // Return persisted snapshot augmented with computed per-cycle fields
     return NextResponse.json({
       ...saved,
-      totalContributionPerCycle: snapshot.totalContributionPerCycle,
+      totalContributionPerCycle: steadyStatePerCycle,
       cyclePeriodLabel: snapshot.cyclePeriodLabel,
     });
   } catch (error) {

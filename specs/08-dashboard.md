@@ -61,6 +61,7 @@ flowchart TD
 - Crunch points: highlighted zones where projected balance dips close to zero or goes negative
 - Supports what-if overlay: solid line for actual projection, dashed line for scenario (see spec 10)
 - User can adjust the time range
+- **Contribution projection uses a steady-state model**: total expenses in the projection window divided evenly across contribution cycle dates. This assumes the fund is already pre-funded. Crunch points (balance dipping below zero) indicate where pre-funding is needed.
 
 ### Upcoming Obligations
 

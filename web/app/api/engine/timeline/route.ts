@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth/getCurrentUser";
 import { logError } from "@/lib/logging";
-import { calculateContributions, resolveCycleConfig } from "@/lib/engine/calculate";
+import { resolveCycleConfig } from "@/lib/engine/calculate";
 import { projectTimeline } from "@/lib/engine/timeline";
 import type { ObligationInput, FundGroupBalanceInput } from "@/lib/engine/calculate";
 
@@ -74,18 +74,10 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       currentBalance: fg.currentBalance,
     }));
 
-    const engineResult = calculateContributions({
-      obligations: obligationInputs,
-      fundGroupBalances: fundGroupBalanceInputs,
-      maxContributionPerCycle: user.maxContributionPerCycle,
-      cycleConfig,
-    });
-
     const timeline = projectTimeline({
       obligations: obligationInputs,
       fundGroupBalances: fundGroupBalanceInputs,
       currentFundBalance: user.currentFundBalance,
-      contributionPerCycle: engineResult.totalContributionPerCycle,
       cycleConfig,
       monthsAhead,
     });

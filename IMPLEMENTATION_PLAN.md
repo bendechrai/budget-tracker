@@ -1291,3 +1291,15 @@
   - Files: `web/app/(app)/settings/ContributionHistory.tsx`, `web/app/(app)/settings/FundsSection.tsx`, `web/app/(app)/settings/__tests__/ContributionHistory.test.tsx`, `web/app/(app)/settings/__tests__/FundsSection.test.tsx`
   - Spec: `specs/14-contributions.md`, `specs/14a-balance-confirmation-rework.md`
   - Acceptance: "Contribution History" → "Balance History", "No contributions recorded yet." → "No balance updates recorded yet.", "Contribution" badge → "Balance update", "History" button → "Balance history". All label assertions updated in tests.
+
+### Steady-state timeline contribution model
+
+- [x] **Replace external contributionPerCycle input with steady-state calculation in timeline engine**
+  - Files: `web/lib/engine/timeline.ts`, `web/lib/engine/__tests__/timeline.test.ts`
+  - Spec: `specs/08-dashboard.md`
+  - Acceptance: `projectTimeline` no longer accepts `contributionPerCycle` as input. Instead, it calculates contributions internally as `totalExpenses / cycleDates.length` (steady-state model). New `calculateSteadyStatePerCycle` exported function provides the same calculation for the dashboard header. `contributionPerCycle` added to `TimelineResult` output. Twice-monthly contributions correctly show half the per-cycle amount vs monthly. 39 timeline tests pass.
+
+- [x] **Update timeline, recalculate, and scenario API routes for steady-state contributions**
+  - Files: `web/app/api/engine/timeline/route.ts`, `web/app/api/engine/timeline/__tests__/route.test.ts`, `web/app/api/engine/recalculate/route.ts`, `web/app/api/engine/recalculate/__tests__/route.test.ts`, `web/app/api/engine/scenario/route.ts`, `web/app/api/engine/scenario/__tests__/route.test.ts`
+  - Spec: `specs/08-dashboard.md`
+  - Acceptance: Timeline route no longer calls `calculateContributions` — just passes data to `projectTimeline` which derives contributions internally. Recalculate and scenario routes use `calculateSteadyStatePerCycle` for the header's `totalContributionPerCycle`. Route tests updated to remove `calculateContributions` mock assertions and add `calculateSteadyStatePerCycle` mocks. All 1285 tests pass. tsc and lint clean.

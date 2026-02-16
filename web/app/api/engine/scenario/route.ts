@@ -4,7 +4,7 @@ import { getCurrentUser } from "@/lib/auth/getCurrentUser";
 import { logError } from "@/lib/logging";
 import { calculateWithWhatIf, resolveCycleConfig } from "@/lib/engine/calculate";
 import { generateSnapshot } from "@/lib/engine/snapshot";
-import { projectTimeline } from "@/lib/engine/timeline";
+import { projectTimeline, calculateSteadyStatePerCycle } from "@/lib/engine/timeline";
 import type {
   ObligationInput,
   FundGroupBalanceInput,
@@ -164,13 +164,19 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       obligations: allScenarioObligations,
       fundGroupBalances: fundGroupBalanceInputs,
       currentFundBalance: user.currentFundBalance,
-      contributionPerCycle: scenario.totalContributionPerCycle,
+      cycleConfig: engineInput.cycleConfig,
+      monthsAhead,
+    });
+
+    // Use steady-state per-cycle for the scenario snapshot header
+    const scenarioSteadyState = calculateSteadyStatePerCycle({
+      obligations: allScenarioObligations,
       cycleConfig: engineInput.cycleConfig,
       monthsAhead,
     });
 
     return NextResponse.json({
-      snapshot: scenarioSnapshot,
+      snapshot: { ...scenarioSnapshot, totalContributionPerCycle: scenarioSteadyState },
       timeline: scenarioTimeline,
     });
   } catch (error) {

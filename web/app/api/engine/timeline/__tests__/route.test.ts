@@ -28,14 +28,11 @@ vi.mock("@/lib/logging", () => ({
   logError: vi.fn(),
 }));
 
-const mockCalculateContributions = vi.fn();
 const mockResolveCycleConfig = vi.fn();
 vi.mock("@/lib/engine/calculate", async () => {
   const actual = await vi.importActual("@/lib/engine/calculate");
   return {
     ...actual,
-    calculateContributions: (...args: unknown[]) =>
-      mockCalculateContributions(...args),
     resolveCycleConfig: (...args: unknown[]) =>
       mockResolveCycleConfig(...args),
   };
@@ -88,16 +85,6 @@ const mockFundGroups = [
   },
 ];
 
-const mockEngineResult = {
-  contributions: [],
-  totalRequired: 1500,
-  totalFunded: 300,
-  totalContributionPerCycle: 200,
-  shortfallWarnings: [],
-  isFullyFunded: false,
-  capacityExceeded: false,
-};
-
 const mockTimelineResult = {
   dataPoints: [
     { date: new Date("2025-01-01"), projectedBalance: 1000 },
@@ -126,7 +113,6 @@ describe("GET /api/engine/timeline", () => {
     mockObligationFindMany.mockResolvedValue(mockObligations);
     mockFundGroupFindMany.mockResolvedValue(mockFundGroups);
     mockIncomeSourceFindMany.mockResolvedValue([]);
-    mockCalculateContributions.mockReturnValue(mockEngineResult);
     mockProjectTimeline.mockReturnValue(mockTimelineResult);
     mockResolveCycleConfig.mockReturnValue(defaultCycleConfig);
   });
@@ -191,16 +177,6 @@ describe("GET /api/engine/timeline", () => {
     );
   });
 
-  it("passes engine's total contribution per cycle to projection", async () => {
-    await GET(makeRequest());
-
-    expect(mockProjectTimeline).toHaveBeenCalledWith(
-      expect.objectContaining({
-        contributionPerCycle: 200,
-      })
-    );
-  });
-
   it("resolves cycle config with user settings and income sources", async () => {
     const weeklyConfig = { type: "weekly" as const, payDays: [] };
     mockResolveCycleConfig.mockReturnValue(weeklyConfig);
@@ -217,9 +193,6 @@ describe("GET /api/engine/timeline", () => {
     expect(mockResolveCycleConfig).toHaveBeenCalledWith(
       { contributionCycleType: "weekly", contributionPayDays: [] },
       [],
-    );
-    expect(mockCalculateContributions).toHaveBeenCalledWith(
-      expect.objectContaining({ cycleConfig: weeklyConfig })
     );
     expect(mockProjectTimeline).toHaveBeenCalledWith(
       expect.objectContaining({ cycleConfig: weeklyConfig })
@@ -245,9 +218,6 @@ describe("GET /api/engine/timeline", () => {
     expect(mockResolveCycleConfig).toHaveBeenCalledWith(
       { contributionCycleType: null, contributionPayDays: [] },
       incomeSources,
-    );
-    expect(mockCalculateContributions).toHaveBeenCalledWith(
-      expect.objectContaining({ cycleConfig: fortnightlyConfig })
     );
     expect(mockProjectTimeline).toHaveBeenCalledWith(
       expect.objectContaining({ cycleConfig: fortnightlyConfig })
