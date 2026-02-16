@@ -41,15 +41,15 @@
 }
 
 .rangeButtonActive {
-  background: var(--foreground);
-  color: var(--background);
-  border-color: var(--foreground);
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
 }
 
 .rangeButtonActive:hover {
-  background: var(--foreground);
-  color: var(--background);
-  border-color: var(--foreground);
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
 }
 
 .chartContainer {

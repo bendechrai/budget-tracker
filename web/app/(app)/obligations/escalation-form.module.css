@@ -159,8 +159,8 @@
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  background: var(--foreground);
-  color: var(--background);
+  background: var(--accent);
+  color: #fff;
   transition: opacity 0.2s;
 }
 

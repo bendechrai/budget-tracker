@@ -39,8 +39,8 @@
 }
 
 .navLinkActive {
-  color: var(--foreground);
-  border-bottom-color: var(--foreground);
+  color: var(--accent);
+  border-bottom-color: var(--accent);
   font-weight: 500;
 }
 

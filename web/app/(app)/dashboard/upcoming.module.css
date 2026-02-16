@@ -40,10 +40,9 @@
 }
 
 .dayButtonActive {
-  border-color: var(--foreground);
-  color: var(--foreground);
-  background: var(--foreground);
-  color: var(--background);
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
 }
 
 .loading {
@@ -135,9 +134,9 @@
   }
 
   .dayButtonActive {
-    border-color: var(--foreground);
-    background: var(--foreground);
-    color: var(--background);
+    border-color: var(--accent);
+    background: var(--accent);
+    color: #fff;
   }
 
   .loading {

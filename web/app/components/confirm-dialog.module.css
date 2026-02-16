@@ -80,7 +80,7 @@
   padding: 0.5rem 0.75rem;
   border: none;
   border-radius: 0.5rem;
-  background-color: #1a1a1a;
+  background-color: var(--accent);
   color: #fff;
   font-size: 0.8125rem;
   font-family: inherit;
@@ -89,17 +89,17 @@
 }
 
 .confirmButton:hover {
-  background-color: #333;
+  opacity: 0.9;
 }
 
 @media (prefers-color-scheme: dark) {
   .confirmButton {
-    background-color: #e5e5e5;
-    color: #1a1a1a;
+    background-color: var(--accent);
+    color: #fff;
   }
 
   .confirmButton:hover {
-    background-color: #ccc;
+    opacity: 0.9;
   }
 }
 

@@ -14,7 +14,7 @@
 .title {
   font-size: 28px;
   font-weight: 600;
-  color: var(--foreground);
+  color: var(--accent);
   margin-bottom: 32px;
 }
 
@@ -106,7 +106,7 @@
   padding: 8px 20px;
   border: none;
   border-radius: 8px;
-  background-color: #1a1a1a;
+  background-color: var(--accent);
   color: #fff;
   font-size: 14px;
   font-weight: 500;
@@ -116,7 +116,7 @@
 }
 
 .confirmBalancesButton:hover {
-  background-color: #333;
+  opacity: 0.9;
 }
 
 .heroScenario {
@@ -249,12 +249,12 @@
   }
 
   .confirmBalancesButton {
-    background-color: #e5e5e5;
-    color: #1a1a1a;
+    background-color: var(--accent);
+    color: #fff;
   }
 
   .confirmBalancesButton:hover {
-    background-color: #ccc;
+    opacity: 0.9;
   }
 
   .celebrationDescription {
