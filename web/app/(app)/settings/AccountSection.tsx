@@ -1,17 +1,14 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
-import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { logError } from "@/lib/logging";
 import styles from "./settings.module.css";
+import DeleteAccountModal from "./DeleteAccountModal";
 
 export default function AccountSection() {
-  const router = useRouter();
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState("");
-  const [deleteConfirmation, setDeleteConfirmation] = useState("");
-  const [deleteError, setDeleteError] = useState("");
-  const [deleting, setDeleting] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   async function handleExport() {
     setExportError("");
@@ -36,38 +33,6 @@ export default function AccountSection() {
       setExportError("Failed to export data");
     } finally {
       setExporting(false);
-    }
-  }
-
-  async function handleDeleteAccount(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setDeleteError("");
-
-    if (deleteConfirmation !== "DELETE") {
-      setDeleteError("You must type DELETE to confirm");
-      return;
-    }
-
-    setDeleting(true);
-    try {
-      const res = await fetch("/api/user/account", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ confirmation: deleteConfirmation }),
-      });
-
-      if (!res.ok) {
-        const data = (await res.json()) as { error: string };
-        setDeleteError(data.error || "Failed to delete account");
-        return;
-      }
-
-      router.push("/");
-    } catch (err) {
-      logError("failed to delete account", err);
-      setDeleteError("Failed to delete account");
-    } finally {
-      setDeleting(false);
     }
   }
 
@@ -101,36 +66,18 @@ export default function AccountSection() {
           This will permanently delete your account and all associated data. This action cannot be undone.
         </p>
 
-        {deleteError && (
-          <div className={styles.formError} role="alert">
-            {deleteError}
-          </div>
-        )}
-
-        <form onSubmit={(e) => void handleDeleteAccount(e)}>
-          <div className={styles.field}>
-            <label className={styles.label} htmlFor="delete-confirmation">
-              Type DELETE to confirm
-            </label>
-            <input
-              id="delete-confirmation"
-              className={styles.input}
-              type="text"
-              value={deleteConfirmation}
-              onChange={(e) => setDeleteConfirmation(e.target.value)}
-              placeholder="DELETE"
-            />
-          </div>
-
-          <button
-            type="submit"
-            className={styles.dangerButton}
-            disabled={deleting}
-          >
-            {deleting ? "Deleting..." : "Delete Account"}
-          </button>
-        </form>
+        <button
+          type="button"
+          className={styles.dangerButton}
+          onClick={() => setShowDeleteModal(true)}
+        >
+          Delete Account
+        </button>
       </div>
+
+      {showDeleteModal && (
+        <DeleteAccountModal onClose={() => setShowDeleteModal(false)} />
+      )}
     </>
   );
 }

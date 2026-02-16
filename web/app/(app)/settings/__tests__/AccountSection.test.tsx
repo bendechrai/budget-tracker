@@ -72,24 +72,31 @@ describe("AccountSection", () => {
     });
   });
 
-  it("renders delete account form", () => {
-    render(<AccountSection />);
-
-    expect(screen.getByRole("heading", { name: "Delete Account" })).toBeDefined();
-    expect(screen.getByLabelText("Type DELETE to confirm")).toBeDefined();
-    expect(screen.getByRole("button", { name: "Delete Account" })).toBeDefined();
-  });
-
-  it("shows error when confirmation is not DELETE", async () => {
+  it("opens delete account modal on button click", async () => {
     const user = userEvent.setup();
     render(<AccountSection />);
 
-    await user.type(screen.getByLabelText("Type DELETE to confirm"), "wrong");
     await user.click(screen.getByRole("button", { name: "Delete Account" }));
 
-    await waitFor(() => {
-      expect(screen.getByText("You must type DELETE to confirm")).toBeDefined();
-    });
+    expect(screen.getByRole("dialog", { name: "Delete account" })).toBeDefined();
+    expect(screen.getByLabelText("Type DELETE to confirm")).toBeDefined();
+  });
+
+  it("disables delete button until DELETE is typed", async () => {
+    const user = userEvent.setup();
+    render(<AccountSection />);
+
+    await user.click(screen.getByRole("button", { name: "Delete Account" }));
+
+    const confirmBtn = screen.getByTestId("delete-account-modal-confirm") as HTMLButtonElement;
+    expect(confirmBtn.disabled).toBe(true);
+
+    await user.type(screen.getByLabelText("Type DELETE to confirm"), "wrong");
+    expect(confirmBtn.disabled).toBe(true);
+
+    await user.clear(screen.getByLabelText("Type DELETE to confirm"));
+    await user.type(screen.getByLabelText("Type DELETE to confirm"), "DELETE");
+    expect(confirmBtn.disabled).toBe(false);
   });
 
   it("deletes account and redirects on valid confirmation", async () => {
@@ -103,8 +110,9 @@ describe("AccountSection", () => {
 
     render(<AccountSection />);
 
-    await user.type(screen.getByLabelText("Type DELETE to confirm"), "DELETE");
     await user.click(screen.getByRole("button", { name: "Delete Account" }));
+    await user.type(screen.getByLabelText("Type DELETE to confirm"), "DELETE");
+    await user.click(screen.getByTestId("delete-account-modal-confirm"));
 
     await waitFor(() => {
       expect(global.fetch).toHaveBeenCalledWith("/api/user/account", {
@@ -130,8 +138,9 @@ describe("AccountSection", () => {
 
     render(<AccountSection />);
 
-    await user.type(screen.getByLabelText("Type DELETE to confirm"), "DELETE");
     await user.click(screen.getByRole("button", { name: "Delete Account" }));
+    await user.type(screen.getByLabelText("Type DELETE to confirm"), "DELETE");
+    await user.click(screen.getByTestId("delete-account-modal-confirm"));
 
     await waitFor(() => {
       expect(
