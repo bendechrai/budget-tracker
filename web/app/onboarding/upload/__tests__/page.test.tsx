@@ -10,41 +10,6 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: mockPush }),
 }));
 
-vi.mock("@/lib/logging", () => ({
-  logError: vi.fn(),
-}));
-
-const mockSuggestions = [
-  {
-    id: "sug-1",
-    type: "expense" as const,
-    vendorPattern: "Netflix",
-    detectedAmount: 22.99,
-    detectedAmountMin: null,
-    detectedAmountMax: null,
-    detectedIntervalUnit: "month",
-    detectedIntervalCount: 1,
-    confidence: "high" as const,
-    matchingTransactionCount: 5,
-    status: "pending",
-    suggestionTransactions: [],
-  },
-  {
-    id: "sug-2",
-    type: "income" as const,
-    vendorPattern: "ACME Corp",
-    detectedAmount: 5000,
-    detectedAmountMin: 4800,
-    detectedAmountMax: 5200,
-    detectedIntervalUnit: "month",
-    detectedIntervalCount: 1,
-    confidence: "high" as const,
-    matchingTransactionCount: 3,
-    status: "pending",
-    suggestionTransactions: [],
-  },
-];
-
 /** Response for the initial GET /api/import/batch check that runs on mount */
 function noActiveBatchResponse(): Response {
   return new Response(JSON.stringify({ batch: null }), {
@@ -213,55 +178,7 @@ describe("OnboardingUploadPage", () => {
     expect(mockPush).toHaveBeenCalledWith("/onboarding/fund-setup");
   });
 
-  it("shows suggestions after successful upload and processing", async () => {
-    const user = userEvent.setup();
-
-    vi.mocked(global.fetch)
-      // 1) Mount: check for active batch
-      .mockResolvedValueOnce(noActiveBatchResponse())
-      // 2) Batch upload POST
-      .mockResolvedValueOnce(
-        new Response(JSON.stringify(makeBatchUploadResponse()), {
-          status: 202,
-          headers: { "Content-Type": "application/json" },
-        })
-      )
-      // 3) Immediate poll returns completed
-      .mockResolvedValueOnce(
-        new Response(JSON.stringify(makeBatchCompletedResponse()), {
-          status: 200,
-          headers: { "Content-Type": "application/json" },
-        })
-      )
-      // 4) Fetch suggestions
-      .mockResolvedValueOnce(
-        new Response(
-          JSON.stringify({ suggestions: mockSuggestions, count: 2 }),
-          {
-            status: 200,
-            headers: { "Content-Type": "application/json" },
-          }
-        )
-      );
-
-    render(<OnboardingUploadPage />);
-
-    const input = screen.getByTestId("file-input") as HTMLInputElement;
-    const file = createMockFile("statement.csv", "data");
-    await user.upload(input, file);
-
-    await waitFor(() => {
-      expect(screen.getByText("Netflix")).toBeDefined();
-    });
-
-    expect(screen.getByText("ACME Corp")).toBeDefined();
-    expect(screen.getByText(/2 recurring patterns/)).toBeDefined();
-    expect(screen.getAllByRole("button", { name: "Accept" })).toHaveLength(2);
-    expect(screen.getAllByRole("button", { name: "Tweak" })).toHaveLength(2);
-    expect(screen.getAllByRole("button", { name: "Dismiss" })).toHaveLength(2);
-  });
-
-  it("shows done state when no patterns detected", async () => {
+  it("stays on processing step with completed files when batch finishes", async () => {
     const user = userEvent.setup();
 
     vi.mocked(global.fetch)
@@ -280,13 +197,6 @@ describe("OnboardingUploadPage", () => {
           status: 200,
           headers: { "Content-Type": "application/json" },
         })
-      )
-      // 4) Fetch suggestions (empty)
-      .mockResolvedValueOnce(
-        new Response(JSON.stringify({ suggestions: [], count: 0 }), {
-          status: 200,
-          headers: { "Content-Type": "application/json" },
-        })
       );
 
     render(<OnboardingUploadPage />);
@@ -296,14 +206,15 @@ describe("OnboardingUploadPage", () => {
     await user.upload(input, file);
 
     await waitFor(() => {
-      expect(
-        screen.getByText(/didn.t detect clear patterns/)
-      ).toBeDefined();
+      expect(screen.getByText("All files processed!")).toBeDefined();
     });
 
-    expect(
-      screen.getByRole("button", { name: "Continue to fund setup" })
-    ).toBeDefined();
+    // File list with completed status should still be visible
+    expect(screen.getByText("statement.csv")).toBeDefined();
+    // Next button should still be available
+    expect(screen.getByRole("button", { name: "Next" })).toBeDefined();
+    // Progress bar should be hidden when complete
+    expect(screen.queryByText(/of.*files processed/)).toBeNull();
   });
 
   it("shows error when no new transactions found", async () => {
@@ -348,220 +259,6 @@ describe("OnboardingUploadPage", () => {
     });
   });
 
-  it("navigates to fund setup when continue button is clicked", async () => {
-    const user = userEvent.setup();
-
-    vi.mocked(global.fetch)
-      // 1) Mount: check for active batch
-      .mockResolvedValueOnce(noActiveBatchResponse())
-      // 2) Batch upload POST
-      .mockResolvedValueOnce(
-        new Response(JSON.stringify(makeBatchUploadResponse()), {
-          status: 202,
-          headers: { "Content-Type": "application/json" },
-        })
-      )
-      // 3) Poll returns completed
-      .mockResolvedValueOnce(
-        new Response(JSON.stringify(makeBatchCompletedResponse()), {
-          status: 200,
-          headers: { "Content-Type": "application/json" },
-        })
-      )
-      // 4) Fetch suggestions (empty)
-      .mockResolvedValueOnce(
-        new Response(JSON.stringify({ suggestions: [], count: 0 }), {
-          status: 200,
-          headers: { "Content-Type": "application/json" },
-        })
-      );
-
-    render(<OnboardingUploadPage />);
-
-    const input = screen.getByTestId("file-input") as HTMLInputElement;
-    const file = createMockFile("statement.csv", "data");
-    await user.upload(input, file);
-
-    await waitFor(() => {
-      expect(
-        screen.getByRole("button", { name: "Continue to fund setup" })
-      ).toBeDefined();
-    });
-
-    await user.click(
-      screen.getByRole("button", { name: "Continue to fund setup" })
-    );
-
-    expect(mockPush).toHaveBeenCalledWith("/onboarding/fund-setup");
-  });
-
-  it("removes suggestion from list when accepted", async () => {
-    const user = userEvent.setup();
-
-    vi.mocked(global.fetch)
-      // 1) Mount: check for active batch
-      .mockResolvedValueOnce(noActiveBatchResponse())
-      // 2) Batch upload POST
-      .mockResolvedValueOnce(
-        new Response(JSON.stringify(makeBatchUploadResponse()), {
-          status: 202,
-          headers: { "Content-Type": "application/json" },
-        })
-      )
-      // 3) Poll returns completed
-      .mockResolvedValueOnce(
-        new Response(JSON.stringify(makeBatchCompletedResponse()), {
-          status: 200,
-          headers: { "Content-Type": "application/json" },
-        })
-      )
-      // 4) Fetch suggestions
-      .mockResolvedValueOnce(
-        new Response(
-          JSON.stringify({ suggestions: mockSuggestions, count: 2 }),
-          {
-            status: 200,
-            headers: { "Content-Type": "application/json" },
-          }
-        )
-      )
-      // 5) Accept suggestion response
-      .mockResolvedValueOnce(
-        new Response(JSON.stringify({ success: true }), {
-          status: 200,
-          headers: { "Content-Type": "application/json" },
-        })
-      );
-
-    render(<OnboardingUploadPage />);
-
-    const input = screen.getByTestId("file-input") as HTMLInputElement;
-    const file = createMockFile("statement.csv", "data");
-    await user.upload(input, file);
-
-    await waitFor(() => {
-      expect(screen.getByText("Netflix")).toBeDefined();
-    });
-
-    const acceptButtons = screen.getAllByRole("button", { name: "Accept" });
-    await user.click(acceptButtons[0]);
-
-    await waitFor(() => {
-      expect(screen.queryByText("Netflix")).toBeNull();
-    });
-
-    expect(screen.getByText("ACME Corp")).toBeDefined();
-  });
-
-  it("removes suggestion from list when dismissed", async () => {
-    const user = userEvent.setup();
-
-    vi.mocked(global.fetch)
-      // 1) Mount: check for active batch
-      .mockResolvedValueOnce(noActiveBatchResponse())
-      // 2) Batch upload POST
-      .mockResolvedValueOnce(
-        new Response(JSON.stringify(makeBatchUploadResponse()), {
-          status: 202,
-          headers: { "Content-Type": "application/json" },
-        })
-      )
-      // 3) Poll returns completed
-      .mockResolvedValueOnce(
-        new Response(JSON.stringify(makeBatchCompletedResponse()), {
-          status: 200,
-          headers: { "Content-Type": "application/json" },
-        })
-      )
-      // 4) Fetch suggestions
-      .mockResolvedValueOnce(
-        new Response(
-          JSON.stringify({
-            suggestions: [mockSuggestions[0]],
-            count: 1,
-          }),
-          {
-            status: 200,
-            headers: { "Content-Type": "application/json" },
-          }
-        )
-      )
-      // 5) Dismiss suggestion response
-      .mockResolvedValueOnce(
-        new Response(JSON.stringify({ success: true }), {
-          status: 200,
-          headers: { "Content-Type": "application/json" },
-        })
-      );
-
-    render(<OnboardingUploadPage />);
-
-    const input = screen.getByTestId("file-input") as HTMLInputElement;
-    const file = createMockFile("statement.csv", "data");
-    await user.upload(input, file);
-
-    await waitFor(() => {
-      expect(screen.getByText("Netflix")).toBeDefined();
-    });
-
-    await user.click(screen.getByRole("button", { name: "Dismiss" }));
-
-    await waitFor(() => {
-      expect(screen.queryByText("Netflix")).toBeNull();
-    });
-
-    // Should show "all handled" state
-    expect(screen.getByText("All suggestions handled!")).toBeDefined();
-  });
-
-  it("shows skip link to fund setup during suggestions step", async () => {
-    const user = userEvent.setup();
-
-    vi.mocked(global.fetch)
-      // 1) Mount: check for active batch
-      .mockResolvedValueOnce(noActiveBatchResponse())
-      // 2) Batch upload POST
-      .mockResolvedValueOnce(
-        new Response(JSON.stringify(makeBatchUploadResponse()), {
-          status: 202,
-          headers: { "Content-Type": "application/json" },
-        })
-      )
-      // 3) Poll returns completed
-      .mockResolvedValueOnce(
-        new Response(JSON.stringify(makeBatchCompletedResponse()), {
-          status: 200,
-          headers: { "Content-Type": "application/json" },
-        })
-      )
-      // 4) Fetch suggestions
-      .mockResolvedValueOnce(
-        new Response(
-          JSON.stringify({ suggestions: mockSuggestions, count: 2 }),
-          {
-            status: 200,
-            headers: { "Content-Type": "application/json" },
-          }
-        )
-      );
-
-    render(<OnboardingUploadPage />);
-
-    const input = screen.getByTestId("file-input") as HTMLInputElement;
-    const file = createMockFile("statement.csv", "data");
-    await user.upload(input, file);
-
-    await waitFor(() => {
-      expect(screen.getByText("Netflix")).toBeDefined();
-    });
-
-    const skipLink = screen.getByRole("link", {
-      name: /Skip remaining suggestions/,
-    });
-    expect(skipLink).toBeDefined();
-    expect(skipLink.getAttribute("href")).toBe("/onboarding/fund-setup");
-  });
-
   it("sends all files in a single batch upload", async () => {
     const user = userEvent.setup();
 
@@ -583,6 +280,25 @@ describe("OnboardingUploadPage", () => {
       ],
     });
 
+    const multiFileCompleted = makeBatchCompletedResponse({
+      fileCount: 2,
+      filesCompleted: 2,
+      files: [
+        {
+          id: "file_1", position: 0, fileName: "statement1.csv", format: "csv",
+          status: "completed", transactionsFound: 5, transactionsImported: 4,
+          duplicatesSkipped: 1, duplicatesFlagged: 0, flaggedData: null,
+          importLogId: "log_1", errorMessage: null,
+        },
+        {
+          id: "file_2", position: 1, fileName: "statement2.csv", format: "csv",
+          status: "completed", transactionsFound: 5, transactionsImported: 4,
+          duplicatesSkipped: 1, duplicatesFlagged: 0, flaggedData: null,
+          importLogId: "log_2", errorMessage: null,
+        },
+      ],
+    });
+
     vi.mocked(global.fetch)
       // 1) Mount: check for active batch
       .mockResolvedValueOnce(noActiveBatchResponse())
@@ -595,20 +311,10 @@ describe("OnboardingUploadPage", () => {
       )
       // 3) Poll returns completed
       .mockResolvedValueOnce(
-        new Response(JSON.stringify(makeBatchCompletedResponse()), {
+        new Response(JSON.stringify(multiFileCompleted), {
           status: 200,
           headers: { "Content-Type": "application/json" },
         })
-      )
-      // 4) Fetch suggestions
-      .mockResolvedValueOnce(
-        new Response(
-          JSON.stringify({ suggestions: mockSuggestions, count: 2 }),
-          {
-            status: 200,
-            headers: { "Content-Type": "application/json" },
-          }
-        )
       );
 
     render(<OnboardingUploadPage />);
@@ -619,8 +325,12 @@ describe("OnboardingUploadPage", () => {
     await user.upload(input, [file1, file2]);
 
     await waitFor(() => {
-      expect(screen.getByText("Netflix")).toBeDefined();
+      expect(screen.getByText("All files processed!")).toBeDefined();
     });
+
+    // Both files should be listed
+    expect(screen.getByText("statement1.csv")).toBeDefined();
+    expect(screen.getByText("statement2.csv")).toBeDefined();
 
     // calls[0] is the mount check, calls[1] is the batch upload
     const uploadCall = vi.mocked(global.fetch).mock.calls[1];
