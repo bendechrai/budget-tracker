@@ -32,28 +32,10 @@ describe("OnboardingFundSetupPage", () => {
       screen.getByRole("heading", { name: "Fund Setup" })
     ).toBeDefined();
     expect(screen.getByLabelText("Current fund balance")).toBeDefined();
-    expect(
-      screen.getByRole("radiogroup", { name: "Contribution cycle" })
-    ).toBeDefined();
     expect(screen.getByText("Currency symbol")).toBeDefined();
     expect(
       screen.getByRole("button", { name: "Finish Setup" })
     ).toBeDefined();
-  });
-
-  it("renders cycle type radio buttons", () => {
-    render(<OnboardingFundSetupPage />);
-
-    expect(screen.getByRole("radio", { name: "Weekly" })).toBeDefined();
-    expect(screen.getByRole("radio", { name: "Fortnightly" })).toBeDefined();
-    expect(screen.getByRole("radio", { name: "Twice monthly" })).toBeDefined();
-    expect(screen.getByRole("radio", { name: "Monthly" })).toBeDefined();
-
-    // Default is fortnightly
-    expect(
-      (screen.getByRole("radio", { name: "Fortnightly" }) as HTMLInputElement)
-        .checked
-    ).toBe(true);
   });
 
   it("renders currency quick-pick buttons", () => {
@@ -67,7 +49,7 @@ describe("OnboardingFundSetupPage", () => {
     expect(screen.getByRole("button", { name: "NZ$" })).toBeDefined();
   });
 
-  it("submits the form with cycle type and redirects to dashboard on success", async () => {
+  it("submits the form and redirects to dashboard on success", async () => {
     const user = userEvent.setup();
     render(<OnboardingFundSetupPage />);
 
@@ -82,34 +64,12 @@ describe("OnboardingFundSetupPage", () => {
         body: JSON.stringify({
           currentFundBalance: 500,
           currencySymbol: "$",
-          contributionCycleType: "fortnightly",
         }),
       });
     });
 
     await waitFor(() => {
       expect(mockPush).toHaveBeenCalledWith("/dashboard");
-    });
-  });
-
-  it("submits with selected cycle type", async () => {
-    const user = userEvent.setup();
-    render(<OnboardingFundSetupPage />);
-
-    await user.type(screen.getByLabelText("Current fund balance"), "500");
-    await user.click(screen.getByRole("radio", { name: "Monthly" }));
-    await user.click(screen.getByRole("button", { name: "Finish Setup" }));
-
-    await waitFor(() => {
-      expect(mockFetch).toHaveBeenCalledWith("/api/user/onboarding", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          currentFundBalance: 500,
-          currencySymbol: "$",
-          contributionCycleType: "monthly",
-        }),
-      });
     });
   });
 
@@ -128,7 +88,6 @@ describe("OnboardingFundSetupPage", () => {
         body: JSON.stringify({
           currentFundBalance: 500,
           currencySymbol: "£",
-          contributionCycleType: "fortnightly",
         }),
       });
     });
@@ -148,7 +107,6 @@ describe("OnboardingFundSetupPage", () => {
         body: JSON.stringify({
           currentFundBalance: 0,
           currencySymbol: "$",
-          contributionCycleType: "fortnightly",
         }),
       });
     });
@@ -180,12 +138,10 @@ describe("OnboardingFundSetupPage", () => {
     expect(dollarButton).toBeDefined();
   });
 
-  it("has default cycle type of fortnightly", () => {
+  it("does not render contribution cycle question", () => {
     render(<OnboardingFundSetupPage />);
 
-    expect(
-      (screen.getByRole("radio", { name: "Fortnightly" }) as HTMLInputElement)
-        .checked
-    ).toBe(true);
+    expect(screen.queryByText("Contribution cycle")).toBeNull();
+    expect(screen.queryByRole("radiogroup")).toBeNull();
   });
 });

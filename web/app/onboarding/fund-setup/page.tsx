@@ -5,19 +5,11 @@ import { useRouter } from "next/navigation";
 import styles from "../onboarding.module.css";
 import fundStyles from "./fund-setup.module.css";
 
-const CYCLE_OPTIONS = [
-  { value: "weekly", label: "Weekly" },
-  { value: "fortnightly", label: "Fortnightly" },
-  { value: "twice_monthly", label: "Twice monthly" },
-  { value: "monthly", label: "Monthly" },
-];
-
 const CURRENCY_QUICK_PICKS = ["$", "\u00a3", "\u20ac", "\u00a5", "A$", "NZ$"];
 
 export default function OnboardingFundSetupPage() {
   const router = useRouter();
   const [currentBalance, setCurrentBalance] = useState("");
-  const [cycleType, setCycleType] = useState("fortnightly");
   const [currencySymbol, setCurrencySymbol] = useState("$");
   const [customCurrency, setCustomCurrency] = useState("");
   const [error, setError] = useState("");
@@ -44,7 +36,6 @@ export default function OnboardingFundSetupPage() {
       const body: Record<string, unknown> = {
         currentFundBalance: balance,
         currencySymbol: currencySymbol.trim(),
-        contributionCycleType: cycleType,
       };
 
       const res = await fetch("/api/user/onboarding", {
@@ -86,8 +77,8 @@ export default function OnboardingFundSetupPage() {
       <div className={styles.container}>
         <h1 className={styles.title}>Fund Setup</h1>
         <p className={styles.subtitle}>
-          Almost done! Tell us about your current savings and how often you
-          get paid. You can always change these later.
+          Almost done! Tell us about your current savings. You can always
+          change these later.
         </p>
 
         <form className={fundStyles.form} onSubmit={handleSubmit}>
@@ -114,35 +105,6 @@ export default function OnboardingFundSetupPage() {
               onChange={(e) => setCurrentBalance(e.target.value)}
               placeholder="0.00"
             />
-          </div>
-
-          <div className={fundStyles.field}>
-            <span className={fundStyles.label}>Contribution cycle</span>
-            <span className={fundStyles.hint}>
-              How often do you get paid?
-            </span>
-            <div
-              className={fundStyles.cycleOptions}
-              role="radiogroup"
-              aria-label="Contribution cycle"
-            >
-              {CYCLE_OPTIONS.map((opt) => (
-                <label
-                  key={opt.value}
-                  className={`${fundStyles.cycleOption}${cycleType === opt.value ? ` ${fundStyles.cycleOptionActive}` : ""}`}
-                >
-                  <input
-                    type="radio"
-                    name="cycle"
-                    value={opt.value}
-                    checked={cycleType === opt.value}
-                    onChange={() => setCycleType(opt.value)}
-                    className={fundStyles.radioInput}
-                  />
-                  {opt.label}
-                </label>
-              ))}
-            </div>
           </div>
 
           <div className={fundStyles.field}>
