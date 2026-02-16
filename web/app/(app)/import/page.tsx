@@ -322,21 +322,18 @@ export default function ImportPage() {
             <div className={styles.summary}>
               <h2 className={styles.summaryTitle}>Import Complete</h2>
               <div className={styles.summaryStats}>
-                {batch.fileCount > 1 ? (
-                  <div className={styles.summaryStat}>
-                    <span className={styles.summaryStatLabel}>Files</span>
-                    <span className={styles.summaryStatValue}>
-                      {batch.files.map((f) => f.fileName).join(", ")}
-                    </span>
-                  </div>
-                ) : (
-                  <div className={styles.summaryStat}>
-                    <span className={styles.summaryStatLabel}>File</span>
-                    <span className={styles.summaryStatValue}>
-                      {batch.files[0]?.fileName}
-                    </span>
-                  </div>
-                )}
+                <div className={styles.summaryFiles}>
+                  <span className={styles.summaryStatLabel}>
+                    {batch.fileCount > 1 ? "Files" : "File"}
+                  </span>
+                  <ul className={styles.fileList}>
+                    {batch.files.map((f) => (
+                      <li key={f.fileName} className={styles.fileListItem}>
+                        {f.fileName}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
                 <div className={styles.summaryStat}>
                   <span className={styles.summaryStatLabel}>
                     Transactions found
