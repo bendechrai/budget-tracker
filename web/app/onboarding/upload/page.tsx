@@ -450,6 +450,16 @@ export default function OnboardingUploadPage() {
                 )}
               </>
             )}
+            <div className={uploadStyles.actions}>
+              <button
+                type="button"
+                className={uploadStyles.continueButton}
+                onClick={handleContinue}
+                data-testid="processing-continue"
+              >
+                Next
+              </button>
+            </div>
           </div>
         )}
 

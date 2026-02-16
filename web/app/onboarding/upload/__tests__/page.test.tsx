@@ -167,7 +167,7 @@ describe("OnboardingUploadPage", () => {
     expect(skipLink.getAttribute("href")).toBe("/onboarding/fund-setup");
   });
 
-  it("shows processing state when a file is selected", async () => {
+  it("shows processing state with next button when a file is selected", async () => {
     const user = userEvent.setup();
 
     vi.mocked(global.fetch)
@@ -188,6 +188,29 @@ describe("OnboardingUploadPage", () => {
     expect(
       screen.getByText("Uploading files...")
     ).toBeDefined();
+    expect(
+      screen.getByRole("button", { name: "Next" })
+    ).toBeDefined();
+  });
+
+  it("navigates to fund setup when next button clicked during processing", async () => {
+    const user = userEvent.setup();
+
+    vi.mocked(global.fetch)
+      // 1) Mount: check for active batch
+      .mockResolvedValueOnce(noActiveBatchResponse())
+      // 2) Upload POST never resolves
+      .mockReturnValueOnce(new Promise(() => {}));
+
+    render(<OnboardingUploadPage />);
+
+    const input = screen.getByTestId("file-input") as HTMLInputElement;
+    const file = createMockFile("test.csv", "data");
+    await user.upload(input, file);
+
+    await user.click(screen.getByRole("button", { name: "Next" }));
+
+    expect(mockPush).toHaveBeenCalledWith("/onboarding/fund-setup");
   });
 
   it("shows suggestions after successful upload and processing", async () => {
