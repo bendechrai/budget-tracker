@@ -64,6 +64,7 @@ export default function ImportPage() {
   const {
     uploadFiles: batchUpload,
     batch,
+    isLoading,
     isUploading,
     isProcessing,
     isComplete,
@@ -215,7 +216,7 @@ export default function ImportPage() {
 
   const hasFlagged = filesWithFlagged.length > 0;
 
-  const showUploadZone = !isUploading && !isProcessing && !isComplete;
+  const showUploadZone = !isLoading && !isUploading && !isProcessing && !isComplete;
   const showProcessing = isUploading || isProcessing;
 
   const progressPercent = batch

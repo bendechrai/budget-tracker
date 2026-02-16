@@ -7,10 +7,12 @@ vi.mock("@/lib/auth/getCurrentUser", () => ({
 }));
 
 const mockBatchCreate = vi.fn();
+const mockBatchFindFirst = vi.fn();
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     importBatch: {
       create: (...args: unknown[]) => mockBatchCreate(...args),
+      findFirst: (...args: unknown[]) => mockBatchFindFirst(...args),
     },
   },
 }));
@@ -36,7 +38,7 @@ vi.mock("next/server", async () => {
   };
 });
 
-import { POST } from "../route";
+import { GET, POST } from "../route";
 
 function makeFileLike(content: string, fileName: string): File {
   return {
@@ -216,5 +218,128 @@ describe("POST /api/import/batch", () => {
     const res = await POST(req);
 
     expect(res.status).toBe(202);
+  });
+});
+
+describe("GET /api/import/batch", () => {
+  const mockUser = { id: "user_1", email: "test@example.com" };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    afterCallback = null;
+    mockGetCurrentUser.mockResolvedValue(mockUser);
+    mockProcessImportBatch.mockResolvedValue(undefined);
+  });
+
+  it("returns 401 when not authenticated", async () => {
+    mockGetCurrentUser.mockResolvedValue(null);
+
+    const res = await GET();
+
+    expect(res.status).toBe(401);
+    const data = await res.json();
+    expect(data.error).toBe("unauthorized");
+  });
+
+  it("returns { batch: null } when no active batch exists", async () => {
+    mockBatchFindFirst.mockResolvedValue(null);
+
+    const res = await GET();
+
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.batch).toBeNull();
+  });
+
+  it("returns active batch when one exists", async () => {
+    mockBatchFindFirst.mockResolvedValue({
+      id: "batch_1",
+      userId: "user_1",
+      status: "processing",
+      fileCount: 1,
+      filesCompleted: 0,
+      totalTransactionsFound: 0,
+      totalTransactionsImported: 0,
+      totalDuplicatesSkipped: 0,
+      totalDuplicatesFlagged: 0,
+      patternDetectionComplete: false,
+      errorMessage: null,
+      updatedAt: new Date(),
+      files: [
+        {
+          id: "file_1",
+          position: 0,
+          fileName: "test.csv",
+          format: "csv",
+          status: "processing",
+          transactionsFound: 0,
+          transactionsImported: 0,
+          duplicatesSkipped: 0,
+          duplicatesFlagged: 0,
+          flaggedData: null,
+          importLogId: null,
+          errorMessage: null,
+        },
+      ],
+    });
+
+    const res = await GET();
+
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.batch).not.toBeNull();
+    expect(data.batch.batchId).toBe("batch_1");
+    expect(data.batch.status).toBe("processing");
+    expect(data.batch.files).toHaveLength(1);
+  });
+
+  it("re-triggers stale processing batch", async () => {
+    const staleDate = new Date(Date.now() - 6 * 60 * 1000); // 6 minutes ago
+    mockBatchFindFirst.mockResolvedValue({
+      id: "batch_stale",
+      userId: "user_1",
+      status: "processing",
+      fileCount: 1,
+      filesCompleted: 0,
+      totalTransactionsFound: 0,
+      totalTransactionsImported: 0,
+      totalDuplicatesSkipped: 0,
+      totalDuplicatesFlagged: 0,
+      patternDetectionComplete: false,
+      errorMessage: null,
+      updatedAt: staleDate,
+      files: [],
+    });
+
+    const res = await GET();
+
+    expect(res.status).toBe(200);
+    expect(afterCallback).not.toBeNull();
+
+    // Execute the after callback and verify it triggers reprocessing
+    afterCallback!();
+    expect(mockProcessImportBatch).toHaveBeenCalledWith("batch_stale", "user_1");
+  });
+
+  it("does not re-trigger fresh processing batch", async () => {
+    mockBatchFindFirst.mockResolvedValue({
+      id: "batch_fresh",
+      userId: "user_1",
+      status: "processing",
+      fileCount: 1,
+      filesCompleted: 0,
+      totalTransactionsFound: 0,
+      totalTransactionsImported: 0,
+      totalDuplicatesSkipped: 0,
+      totalDuplicatesFlagged: 0,
+      patternDetectionComplete: false,
+      errorMessage: null,
+      updatedAt: new Date(), // just now
+      files: [],
+    });
+
+    await GET();
+
+    expect(afterCallback).toBeNull();
   });
 });

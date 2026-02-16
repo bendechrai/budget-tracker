@@ -1060,3 +1060,23 @@
   - Spec: `specs/10-what-if.md`
   - Acceptance: Removed what-if toggle checkbox, "What-if: off" badge, `isToggledOff` variable, and `listItemToggledOff` styling from obligations list. Amount input changed from `type="number"` to `type="text" inputMode="decimal"` (removes spinner arrows). Input wrapped in `.amountOverrideWrapper` with conditional reset (×) button that calls `clearAmountOverride`. Emptying input via backspace also calls `clearAmountOverride`. Dark mode styles for reset button added. 3 checkbox tests removed, 4 reset button tests added.
   - Tests: 48 obligations page tests pass
+
+### Resume active import batch on page revisit
+
+- [x] **Add `GET /api/import/batch` route — find active batch**
+  - Files: `web/app/api/import/batch/route.ts`, `web/app/api/import/batch/__tests__/route.test.ts`
+  - Spec: `specs/05-bank-statement-import.md`
+  - Acceptance: GET handler queries for user's most recent batch with status `pending` or `processing`. Returns `{ batch: null }` when none found (not 404). Returns same shape as `[batchId]` GET when found. Includes stale-job recovery (re-triggers processing if no update in 5 minutes). Returns 401 when unauthenticated.
+  - Tests: 5 new tests: 401 unauth, null when no active batch, returns active batch, re-triggers stale batch, skips fresh batch
+
+- [x] **Add mount check + `isLoading` to `useBatchImport` hook**
+  - Files: `web/lib/hooks/useBatchImport.ts`, `web/lib/hooks/__tests__/useBatchImport.test.ts`
+  - Spec: `specs/05-bank-statement-import.md`
+  - Acceptance: `useEffect` on mount calls `GET /api/import/batch`. If active batch found, sets batch state and starts polling. `isLoading` state starts true, resolves to false after check. Exposed in return value. Cancellation cleanup on unmount.
+  - Tests: 3 new tests: resumes active batch on mount, no-ops when no active batch, upload works after mount check. Existing tests updated to account for mount fetch.
+
+- [x] **Update import page to handle loading state**
+  - Files: `web/app/(app)/import/page.tsx`
+  - Spec: `specs/05-bank-statement-import.md`
+  - Acceptance: Destructures `isLoading` from `useBatchImport()`. Upload zone gated on `!isLoading` to prevent flash before active-batch check completes. No other page changes needed.
+  - Tests: Existing page tests unaffected (no import page test file changes needed)

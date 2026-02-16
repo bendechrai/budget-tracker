@@ -35,6 +35,7 @@ export interface BatchStatus {
 export interface UseBatchImportReturn {
   uploadFiles: (files: File[]) => Promise<void>;
   batch: BatchStatus | null;
+  isLoading: boolean;
   isUploading: boolean;
   isProcessing: boolean;
   isComplete: boolean;
@@ -46,6 +47,7 @@ const POLL_INTERVAL_MS = 2000;
 
 export function useBatchImport(): UseBatchImportReturn {
   const [batch, setBatch] = useState<BatchStatus | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -92,6 +94,34 @@ export function useBatchImport(): UseBatchImportReturn {
       void poll(batchId);
     }, POLL_INTERVAL_MS);
   }, [poll]);
+
+  // Check for an active batch on mount
+  useEffect(() => {
+    let cancelled = false;
+    async function checkActiveBatch() {
+      try {
+        const res = await fetch("/api/import/batch");
+        if (!res.ok) {
+          if (!cancelled) setIsLoading(false);
+          return;
+        }
+        const data = (await res.json()) as { batch: BatchStatus | null };
+        if (cancelled) return;
+        if (data.batch) {
+          setBatch(data.batch);
+          if (data.batch.status === "pending" || data.batch.status === "processing") {
+            startPolling(data.batch.batchId);
+          }
+        }
+      } catch (err) {
+        logError("failed to check for active batch", err);
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    }
+    void checkActiveBatch();
+    return () => { cancelled = true; };
+  }, [startPolling]);
 
   const uploadFiles = useCallback(async (files: File[]) => {
     setError(null);
@@ -152,6 +182,7 @@ export function useBatchImport(): UseBatchImportReturn {
   return {
     uploadFiles,
     batch,
+    isLoading,
     isUploading,
     isProcessing,
     isComplete,

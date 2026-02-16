@@ -60,6 +60,7 @@ flowchart TD
 - Very large files: show progress indicator, process in background
 - Statement from a new bank with unfamiliar format: CSV column mapping handles this; PDF handled by AI flexibility
 - Multiple statements uploaded at once: process sequentially, deduplicate across all
+- User navigates away during processing: on return, the page discovers the active batch via API and resumes showing progress (no upload zone flash)
 
 ## Acceptance Criteria
 
@@ -75,3 +76,4 @@ flowchart TD
 - [ ] Large files show a progress indicator
 - [ ] User can browse imported transactions
 - [ ] Multiple files can be uploaded in sequence
+- [ ] Navigating away mid-processing and returning resumes the active batch
