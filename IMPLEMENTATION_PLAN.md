@@ -1242,3 +1242,11 @@
   - Spec: `specs/05-bank-statement-import.md`
   - Acceptance: Transactions API includes `obligation: { id, name } | null` via Prisma `include`. Transactions page renders obligation name as a clickable `Link` to `/obligations/edit/{id}` in the detail line. Styled with `.obligationLink` class (blue text, underline on hover, dark mode variant). Updated 6 existing test assertions to include the new `include` clause.
   - Tests: 10 existing route tests pass with updated assertions. 14 existing page tests pass (mock data omits `obligation`, component handles null gracefully).
+
+### Compute next due date from suggestion transactions
+
+- [x] **Calculate next due/expected date from transaction history on suggestion acceptance**
+  - Files: `web/app/api/suggestions/[id]/route.ts`
+  - Spec: `specs/06-pattern-detection.md`
+  - Acceptance: When accepting a suggestion, next due date (obligations) and next expected date (income sources) are computed from linked transaction history instead of defaulting to today/null. Uses hybrid strategy: anchor-day (median day-of-month) when transactions cluster tightly (range ≤ 7), last-transaction + interval when they drift (range > 7). Twice-monthly splits into two clusters with per-cluster range check. Day/week always uses last-transaction + interval. End-of-month clamping applied to anchor days. User overrides via body fields still take precedence. Reuses `addInterval` from `calculate.ts`.
+  - Tests: All 1322 existing tests pass. tsc and lint clean (no new errors).
