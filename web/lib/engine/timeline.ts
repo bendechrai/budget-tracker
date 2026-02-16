@@ -362,7 +362,16 @@ export function projectTimeline(input: TimelineInput): TimelineResult {
       amount: marker.amount,
     });
   }
-  events.sort((a, b) => a.date.getTime() - b.date.getTime());
+  // Sort by date, contributions before expenses on the same day
+  events.sort((a, b) => {
+    const timeDiff = a.date.getTime() - b.date.getTime();
+    if (timeDiff !== 0) return timeDiff;
+    // Contributions first: "contribution" < "expense" alphabetically works,
+    // but be explicit for clarity
+    if (a.type === "contribution" && b.type === "expense") return -1;
+    if (a.type === "expense" && b.type === "contribution") return 1;
+    return 0;
+  });
 
   // Walk through events to build data points and detect crunch points
   const dataPoints: TimelineDataPoint[] = [];

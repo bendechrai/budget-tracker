@@ -76,24 +76,31 @@ describe("projectTimeline", () => {
         makeInput({
           obligations: [
             makeObligation({
-              nextDueDate: new Date("2025-04-01"),
+              type: "one_off",
+              intervalUnit: null,
+              nextDueDate: new Date("2025-05-01"),
               amount: 1200,
             }),
           ],
           currentFundBalance: 2000,
-          monthsAhead: 2,
+          cycleConfig: { type: "monthly", payDays: [15] },
+          monthsAhead: 3,
         })
       );
 
-      // Expenses process before contributions on the same date,
-      // so the first data point at Apr 1 reflects the expense deduction
+      // Expense on May 1, contributions on the 15th — no overlap
+      // Balance before the expense should be higher than after
+      const beforeExpense = result.dataPoints
+        .filter((p) => p.date.getTime() < new Date("2025-05-01T00:00:00.000Z").getTime())
+        .pop();
       const afterExpense = result.dataPoints.find(
         (p) =>
           p.date.getTime() ===
-          new Date("2025-04-01T00:00:00.000Z").getTime()
+          new Date("2025-05-01T00:00:00.000Z").getTime()
       );
+      expect(beforeExpense).toBeDefined();
       expect(afterExpense).toBeDefined();
-      expect(afterExpense!.projectedBalance).toBe(2000 - 1200);
+      expect(afterExpense!.projectedBalance).toBeLessThan(beforeExpense!.projectedBalance);
     });
 
     it("balances contributions and expenses over time", () => {
@@ -337,21 +344,25 @@ describe("projectTimeline", () => {
 
   describe("crunch points detected", () => {
     it("detects crunch point when balance goes negative", () => {
-      // Expense processes before contribution on the same date,
-      // so a large expense causes a temporary dip even with contributions
+      // One-off expense exceeds per-cycle contribution, so balance goes negative
+      // even after the contribution processes first on the same date
       const result = projectTimeline(
         makeInput({
           obligations: [
             makeObligation({
+              type: "one_off",
+              intervalUnit: null,
               nextDueDate: new Date("2025-04-01"),
-              amount: 2000,
+              amount: 3000,
             }),
           ],
-          currentFundBalance: 500,
+          currentFundBalance: 0,
           monthsAhead: 2,
         })
       );
 
+      // contributionPerCycle = 3000 / 2 = 1500
+      // Apr 1: +1500 → 1500, -3000 → -1500
       expect(result.crunchPoints.length).toBeGreaterThanOrEqual(1);
       const crunch = result.crunchPoints[0];
       expect(crunch.projectedBalance).toBeLessThan(0);
@@ -367,15 +378,16 @@ describe("projectTimeline", () => {
               type: "one_off",
               intervalUnit: null,
               nextDueDate: new Date("2025-04-01"),
-              amount: 500,
+              amount: 1000,
             }),
           ],
+          // contribution = 1000/2 = 500; Apr 1: 500 + 500 - 1000 = 0
           currentFundBalance: 500,
           monthsAhead: 2,
         })
       );
 
-      // Balance goes from 500 to 0 after the one-off expense
+      // Balance reaches exactly 0 after contribution + expense
       expect(result.crunchPoints).toHaveLength(1);
       expect(result.crunchPoints[0].projectedBalance).toBe(0);
     });
@@ -400,20 +412,23 @@ describe("projectTimeline", () => {
 
   describe("minProjectedBalance", () => {
     it("returns the minimum projected balance across all data points", () => {
+      // One-off expense exceeds per-cycle contribution, so balance goes negative
       const result = projectTimeline(
         makeInput({
           obligations: [
             makeObligation({
+              type: "one_off",
+              intervalUnit: null,
               nextDueDate: new Date("2025-04-01"),
-              amount: 2000,
+              amount: 3000,
             }),
           ],
-          currentFundBalance: 500,
+          currentFundBalance: 0,
           monthsAhead: 2,
         })
       );
 
-      // Balance starts at 500, drops to -1500 after $2000 expense
+      // contributionPerCycle = 3000/2 = 1500; Apr 1: +1500 -3000 = -1500
       expect(result.minProjectedBalance).toBeLessThan(0);
       expect(result.minProjectedBalance).toBe(
         Math.min(...result.dataPoints.map((dp) => dp.projectedBalance))
@@ -678,14 +693,17 @@ describe("projectTimeline", () => {
       );
       expect(apr1Markers).toHaveLength(2);
 
-      // Expenses process before contributions, so balance after both deductions
-      const afterBoth = result.dataPoints.find(
+      // Contributions process before expenses on the same date
+      // contributionPerCycle = 1500/2 = 750
+      // Apr 1: +750 → 2750, -1000 → 1750, -500 → 1250
+      const apr1Points = result.dataPoints.filter(
         (p) =>
           p.date.getTime() ===
-            new Date("2025-04-01T00:00:00.000Z").getTime() &&
-          p.projectedBalance === 500
+          new Date("2025-04-01T00:00:00.000Z").getTime()
       );
-      expect(afterBoth).toBeDefined();
+      // Last data point at Apr 1 reflects all events
+      const lastApr1 = apr1Points[apr1Points.length - 1];
+      expect(lastApr1.projectedBalance).toBe(1250);
     });
 
     it("places contribution markers at actual cycle dates for twice_monthly", () => {
@@ -940,35 +958,38 @@ describe("projectTimeline", () => {
     });
 
     it("crunch point detection uses escalated amounts", () => {
-      // Start with $0, rent is $1000 but jumps to $2000 in April
-      // The even contribution rate won't cover the larger post-escalation expenses,
-      // causing crunch points when those larger expenses hit
+      // Base $100/month with escalation to $5000 on Apr 1.
+      // Expenses fall on the 5th; contributions on the 15th.
+      // Starting balance of $200 easily covers the $100 base expenses
+      // but the $5000 escalated amounts eventually drain the fund,
+      // causing a crunch in June that wouldn't happen at the base rate.
       const result = projectTimeline(
         makeInput({
           obligations: [
             makeObligation({
               id: "obl-rent",
               name: "Rent",
-              amount: 1000,
+              amount: 100,
               intervalUnit: "month",
-              nextDueDate: new Date("2025-02-01"),
+              nextDueDate: new Date("2025-01-05"),
               escalationRules: [
                 makeEscalationRule({
                   changeType: "absolute",
-                  value: 2000,
+                  value: 5000,
                   effectiveDate: new Date("2025-04-01"),
                 }),
               ],
             }),
           ],
-          currentFundBalance: 0,
+          currentFundBalance: 200,
+          cycleConfig: { type: "monthly", payDays: [15] },
           now: ESCALATION_NOW,
           monthsAhead: 6,
         })
       );
 
-      // Expenses hit before contributions on the same date,
-      // so with $0 balance the first expense causes a crunch
+      // The escalated $5000 expenses outpace the averaged contribution,
+      // causing the balance to go negative in June
       expect(result.crunchPoints.length).toBeGreaterThanOrEqual(1);
       const crunch = result.crunchPoints[0];
       expect(crunch.projectedBalance).toBeLessThan(0);
