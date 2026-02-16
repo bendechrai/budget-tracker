@@ -42,8 +42,13 @@ export function SuggestionsCountProvider({ children }: { children: ReactNode }) 
   }, []);
 
   useEffect(() => {
-    void refresh();
-  }, [refresh]);
+    fetch("/api/suggestions")
+      .then((res) => (res.ok ? (res.json() as Promise<{ count: number }>) : null))
+      .then((data) => {
+        if (data) setCount(data.count);
+      })
+      .catch((err) => logError("failed to fetch suggestions count", err));
+  }, []);
 
   const value = useMemo(
     () => ({ count, decrement, refresh }),

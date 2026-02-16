@@ -1303,3 +1303,9 @@
   - Files: `web/app/api/engine/timeline/route.ts`, `web/app/api/engine/timeline/__tests__/route.test.ts`, `web/app/api/engine/recalculate/route.ts`, `web/app/api/engine/recalculate/__tests__/route.test.ts`, `web/app/api/engine/scenario/route.ts`, `web/app/api/engine/scenario/__tests__/route.test.ts`
   - Spec: `specs/08-dashboard.md`
   - Acceptance: Timeline route no longer calls `calculateContributions` — just passes data to `projectTimeline` which derives contributions internally. Recalculate and scenario routes use `calculateSteadyStatePerCycle` for the header's `totalContributionPerCycle`. Route tests updated to remove `calculateContributions` mock assertions and add `calculateSteadyStatePerCycle` mocks. All 1285 tests pass. tsc and lint clean.
+
+### Lint fixes
+
+- [x] **Fix pre-existing lint errors and warnings**
+  - Files: `web/app/(app)/settings/page.tsx`, `web/app/contexts/SuggestionsCountContext.tsx`, `web/lib/engine/__tests__/calculate.test.ts`, `web/lib/hooks/__tests__/useModalClose.test.ts`
+  - Acceptance: Remove unused `SECTIONS` const (settings page, replaced with type union). Fix `react-hooks/set-state-in-effect` in SuggestionsCountContext (inline fetch with `.then()` chain instead of calling `refresh()` in effect). Remove unused `addInterval` import (calculate test). Fix `react-hooks/globals` and `react-hooks/immutability` in useModalClose test (replace outer variable capture with trigger button pattern), remove unused `renderHook`/`ReactNode` imports and unused `user`/`getResult` variables. 0 errors, 0 warnings.

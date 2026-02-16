@@ -23,8 +23,7 @@ interface UserSettings {
   autoDetectedCycle: AutoDetectedCycle;
 }
 
-const SECTIONS = ["Profile", "Budget Preferences", "Funds", "Account"] as const;
-type SectionName = (typeof SECTIONS)[number];
+type SectionName = "Profile" | "Budget Preferences" | "Funds" | "Account";
 
 export default function SettingsPage() {
   const [settings, setSettings] = useState<UserSettings | null>(null);

@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { renderHook, act, cleanup } from "@testing-library/react";
+import { act, cleanup } from "@testing-library/react";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { createElement, type ReactNode } from "react";
+import { createElement } from "react";
 import { useModalClose } from "../useModalClose";
 
 /**
@@ -15,20 +15,15 @@ function renderUseModalClose(
   enabled = true,
   onSubmit?: () => void,
 ) {
-  let hookResult: { handleClose: () => void; confirmDialog: ReactNode };
-
   function TestComponent() {
-    const result = useModalClose(onClose, isDirty, enabled, onSubmit);
-    hookResult = result;
-    return createElement("div", { "data-testid": "hook-host" }, result.confirmDialog);
+    const { handleClose, confirmDialog } = useModalClose(onClose, isDirty, enabled, onSubmit);
+    return createElement("div", { "data-testid": "hook-host" },
+      confirmDialog,
+      createElement("button", { "data-testid": "trigger-close", onClick: handleClose }, "Close"),
+    );
   }
 
-  const renderResult = render(createElement(TestComponent));
-
-  return {
-    getResult: () => hookResult!,
-    ...renderResult,
-  };
+  return render(createElement(TestComponent));
 }
 
 describe("useModalClose", () => {
@@ -55,7 +50,7 @@ describe("useModalClose", () => {
 
   it("shows confirm dialog on Escape when dirty and closes on confirm", async () => {
     const user = userEvent.setup();
-    const { getResult } = renderUseModalClose(onClose, true);
+    renderUseModalClose(onClose, true);
 
     act(() => {
       document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
@@ -103,23 +98,20 @@ describe("useModalClose", () => {
     expect(onClose).not.toHaveBeenCalled();
   });
 
-  it("returned handleClose behaves same as Escape", () => {
-    const { getResult } = renderUseModalClose(onClose, false);
+  it("returned handleClose behaves same as Escape", async () => {
+    const user = userEvent.setup();
+    renderUseModalClose(onClose, false);
 
-    act(() => {
-      getResult().handleClose();
-    });
+    await user.click(screen.getByTestId("trigger-close"));
 
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
   it("returned handleClose shows confirm dialog when dirty", async () => {
     const user = userEvent.setup();
-    const { getResult } = renderUseModalClose(onClose, true);
+    renderUseModalClose(onClose, true);
 
-    act(() => {
-      getResult().handleClose();
-    });
+    await user.click(screen.getByTestId("trigger-close"));
 
     expect(screen.getByTestId("confirm-dialog")).toBeDefined();
 
@@ -197,7 +189,6 @@ describe("useModalClose", () => {
   });
 
   it("ignores second Escape while confirm dialog is open", async () => {
-    const user = userEvent.setup();
     renderUseModalClose(onClose, true);
 
     // First Escape opens confirm dialog
