@@ -47,6 +47,7 @@ interface TimelineData {
   minProjectedBalance: number;
   startDate: string;
   endDate: string;
+  fundGroupPreseeds?: Record<string, number>;
 }
 
 interface ChartDataPoint {
@@ -58,7 +59,7 @@ interface ChartDataPoint {
 
 interface TimelineChartProps {
   scenarioData?: TimelineData | null;
-  onPreseedChange?: (amount: number) => void;
+  onPreseedChange?: (preseeds: Record<string, number>) => void;
 }
 
 const RANGE_OPTIONS = [6, 9, 12] as const;
@@ -217,10 +218,7 @@ export default function TimelineChart({ scenarioData, onPreseedChange }: Timelin
 
   useEffect(() => {
     if (!data || !onPreseedChangeRef.current) return;
-    const preseed = data.minProjectedBalance < 0
-      ? Math.abs(data.minProjectedBalance)
-      : 0;
-    onPreseedChangeRef.current(preseed);
+    onPreseedChangeRef.current(data.fundGroupPreseeds ?? {});
   }, [data]);
 
   const chartData = useMemo((): ChartDataPoint[] => {
@@ -357,6 +355,7 @@ export default function TimelineChart({ scenarioData, onPreseedChange }: Timelin
                   dataKey="date"
                   type="number"
                   domain={["dataMin", "dataMax"]}
+                  tickCount={4}
                   tickFormatter={formatDateLabel}
                   tick={{ fontSize: 12 }}
                   stroke="#999"

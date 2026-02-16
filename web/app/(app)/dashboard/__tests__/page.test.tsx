@@ -85,16 +85,7 @@ const mockTimelineData = {
   minProjectedBalance: 800,
   startDate: "2025-01-01T00:00:00.000Z",
   endDate: "2025-07-01T00:00:00.000Z",
-};
-
-const mockTimelineWithNegative = {
-  ...mockTimelineData,
-  dataPoints: [
-    { date: "2025-01-01T00:00:00.000Z", projectedBalance: 500 },
-    { date: "2025-03-01T00:00:00.000Z", projectedBalance: -1225 },
-    { date: "2025-06-01T00:00:00.000Z", projectedBalance: 200 },
-  ],
-  minProjectedBalance: -1225,
+  fundGroupPreseeds: { fg1: 400 },
 };
 
 const mockSnapshot = {
@@ -225,10 +216,6 @@ describe("DashboardPage", () => {
     expect(screen.getByTestId("total-per-cycle").textContent).toBe("$587.50");
     expect(screen.getByText("Total contribution required per fortnight")).toBeDefined();
     expect(screen.getByText("across all obligations")).toBeDefined();
-
-    // Shortfall is shown (1200 required - 800 balance = 400 shortfall)
-    expect(screen.getByTestId("shortfall-row")).toBeDefined();
-    expect(screen.getByText(/\$400\.00 shortfall across all funds/)).toBeDefined();
 
     // Fund health bars are inside the fund status card
     expect(screen.getByText("Fund health")).toBeDefined();
@@ -554,56 +541,6 @@ describe("DashboardPage", () => {
     // Modal should show the fund group with an editable balance input
     const balanceInput = screen.getByTestId("confirm-balances-input-fg1") as HTMLInputElement;
     expect(balanceInput.value).toBe("800.00");
-  });
-
-  it("shows preseed row when timeline has negative balance", async () => {
-    vi.mocked(global.fetch).mockImplementation((url) => {
-      if (typeof url === "string" && url.includes("/api/obligations")) {
-        return Promise.resolve(
-          mockFetchResponse([{ id: "ob1", type: "recurring", intervalUnit: "month", intervalCount: 1, fundGroupId: "fg1", fundGroup: { id: "fg1", name: "Housing", currentBalance: 800 }, amount: 1200 }])
-        );
-      }
-      if (typeof url === "string" && url.includes("/api/fund-groups")) {
-        return Promise.resolve(mockFetchResponse(mockFundGroups));
-      }
-      if (typeof url === "string" && url.includes("/api/engine/timeline")) {
-        return Promise.resolve(mockFetchResponse(mockTimelineWithNegative));
-      }
-      return Promise.resolve(mockFetchResponse(mockSnapshot));
-    });
-
-    render(<DashboardPage />);
-
-    await waitFor(() => {
-      expect(screen.getByTestId("preseed-row")).toBeDefined();
-    });
-
-    expect(screen.getByText(/Suggested starting balance: \$1225\.00/)).toBeDefined();
-  });
-
-  it("does not show preseed row when timeline balance stays positive", async () => {
-    vi.mocked(global.fetch).mockImplementation((url) => {
-      if (typeof url === "string" && url.includes("/api/obligations")) {
-        return Promise.resolve(
-          mockFetchResponse([{ id: "ob1", type: "recurring", intervalUnit: "month", intervalCount: 1, fundGroupId: "fg1", fundGroup: { id: "fg1", name: "Housing", currentBalance: 800 }, amount: 1200 }])
-        );
-      }
-      if (typeof url === "string" && url.includes("/api/fund-groups")) {
-        return Promise.resolve(mockFetchResponse(mockFundGroups));
-      }
-      if (typeof url === "string" && url.includes("/api/engine/timeline")) {
-        return Promise.resolve(mockFetchResponse(mockTimelineData));
-      }
-      return Promise.resolve(mockFetchResponse(mockSnapshot));
-    });
-
-    render(<DashboardPage />);
-
-    await waitFor(() => {
-      expect(screen.getByTestId("total-per-cycle")).toBeDefined();
-    });
-
-    expect(screen.queryByTestId("preseed-row")).toBeNull();
   });
 
   it("does not show 'Confirm fund balances' button when what-if is active", async () => {

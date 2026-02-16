@@ -82,13 +82,13 @@ interface ScenarioResponse {
 }
 
 /**
- * Prorates an obligation amount to its monthly equivalent.
- * Recurring obligations are divided by their interval in months.
- * One-off and custom obligations use the raw amount (lump sum needed).
+ * Prorates a recurring obligation amount to its monthly equivalent.
+ * One-off and custom obligations return 0 — their funding needs are
+ * captured by the preseed (timing buffer), not the monthly reserve.
  */
 function monthlyEquivalent(o: ObligationData): number {
   if (o.type === "one_off" || o.type === "custom" || !o.intervalUnit) {
-    return o.amount;
+    return 0;
   }
   const monthsPerInterval = intervalToMonths(o.intervalUnit, o.intervalCount);
   return o.amount / monthsPerInterval;
@@ -132,7 +132,7 @@ export default function DashboardPage() {
   const [scenarioTimeline, setScenarioTimeline] =
     useState<TimelineData | null>(null);
   const [showConfirmBalancesModal, setShowConfirmBalancesModal] = useState(false);
-  const [preseedAmount, setPreseedAmount] = useState(0);
+  const [fundGroupPreseeds, setFundGroupPreseeds] = useState<Record<string, number>>({});
 
   const { isActive, overrides } = useWhatIf();
   const scenarioAbortRef = useRef<AbortController | null>(null);
@@ -278,14 +278,9 @@ export default function DashboardPage() {
       id: fg.id,
       name: fg.name,
       funded: fg.currentBalance,
-      required: fundGroupRequired.get(fg.id) ?? 0,
+      monthlyRequired: fundGroupRequired.get(fg.id) ?? 0,
+      preseed: fundGroupPreseeds[fg.id] ?? 0,
     }));
-
-  // Total shortfall across all funds
-  const totalShortfall = fundGroupHealthData.reduce((sum, fg) => {
-    const remaining = Math.max(0, fg.required - fg.funded);
-    return sum + remaining;
-  }, 0);
 
   return (
     <div className={styles.page}>
@@ -383,22 +378,6 @@ export default function DashboardPage() {
                   across all obligations
                 </p>
 
-                {preseedAmount > 0 && (
-                  <div className={styles.preseedRow} data-testid="preseed-row">
-                    <span className={styles.preseedText}>
-                      Suggested starting balance: {formatCurrency(preseedAmount)}
-                    </span>
-                  </div>
-                )}
-
-                {totalShortfall > 0 && (
-                  <div className={styles.shortfallRow} data-testid="shortfall-row">
-                    <span className={styles.shortfallText}>
-                      {formatCurrency(totalShortfall)} shortfall across all funds
-                    </span>
-                  </div>
-                )}
-
                 {fundGroupHealthData.length > 0 && (
                   <>
                     <div className={styles.heroDivider} />
@@ -431,7 +410,7 @@ export default function DashboardPage() {
             <div className={styles.timelineSection}>
               <TimelineChart
                 scenarioData={isActive ? scenarioTimeline : null}
-                onPreseedChange={setPreseedAmount}
+                onPreseedChange={setFundGroupPreseeds}
               />
             </div>
             <aside className={styles.sidebar}>

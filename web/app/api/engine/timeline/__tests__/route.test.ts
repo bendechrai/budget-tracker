@@ -71,7 +71,7 @@ const mockObligations = [
     isPaused: false,
     isActive: true,
     isArchived: false,
-    fundGroupId: null,
+    fundGroupId: "fg_1",
     customEntries: [],
   },
 ];
@@ -97,6 +97,7 @@ const mockTimelineResult = {
   startDate: new Date("2025-01-01"),
   endDate: new Date("2025-07-01"),
 };
+
 
 const defaultCycleConfig = { type: "monthly" as const, payDays: [1] };
 
@@ -233,5 +234,95 @@ describe("GET /api/engine/timeline", () => {
     expect(res.status).toBe(500);
     const data = await res.json();
     expect(data.error).toBe("internal server error");
+  });
+
+  it("returns fundGroupPreseeds derived from main timeline projection", async () => {
+    // totalFundBalance = 300, minProjectedBalance = -200 → preseed = 500
+    mockProjectTimeline.mockReturnValue({
+      ...mockTimelineResult,
+      minProjectedBalance: -200,
+    });
+
+    const res = await GET(makeRequest());
+    const data = await res.json();
+
+    // fg_1 has the only obligation (amount=1500), so it gets 100% of preseed=500
+    expect(data.fundGroupPreseeds).toEqual({ fg_1: 500 });
+  });
+
+  it("only calls projectTimeline once", async () => {
+    await GET(makeRequest());
+
+    expect(mockProjectTimeline).toHaveBeenCalledTimes(1);
+  });
+
+  it("sets preseed to 0 for fund groups with no obligations", async () => {
+    const noObligationGroup = {
+      id: "fg_2",
+      userId: "user_1",
+      name: "Empty",
+      currentBalance: 0,
+    };
+    mockFundGroupFindMany.mockResolvedValue([...mockFundGroups, noObligationGroup]);
+
+    // totalFundBalance = 300 + 0 = 300, minProjectedBalance = -200 → preseed = 500
+    mockProjectTimeline.mockReturnValue({
+      ...mockTimelineResult,
+      minProjectedBalance: -200,
+    });
+
+    const res = await GET(makeRequest());
+    const data = await res.json();
+
+    // fg_2 has no obligations → no expense share → preseed = 0
+    expect(data.fundGroupPreseeds.fg_2).toBe(0);
+    // fg_1 gets all the preseed
+    expect(data.fundGroupPreseeds.fg_1).toBe(500);
+  });
+
+  it("distributes preseed proportionally across multiple fund groups", async () => {
+    const multiGroupObligations = [
+      { ...mockObligations[0], fundGroupId: "fg_1", amount: 1200 },
+      {
+        id: "obl_2", userId: "user_1", name: "Insurance", type: "recurring",
+        amount: 300, intervalUnit: "year", intervalCount: 1,
+        nextDueDate: futureDate, endDate: null, isPaused: false,
+        isActive: true, isArchived: false, fundGroupId: "fg_2", customEntries: [],
+      },
+    ];
+    const twoGroups = [
+      mockFundGroups[0],
+      { id: "fg_2", userId: "user_1", name: "Insurance", currentBalance: 0 },
+    ];
+    mockObligationFindMany.mockResolvedValue(multiGroupObligations);
+    mockFundGroupFindMany.mockResolvedValue(twoGroups);
+
+    // totalFundBalance = 300 + 0 = 300, minProjectedBalance = -1200 → preseed = 1500
+    mockProjectTimeline.mockReturnValue({
+      ...mockTimelineResult,
+      minProjectedBalance: -1200,
+    });
+
+    const res = await GET(makeRequest());
+    const data = await res.json();
+
+    // Total obligation amount = 1200 + 300 = 1500
+    // fg_1 share = 1200/1500 = 80% of 1500 = 1200
+    // fg_2 share = 300/1500 = 20% of 1500 = 300
+    expect(data.fundGroupPreseeds.fg_1).toBe(1200);
+    expect(data.fundGroupPreseeds.fg_2).toBe(300);
+  });
+
+  it("sets preseed to 0 when balance never drops below starting point", async () => {
+    // totalFundBalance = 300, minProjectedBalance = 400 → preseed = max(0, -100) = 0
+    mockProjectTimeline.mockReturnValue({
+      ...mockTimelineResult,
+      minProjectedBalance: 400,
+    });
+
+    const res = await GET(makeRequest());
+    const data = await res.json();
+
+    expect(data.fundGroupPreseeds.fg_1).toBe(0);
   });
 });

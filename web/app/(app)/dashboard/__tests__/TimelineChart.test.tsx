@@ -105,16 +105,12 @@ const mockTimelineData = {
   minProjectedBalance: 600,
   startDate: "2025-01-01T00:00:00.000Z",
   endDate: "2025-07-01T00:00:00.000Z",
+  fundGroupPreseeds: { fg1: 500 },
 };
 
-const mockTimelineWithNegative = {
+const mockTimelineWithPreseeds = {
   ...mockTimelineData,
-  dataPoints: [
-    { date: "2025-01-01T00:00:00.000Z", projectedBalance: 500 },
-    { date: "2025-02-01T00:00:00.000Z", projectedBalance: -1225 },
-    { date: "2025-03-01T00:00:00.000Z", projectedBalance: 200 },
-  ],
-  minProjectedBalance: -1225,
+  fundGroupPreseeds: { fg1: 1225, fg2: 300 },
 };
 
 const mockEmptyTimeline = {
@@ -125,6 +121,7 @@ const mockEmptyTimeline = {
   minProjectedBalance: 0,
   startDate: "2025-01-01T00:00:00.000Z",
   endDate: "2025-07-01T00:00:00.000Z",
+  fundGroupPreseeds: {},
 };
 
 describe("TimelineChart", () => {
@@ -382,29 +379,29 @@ describe("TimelineChart", () => {
     );
   });
 
-  it("calls onPreseedChange with preseed amount when balance goes negative", async () => {
+  it("calls onPreseedChange with fundGroupPreseeds object", async () => {
     vi.mocked(global.fetch).mockResolvedValue(
-      mockFetchResponse(mockTimelineWithNegative)
+      mockFetchResponse(mockTimelineWithPreseeds)
     );
 
     const onPreseedChange = vi.fn();
     render(<TimelineChart onPreseedChange={onPreseedChange} />);
 
     await waitFor(() => {
-      expect(onPreseedChange).toHaveBeenCalledWith(1225);
+      expect(onPreseedChange).toHaveBeenCalledWith({ fg1: 1225, fg2: 300 });
     });
   });
 
-  it("calls onPreseedChange with 0 when balance stays positive", async () => {
+  it("calls onPreseedChange with empty object when no preseeds", async () => {
     vi.mocked(global.fetch).mockResolvedValue(
-      mockFetchResponse(mockTimelineData)
+      mockFetchResponse(mockEmptyTimeline)
     );
 
     const onPreseedChange = vi.fn();
     render(<TimelineChart onPreseedChange={onPreseedChange} />);
 
     await waitFor(() => {
-      expect(onPreseedChange).toHaveBeenCalledWith(0);
+      expect(onPreseedChange).toHaveBeenCalledWith({});
     });
   });
 });

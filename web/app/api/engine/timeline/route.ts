@@ -87,7 +87,34 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       monthsAhead,
     });
 
-    return NextResponse.json(timeline);
+    // Preseed = how far the balance drops from its starting point to its lowest point.
+    // This represents the portion of the fund that's "spoken for" as a timing buffer.
+    const totalPreseed = Math.max(0, totalFundBalance - timeline.minProjectedBalance);
+
+    // Distribute preseed proportionally to fund groups by obligation amount share
+    const groupExpenseTotal = new Map<string, number>();
+    let allExpenseTotal = 0;
+    for (const o of obligationInputs) {
+      if (!o.fundGroupId) continue;
+      groupExpenseTotal.set(
+        o.fundGroupId,
+        (groupExpenseTotal.get(o.fundGroupId) ?? 0) + o.amount,
+      );
+      allExpenseTotal += o.amount;
+    }
+
+    const fundGroupPreseeds: Record<string, number> = {};
+    for (const fg of fundGroups) {
+      if (allExpenseTotal <= 0 || totalPreseed <= 0) {
+        fundGroupPreseeds[fg.id] = 0;
+        continue;
+      }
+      const share = groupExpenseTotal.get(fg.id) ?? 0;
+      fundGroupPreseeds[fg.id] =
+        Math.round((totalPreseed * share / allExpenseTotal) * 100) / 100;
+    }
+
+    return NextResponse.json({ ...timeline, fundGroupPreseeds });
   } catch (error) {
     logError("failed to generate timeline projection", error);
     return NextResponse.json(

@@ -71,32 +71,6 @@
   margin-bottom: 16px;
 }
 
-.preseedRow {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 8px;
-}
-
-.preseedText {
-  font-size: 14px;
-  font-weight: 500;
-  color: #666;
-}
-
-.shortfallRow {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 8px;
-}
-
-.shortfallText {
-  font-size: 14px;
-  font-weight: 500;
-  color: #e53e3e;
-}
-
 .heroActions {
   display: flex;
   gap: 10px;
@@ -270,14 +244,6 @@
 
   .confirmBalancesButton:hover {
     background-color: #ccc;
-  }
-
-  .preseedText {
-    color: #999;
-  }
-
-  .shortfallText {
-    color: #fc8181;
   }
 
   .celebrationDescription {
