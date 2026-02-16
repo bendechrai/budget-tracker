@@ -227,7 +227,7 @@ export default function FundsSection() {
                           )
                         }
                       >
-                        History
+                        Balance history
                       </button>
                       <button
                         type="button"

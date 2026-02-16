@@ -322,7 +322,7 @@ describe("FundsSection", () => {
 
     expect(screen.queryByTestId("contribution-history")).toBeNull();
 
-    const historyButtons = screen.getAllByRole("button", { name: "History" });
+    const historyButtons = screen.getAllByRole("button", { name: "Balance history" });
     await user.click(historyButtons[0]);
 
     await waitFor(() => {
@@ -346,7 +346,7 @@ describe("FundsSection", () => {
       expect(screen.getByText("Essentials")).toBeDefined();
     });
 
-    const historyButtons = screen.getAllByRole("button", { name: "History" });
+    const historyButtons = screen.getAllByRole("button", { name: "Balance history" });
     await user.click(historyButtons[0]);
 
     await waitFor(() => {

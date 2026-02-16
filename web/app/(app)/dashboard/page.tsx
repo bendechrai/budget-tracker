@@ -11,9 +11,7 @@ import TimelineChart from "./TimelineChart";
 import UpcomingObligations from "./UpcomingObligations";
 import SuggestionsCard from "./SuggestionsCard";
 import ScenarioBanner from "@/app/components/ScenarioBanner";
-import ContributionModal from "@/app/(app)/obligations/ContributionModal";
-import CatchUpModal from "./CatchUpModal";
-import type { CatchUpFundGroup } from "./CatchUpModal";
+import ConfirmBalancesModal from "./ConfirmBalancesModal";
 
 interface EngineSnapshot {
   id: string;
@@ -104,8 +102,7 @@ export default function DashboardPage() {
     useState<ScenarioSnapshot | null>(null);
   const [scenarioTimeline, setScenarioTimeline] =
     useState<TimelineData | null>(null);
-  const [showContributionModal, setShowContributionModal] = useState(false);
-  const [showCatchUpModal, setShowCatchUpModal] = useState(false);
+  const [showConfirmBalancesModal, setShowConfirmBalancesModal] = useState(false);
 
   const { isActive, overrides } = useWhatIf();
   const scenarioAbortRef = useRef<AbortController | null>(null);
@@ -244,22 +241,6 @@ export default function DashboardPage() {
     fundGroupRequired.set(o.fundGroupId, current + o.amount);
   }
 
-  // Find the most underfunded fund group for "Record contribution" action
-  const mostUnderfundedFundGroup = (() => {
-    let best: FundGroupData | null = null;
-    let bestRatio = Infinity;
-    for (const fg of fundGroups) {
-      const required = fundGroupRequired.get(fg.id) ?? 0;
-      if (required <= 0) continue;
-      const ratio = fg.currentBalance / required;
-      if (ratio < bestRatio) {
-        bestRatio = ratio;
-        best = fg;
-      }
-    }
-    return best;
-  })();
-
   // Build per-fund-group health data for the health bar
   const fundGroupHealthData: FundGroupHealth[] = fundGroups
     .filter((fg) => fg._count.obligations > 0)
@@ -270,26 +251,11 @@ export default function DashboardPage() {
       required: fundGroupRequired.get(fg.id) ?? 0,
     }));
 
-  // Determine which fund groups are underfunded (for catch-up button)
-  const underfundedFundGroups: CatchUpFundGroup[] = fundGroups
-    .filter((fg) => {
-      const required = fundGroupRequired.get(fg.id) ?? 0;
-      return required > 0 && fg.currentBalance < required;
-    })
-    .map((fg) => ({
-      id: fg.id,
-      name: fg.name,
-      amountNeeded: fundGroupRequired.get(fg.id) ?? 0,
-      currentBalance: fg.currentBalance,
-    }));
-
   // Total shortfall across all funds
   const totalShortfall = fundGroupHealthData.reduce((sum, fg) => {
     const remaining = Math.max(0, fg.required - fg.funded);
     return sum + remaining;
   }, 0);
-
-  const showCatchUpButton = underfundedFundGroups.length > 1 && !isActive;
 
   return (
     <div className={styles.page}>
@@ -379,16 +345,6 @@ export default function DashboardPage() {
                     <span className={styles.shortfallText}>
                       {formatCurrency(totalShortfall)} shortfall across all funds
                     </span>
-                    {showCatchUpButton && (
-                      <button
-                        type="button"
-                        className={styles.catchUpButton}
-                        onClick={() => setShowCatchUpModal(true)}
-                        data-testid="catch-up-button"
-                      >
-                        Catch up
-                      </button>
-                    )}
                   </div>
                 )}
 
@@ -400,14 +356,14 @@ export default function DashboardPage() {
                 )}
 
                 <div className={styles.heroActions}>
-                  {!isActive && mostUnderfundedFundGroup && (
+                  {!isActive && fundGroups.length > 0 && (
                     <button
                       type="button"
-                      className={styles.markDoneButton}
-                      onClick={() => setShowContributionModal(true)}
-                      data-testid="hero-record-contribution"
+                      className={styles.confirmBalancesButton}
+                      onClick={() => setShowConfirmBalancesModal(true)}
+                      data-testid="hero-confirm-balances"
                     >
-                      Record contribution
+                      Confirm fund balances
                     </button>
                   )}
                 </div>
@@ -431,23 +387,15 @@ export default function DashboardPage() {
         )}
       </div>
 
-      {showContributionModal && mostUnderfundedFundGroup && snapshot && (
-        <ContributionModal
-          fundGroupId={mostUnderfundedFundGroup.id}
-          fundGroupName={mostUnderfundedFundGroup.name}
-          currentBalance={mostUnderfundedFundGroup.currentBalance}
-          amountNeeded={fundGroupRequired.get(mostUnderfundedFundGroup.id) ?? 0}
-          recommendedContribution={snapshot.nextActionAmount}
-          onClose={() => setShowContributionModal(false)}
-          onSaved={() => setShowContributionModal(false)}
-        />
-      )}
-
-      {showCatchUpModal && (
-        <CatchUpModal
-          fundGroups={underfundedFundGroups}
-          onClose={() => setShowCatchUpModal(false)}
-          onSaved={() => setShowCatchUpModal(false)}
+      {showConfirmBalancesModal && (
+        <ConfirmBalancesModal
+          fundGroups={fundGroups.map((fg) => ({
+            id: fg.id,
+            name: fg.name,
+            currentBalance: fg.currentBalance,
+          }))}
+          onClose={() => setShowConfirmBalancesModal(false)}
+          onSaved={() => setShowConfirmBalancesModal(false)}
         />
       )}
     </div>

@@ -1274,3 +1274,20 @@
 - [x] **Wire `onSubmit` into all modal consumers**
   - Files: `web/app/(app)/obligations/ContributionModal.tsx`, `web/app/(app)/obligations/AdjustBalanceModal.tsx`, `web/app/components/AIPreview.tsx`, `web/app/(app)/dashboard/CatchUpModal.tsx`
   - Acceptance: ContributionModal passes `handleSave`, AdjustBalanceModal passes `handleSave`, AIPreview passes `handleConfirm`, CatchUpModal passes `handlePrimaryAction` (routes to `handleDistribute` or `handleConfirm` depending on state with `sumMatches` guard). All 1328 tests pass. tsc and lint clean.
+
+### Balance confirmation rework (spec 14a)
+
+- [x] **Remove old contribution and catch-up modals, routes, and tests**
+  - Files: Deleted `web/app/(app)/obligations/ContributionModal.tsx` + CSS + test, `web/app/(app)/dashboard/CatchUpModal.tsx` + CSS + test, `web/app/api/contributions/route.ts` + test, `web/app/api/contributions/bulk/route.ts` + test
+  - Spec: `specs/14-contributions.md`, `specs/14a-balance-confirmation-rework.md`
+  - Acceptance: ContributionModal, CatchUpModal, POST /api/contributions, and POST /api/contributions/bulk all removed along with their tests and CSS modules.
+
+- [x] **Create ConfirmBalancesModal and wire into dashboard**
+  - Files: `web/app/(app)/dashboard/ConfirmBalancesModal.tsx`, `web/app/(app)/dashboard/confirm-balances-modal.module.css`, `web/app/(app)/dashboard/__tests__/ConfirmBalancesModal.test.tsx`, `web/app/(app)/dashboard/page.tsx`, `web/app/(app)/dashboard/__tests__/page.test.tsx`, `web/app/(app)/dashboard/dashboard.module.css`
+  - Spec: `specs/14-contributions.md`, `specs/14a-balance-confirmation-rework.md`
+  - Acceptance: ConfirmBalancesModal shows all fund groups with editable balance inputs. Dashboard hero card shows "Confirm fund balances" button (not-fully-funded, not what-if, fund groups exist). Saving updates only changed balances via existing PUT /api/fund-groups/[id]/balance. Dashboard refreshes via `budget-data-changed` event after save.
+
+- [x] **Relabel contribution history to balance history in Settings**
+  - Files: `web/app/(app)/settings/ContributionHistory.tsx`, `web/app/(app)/settings/FundsSection.tsx`, `web/app/(app)/settings/__tests__/ContributionHistory.test.tsx`, `web/app/(app)/settings/__tests__/FundsSection.test.tsx`
+  - Spec: `specs/14-contributions.md`, `specs/14a-balance-confirmation-rework.md`
+  - Acceptance: "Contribution History" → "Balance History", "No contributions recorded yet." → "No balance updates recorded yet.", "Contribution" badge → "Balance update", "History" button → "Balance history". All label assertions updated in tests.

@@ -58,7 +58,7 @@ export default function ContributionHistory({
 
   return (
     <div className={styles.section} data-testid="contribution-history">
-      <h3 className={styles.sectionTitle}>Contribution History</h3>
+      <h3 className={styles.sectionTitle}>Balance History</h3>
 
       {loading && (
         <p className={styles.loading} data-testid="contribution-history-loading">
@@ -74,7 +74,7 @@ export default function ContributionHistory({
 
       {!loading && !error && contributions.length === 0 && (
         <p className={styles.empty} data-testid="contribution-history-empty">
-          No contributions recorded yet.
+          No balance updates recorded yet.
         </p>
       )}
 
@@ -94,7 +94,7 @@ export default function ContributionHistory({
                           : styles.typeBadgeAdjustment
                       }`}
                     >
-                      {c.type === "contribution" ? "Contribution" : "Adjustment"}
+                      {c.type === "contribution" ? "Balance update" : "Adjustment"}
                     </span>
                   </span>
                   {c.note && (

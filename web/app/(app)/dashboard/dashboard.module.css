@@ -92,7 +92,7 @@
   margin-top: 16px;
 }
 
-.markDoneButton {
+.confirmBalancesButton {
   display: inline-block;
   padding: 8px 20px;
   border: none;
@@ -106,26 +106,8 @@
   transition: background-color 0.15s;
 }
 
-.markDoneButton:hover {
+.confirmBalancesButton:hover {
   background-color: #333;
-}
-
-.catchUpButton {
-  display: inline-block;
-  padding: 8px 20px;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  background-color: transparent;
-  color: var(--foreground);
-  font-size: 14px;
-  font-weight: 500;
-  font-family: inherit;
-  cursor: pointer;
-  transition: border-color 0.15s;
-}
-
-.catchUpButton:hover {
-  border-color: var(--foreground);
 }
 
 .heroScenario {
@@ -268,25 +250,17 @@
     color: #666;
   }
 
-  .markDoneButton {
+  .confirmBalancesButton {
     background-color: #e5e5e5;
     color: #1a1a1a;
   }
 
-  .markDoneButton:hover {
+  .confirmBalancesButton:hover {
     background-color: #ccc;
   }
 
   .shortfallText {
     color: #fc8181;
-  }
-
-  .catchUpButton {
-    border-color: #444;
-  }
-
-  .catchUpButton:hover {
-    border-color: var(--foreground);
   }
 
   .celebrationDescription {

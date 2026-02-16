@@ -484,7 +484,7 @@ describe("DashboardPage", () => {
     });
   });
 
-  it("renders 'Record contribution' button when fund groups are underfunded", async () => {
+  it("renders 'Confirm fund balances' button when fund groups exist and not fully funded", async () => {
     vi.mocked(global.fetch).mockImplementation((url) => {
       if (typeof url === "string" && url.includes("/api/obligations")) {
         return Promise.resolve(
@@ -503,13 +503,13 @@ describe("DashboardPage", () => {
     render(<DashboardPage />);
 
     await waitFor(() => {
-      expect(screen.getByTestId("hero-record-contribution")).toBeDefined();
+      expect(screen.getByTestId("hero-confirm-balances")).toBeDefined();
     });
 
-    expect(screen.getByTestId("hero-record-contribution").textContent).toBe("Record contribution");
+    expect(screen.getByTestId("hero-confirm-balances").textContent).toBe("Confirm fund balances");
   });
 
-  it("opens ContributionModal when 'Record contribution' is clicked", async () => {
+  it("opens ConfirmBalancesModal when 'Confirm fund balances' is clicked", async () => {
     vi.mocked(global.fetch).mockImplementation((url) => {
       if (typeof url === "string" && url.includes("/api/obligations")) {
         return Promise.resolve(
@@ -528,24 +528,21 @@ describe("DashboardPage", () => {
     render(<DashboardPage />);
 
     await waitFor(() => {
-      expect(screen.getByTestId("hero-record-contribution")).toBeDefined();
+      expect(screen.getByTestId("hero-confirm-balances")).toBeDefined();
     });
 
-    fireEvent.click(screen.getByTestId("hero-record-contribution"));
+    fireEvent.click(screen.getByTestId("hero-confirm-balances"));
 
     await waitFor(() => {
-      expect(screen.getByTestId("contribution-modal")).toBeDefined();
+      expect(screen.getByTestId("confirm-balances-modal")).toBeDefined();
     });
 
-    // Modal should show the most underfunded fund group name
-    expect(screen.getByTestId("contribution-modal-name").textContent).toBe("Housing");
-    // Modal should be pre-filled with the recommended amount
-    expect(screen.getByTestId("contribution-modal-amount")).toBeDefined();
-    const amountInput = screen.getByTestId("contribution-modal-amount") as HTMLInputElement;
-    expect(amountInput.value).toBe("412.00");
+    // Modal should show the fund group with an editable balance input
+    const balanceInput = screen.getByTestId("confirm-balances-input-fg1") as HTMLInputElement;
+    expect(balanceInput.value).toBe("800.00");
   });
 
-  it("does not show 'Record contribution' button when what-if is active", async () => {
+  it("does not show 'Confirm fund balances' button when what-if is active", async () => {
     mockWhatIf.isActive = true;
     mockWhatIf.changeSummary = "1 expense toggled off";
     mockWhatIf.overrides = {
@@ -592,198 +589,6 @@ describe("DashboardPage", () => {
       expect(screen.getByTestId("total-per-cycle")).toBeDefined();
     });
 
-    expect(screen.queryByTestId("hero-record-contribution")).toBeNull();
-  });
-
-  it("shows 'Catch up' button when multiple fund groups are underfunded", async () => {
-    const underfundedObligations = [
-      {
-        id: "ob1",
-        name: "Rent",
-        amount: 1200,
-        nextDueDate: "2025-02-14T00:00:00.000Z",
-        fundGroupId: "fg1",
-        fundGroup: { id: "fg1", name: "Housing", currentBalance: 800 },
-      },
-      {
-        id: "ob2",
-        name: "Insurance",
-        amount: 500,
-        nextDueDate: "2025-03-01T00:00:00.000Z",
-        fundGroupId: "fg2",
-        fundGroup: { id: "fg2", name: "Protection", currentBalance: 100 },
-      },
-    ];
-
-    const underfundedFundGroups = [
-      { id: "fg1", name: "Housing", currentBalance: 800, _count: { obligations: 1 } },
-      { id: "fg2", name: "Protection", currentBalance: 100, _count: { obligations: 1 } },
-    ];
-
-    vi.mocked(global.fetch).mockImplementation((url) => {
-      if (typeof url === "string" && url.includes("/api/obligations")) {
-        return Promise.resolve(mockFetchResponse(underfundedObligations));
-      }
-      if (typeof url === "string" && url.includes("/api/fund-groups")) {
-        return Promise.resolve(mockFetchResponse(underfundedFundGroups));
-      }
-      if (typeof url === "string" && url.includes("/api/engine/timeline")) {
-        return Promise.resolve(mockFetchResponse(mockTimelineData));
-      }
-      return Promise.resolve(mockFetchResponse(mockSnapshot));
-    });
-
-    render(<DashboardPage />);
-
-    await waitFor(() => {
-      expect(screen.getByTestId("catch-up-button")).toBeDefined();
-    });
-
-    expect(screen.getByTestId("catch-up-button").textContent).toBe("Catch up");
-  });
-
-  it("hides 'Catch up' button when all fund groups are fully funded", async () => {
-    const fullyFundedObligations = [
-      {
-        id: "ob1",
-        name: "Rent",
-        amount: 1200,
-        nextDueDate: "2025-02-14T00:00:00.000Z",
-        fundGroupId: "fg1",
-        fundGroup: { id: "fg1", name: "Housing", currentBalance: 1200 },
-      },
-      {
-        id: "ob2",
-        name: "Insurance",
-        amount: 500,
-        nextDueDate: "2025-03-01T00:00:00.000Z",
-        fundGroupId: "fg2",
-        fundGroup: { id: "fg2", name: "Protection", currentBalance: 500 },
-      },
-    ];
-
-    const fullyFundedFundGroups = [
-      { id: "fg1", name: "Housing", currentBalance: 1200, _count: { obligations: 1 } },
-      { id: "fg2", name: "Protection", currentBalance: 500, _count: { obligations: 1 } },
-    ];
-
-    vi.mocked(global.fetch).mockImplementation((url) => {
-      if (typeof url === "string" && url.includes("/api/obligations")) {
-        return Promise.resolve(mockFetchResponse(fullyFundedObligations));
-      }
-      if (typeof url === "string" && url.includes("/api/fund-groups")) {
-        return Promise.resolve(mockFetchResponse(fullyFundedFundGroups));
-      }
-      if (typeof url === "string" && url.includes("/api/engine/timeline")) {
-        return Promise.resolve(mockFetchResponse(mockTimelineData));
-      }
-      return Promise.resolve(mockFetchResponse(mockFullyFundedSnapshot));
-    });
-
-    render(<DashboardPage />);
-
-    await waitFor(() => {
-      expect(screen.getByText("You're fully covered!")).toBeDefined();
-    });
-
-    expect(screen.queryByTestId("catch-up-button")).toBeNull();
-  });
-
-  it("hides 'Catch up' button when only one fund group is underfunded", async () => {
-    const singleUnderfunded = [
-      {
-        id: "ob1",
-        name: "Rent",
-        amount: 1200,
-        nextDueDate: "2025-02-14T00:00:00.000Z",
-        fundGroupId: "fg1",
-        fundGroup: { id: "fg1", name: "Housing", currentBalance: 800 },
-      },
-      {
-        id: "ob2",
-        name: "Insurance",
-        amount: 500,
-        nextDueDate: "2025-03-01T00:00:00.000Z",
-        fundGroupId: "fg2",
-        fundGroup: { id: "fg2", name: "Protection", currentBalance: 500 },
-      },
-    ];
-
-    const singleUnderfundedFundGroups = [
-      { id: "fg1", name: "Housing", currentBalance: 800, _count: { obligations: 1 } },
-      { id: "fg2", name: "Protection", currentBalance: 500, _count: { obligations: 1 } },
-    ];
-
-    vi.mocked(global.fetch).mockImplementation((url) => {
-      if (typeof url === "string" && url.includes("/api/obligations")) {
-        return Promise.resolve(mockFetchResponse(singleUnderfunded));
-      }
-      if (typeof url === "string" && url.includes("/api/fund-groups")) {
-        return Promise.resolve(mockFetchResponse(singleUnderfundedFundGroups));
-      }
-      if (typeof url === "string" && url.includes("/api/engine/timeline")) {
-        return Promise.resolve(mockFetchResponse(mockTimelineData));
-      }
-      return Promise.resolve(mockFetchResponse(mockSnapshot));
-    });
-
-    render(<DashboardPage />);
-
-    await waitFor(() => {
-      expect(screen.getByTestId("total-per-cycle")).toBeDefined();
-    });
-
-    expect(screen.queryByTestId("catch-up-button")).toBeNull();
-  });
-
-  it("opens CatchUpModal when 'Catch up' button is clicked", async () => {
-    const underfundedObligations = [
-      {
-        id: "ob1",
-        name: "Rent",
-        amount: 1200,
-        nextDueDate: "2025-02-14T00:00:00.000Z",
-        fundGroupId: "fg1",
-        fundGroup: { id: "fg1", name: "Housing", currentBalance: 800 },
-      },
-      {
-        id: "ob2",
-        name: "Insurance",
-        amount: 500,
-        nextDueDate: "2025-03-01T00:00:00.000Z",
-        fundGroupId: "fg2",
-        fundGroup: { id: "fg2", name: "Protection", currentBalance: 100 },
-      },
-    ];
-
-    const underfundedFundGroups = [
-      { id: "fg1", name: "Housing", currentBalance: 800, _count: { obligations: 1 } },
-      { id: "fg2", name: "Protection", currentBalance: 100, _count: { obligations: 1 } },
-    ];
-
-    vi.mocked(global.fetch).mockImplementation((url) => {
-      if (typeof url === "string" && url.includes("/api/obligations")) {
-        return Promise.resolve(mockFetchResponse(underfundedObligations));
-      }
-      if (typeof url === "string" && url.includes("/api/fund-groups")) {
-        return Promise.resolve(mockFetchResponse(underfundedFundGroups));
-      }
-      if (typeof url === "string" && url.includes("/api/engine/timeline")) {
-        return Promise.resolve(mockFetchResponse(mockTimelineData));
-      }
-      return Promise.resolve(mockFetchResponse(mockSnapshot));
-    });
-
-    render(<DashboardPage />);
-
-    await waitFor(() => {
-      expect(screen.getByTestId("catch-up-button")).toBeDefined();
-    });
-
-    fireEvent.click(screen.getByTestId("catch-up-button"));
-
-    await waitFor(() => {
-      expect(screen.getByTestId("catchup-modal")).toBeDefined();
-    });
+    expect(screen.queryByTestId("hero-confirm-balances")).toBeNull();
   });
 });

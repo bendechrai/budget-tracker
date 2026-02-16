@@ -1,137 +1,80 @@
-# Contributions & Catch-Up
+# Balance Confirmation
 
 ## Overview
 
-Users need to record when they've set money aside and see their fund balances. This spec covers: recording per-obligation contributions, recording lump sum contributions that get distributed across obligations, manually adjusting fund balances, and viewing contribution history. The backend APIs already exist — this is primarily a frontend spec.
+Users periodically confirm what their fund accounts actually hold. The system compares expected vs. actual and adjusts. This replaces the previous per-contribution recording model where users recorded individual deposits.
+
+The projection chart already assumes contributions happen every pay cycle, so individual deposit tracking adds friction without value. Instead, users confirm their actual fund balances periodically, and the system creates audit records for the changes.
 
 ## User Flow
 
 ```mermaid
 flowchart TD
-    A[Dashboard hero card] --> B["Set aside $412" button]
-    B --> C[Contribution modal]
+    A[Dashboard hero card] --> B["Confirm fund balances" button]
+    B --> C[Confirm Balances modal]
+    C --> D[Shows all fund groups with editable balance inputs]
+    D --> E[User reviews/adjusts each to match actual account]
+    E --> F[Save]
+    F --> G[PUT /api/fund-groups/:id/balance for each changed group]
+    G --> H[Engine recalculates]
+    H --> I[Dashboard refreshes]
 
-    D[Obligations list] --> E[Each obligation shows fund balance]
-    E --> F["Record contribution" button per obligation]
-    F --> G[Single-obligation contribution modal]
-
-    C --> H{Contribution type}
-    H -->|Quick| I[Pre-filled with recommended amount]
-    H -->|Custom| J[Enter amount manually]
-    H -->|Lump sum| K[Enter total, system distributes]
-
-    I --> L[Confirm & save]
-    J --> L
-    K --> M[Show distribution preview]
-    M --> N[User can adjust allocation]
-    N --> L
-
-    L --> O[Update fund balances]
-    O --> P[Engine recalculates]
-    P --> Q[Dashboard refreshes]
-
-    R[Obligation detail] --> S["Adjust balance" link]
-    S --> T[Set exact balance modal]
-    T --> O
-
-    W[Settings → Funds section] --> X["History" button per fund group]
-    X --> V[List of all contributions with dates and amounts]
+    J[Settings - Funds section] --> K["Balance history" button per fund group]
+    K --> L[List of all balance updates with dates and amounts]
 ```
 
 ## Behavior
 
-### Recording a Contribution (Single Obligation)
+### Confirming Fund Balances (Dashboard)
 
-- From the obligations list or obligation detail, user taps "Record contribution"
-- Modal shows the obligation name, current balance, amount needed, and the engine's recommended per-cycle contribution pre-filled
-- User can accept the recommended amount or enter a custom amount
-- On save: POST to `/api/contributions`, fund balance updates, engine recalculates
-- Dashboard and obligation list refresh via `budget-data-changed` event
+- Dashboard hero card (not-fully-funded state) shows a "Confirm fund balances" button
+- Button visible when not in what-if mode and fund groups exist
+- Opens a modal showing all fund groups with current stored balance in editable inputs
+- User reviews/adjusts each to match their actual account
+- On save: calls `PUT /api/fund-groups/[id]/balance` for each changed group
+- The existing API already creates `manual_adjustment` audit records
+- Dispatches `budget-data-changed` once when done
+- Dashboard and obligation list refresh
 
-### Recording a Contribution (Dashboard Quick Action)
+### Balance History
 
-- The dashboard hero card ("Set aside $412") has a "Done" or "Mark as done" button
-- Clicking it opens a contribution modal pre-filled with the hero card amount and the target obligation
-- Same flow as single-obligation contribution
-
-### Lump Sum Catch-Up
-
-When a user is behind on multiple obligations and wants to drop a larger amount to catch up:
-
-- Accessible from a "Catch up" button on the dashboard (shown when multiple obligations are underfunded)
-- User enters a total lump sum amount (e.g. "$2,000")
-- System shows a distribution preview: how the lump sum would be allocated across obligations
-- **Distribution priority**: nearest due date first (same priority as the engine uses for regular contributions). Each obligation gets up to its remaining shortfall before the next one receives funds.
-- User can manually adjust the per-obligation allocation in the preview (drag sliders or edit amounts)
-- Manual adjustments must sum to the total lump sum (system auto-adjusts the last item)
-- On confirm: one POST to `/api/contributions` per obligation that receives funds, then engine recalculates once
-- The contribution records are created with type `contribution` and a note like "Lump sum catch-up"
-
-### Adjusting a Fund Balance
-
-- From the obligation detail, user can "Adjust balance" to set the exact fund balance
-- Use case: user checks their actual bank account and wants to reconcile
-- Shows current balance, user enters new balance
-- On save: PUT to `/api/fund-balances/[obligationId]`, creates a `manual_adjustment` contribution record
-- Supports both increasing and decreasing the balance
-
-### Fund Balance Display
-
-- Each obligation in the list shows its fund balance alongside the amount needed:
-  - Progress bar or text: "$350 of $1,000 saved" or "35% funded"
-  - Color: green (≥80%), amber (40-79%), red (<40%)
-- The upcoming obligations section on the dashboard already has a fund status field — make sure it renders: "Fully funded", "Partially funded ($X of $Y)", or "Unfunded"
-
-### Contribution History
-
-- Accessible from the Funds section in Settings — each fund group has a "History" toggle button
-- Shows a chronological list of all contributions and manual adjustments for that fund group
-- Each entry shows: date, amount, type (contribution or adjustment), and optional note
-- Lightweight — no pagination needed initially (contributions are infrequent)
-- Only one fund group's history is expanded at a time (toggling one collapses the other)
+- Accessible from the Funds section in Settings — each fund group has a "Balance history" button
+- Shows a chronological list of all balance updates for that fund group
+- Each entry shows: date, amount, type badge ("Balance update" or "Adjustment"), and optional note
+- Only one fund group's history is expanded at a time
 
 ## Data Model
 
-No schema changes needed. Existing models are sufficient:
+No schema changes. Existing models are sufficient:
 
-- `FundBalance`: per-obligation balance tracking (already exists)
-- `ContributionRecord`: audit trail of all contributions and adjustments (already exists)
+- `FundGroup.currentBalance`: per-fund-group balance tracking
+- `ContributionRecord`: audit trail of all balance changes
   - `type`: `contribution` | `manual_adjustment`
-  - `note`: nullable string (used for lump sum notes, adjustment reasons)
+  - `note`: nullable string
 
-### Existing API Endpoints (already implemented and tested)
+### Existing API Endpoints (no changes needed)
 
-- `POST /api/contributions` — record a contribution (increments balance)
-- `PUT /api/fund-balances/[obligationId]` — set exact balance (manual adjustment)
+- `PUT /api/fund-groups/[id]/balance` — set exact balance (creates manual_adjustment record)
+- `GET /api/contributions/[fundGroupId]` — history of balance changes
 
-### New API Endpoint
+### Removed API Endpoints
 
-- `POST /api/contributions/bulk` — record contributions for multiple obligations in one request (for lump sum). Accepts array of `{ obligationId, amount }`, creates records, updates balances, triggers one engine recalculation.
+- `POST /api/contributions` — no longer needed (individual contribution recording removed)
+- `POST /api/contributions/bulk` — no longer needed (lump sum catch-up removed)
 
 ## Edge Cases
 
-- Contribution amount exceeds remaining need: allow it (user may want to over-fund). Fund balance can exceed amount needed — engine treats this as fully funded with zero contribution.
-- Lump sum smaller than total shortfall: distribute pro-rata by urgency (nearest due date gets full allocation first, then next, etc.). Remaining obligations stay underfunded.
-- Lump sum exactly covers all shortfalls: all obligations become fully funded. Celebration state.
-- Lump sum with zero shortfall (all already funded): show message "All obligations are already fully funded — no catch-up needed"
-- Negative adjustment: user sets balance lower than current. Creates a negative `manual_adjustment` record. Valid use case (reconciliation found less than expected).
-- Zero contribution: reject with validation error
-- Contribution while obligation is paused: allow it (user may be pre-funding before unpausing)
-- Concurrent contributions: fund balance uses upsert with increment, so concurrent writes are safe
+- All balances unchanged: save button should still work (no API calls made, modal closes)
+- Negative balance: reject with validation error (balance cannot be negative)
+- Zero balance: allowed (user may have emptied a fund)
 
 ## Acceptance Criteria
 
-- [ ] Each obligation in the list shows its fund balance with visual indicator
-- [ ] User can record a contribution for a single obligation
-- [ ] Contribution modal pre-fills with the engine's recommended amount
-- [ ] Dashboard hero card has a "Mark as done" action that records the contribution
-- [ ] User can record a lump sum contribution distributed across multiple obligations
-- [ ] Lump sum distribution preview shows per-obligation allocation
-- [ ] User can adjust lump sum allocation before confirming
-- [ ] Distribution prioritizes nearest due date (most urgent first)
-- [ ] User can manually adjust (set exact) fund balance for any obligation
-- [x] Contribution history is viewable per fund group in Settings → Funds
-- [ ] All contributions trigger engine recalculation
-- [ ] Dashboard and obligation list refresh after contributions
-- [ ] Over-funding is allowed (balance can exceed amount needed)
-- [ ] Validation prevents zero or negative contributions (but allows negative adjustments)
+- [x] Dashboard hero card shows "Confirm fund balances" button (not-fully-funded, not what-if, fund groups exist)
+- [x] ConfirmBalancesModal shows all fund groups with editable balance inputs
+- [x] Saving updates only changed balances via existing PUT API
+- [x] Dashboard refreshes after confirming balances
+- [x] Balance history is viewable per fund group in Settings > Funds
+- [x] "Record contribution" button and ContributionModal removed
+- [x] "Catch up" button and CatchUpModal removed
+- [x] POST /api/contributions and POST /api/contributions/bulk routes removed

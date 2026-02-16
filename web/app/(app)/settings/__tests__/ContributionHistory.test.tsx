@@ -100,7 +100,7 @@ describe("ContributionHistory", () => {
     });
 
     const items = screen.getByTestId("contribution-history-list");
-    expect(items.textContent).toContain("Contribution");
+    expect(items.textContent).toContain("Balance update");
     expect(items.textContent).toContain("Adjustment");
   });
 
@@ -136,7 +136,7 @@ describe("ContributionHistory", () => {
     });
 
     expect(screen.getByTestId("contribution-history-empty").textContent).toBe(
-      "No contributions recorded yet."
+      "No balance updates recorded yet."
     );
   });
 
