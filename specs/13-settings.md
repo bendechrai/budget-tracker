@@ -11,6 +11,7 @@ flowchart TD
     A[Nav: Settings link] --> B[Settings Page]
     B --> C[Profile Section]
     B --> D[Budget Preferences Section]
+    B --> F[Funds Section]
     B --> E[Account Section]
 
     C --> C1[View/change email]
@@ -26,9 +27,26 @@ flowchart TD
     D1b --> D1d[Override: Weekly / Fortnightly / Twice monthly / Monthly]
     D1c --> D1d
 
+    F --> F1[List fund groups]
+    F --> F2[Create fund group]
+    F --> F3[Rename fund group inline]
+    F --> F4[Delete fund group]
+
     E --> E1[Export data as CSV]
     E --> E2[Delete account]
 ```
+
+## Page Layout
+
+The settings page uses an **accordion layout**: sections are collapsible, only one section is expanded at a time, and the first section (Profile) starts expanded. Clicking a section header opens it and closes the previously open section. Clicking the already-open section collapses it (all closed).
+
+Sections are rendered as `CollapsibleSection` wrappers — a controlled component receiving `expanded` and `onToggle` props from the parent page, which tracks the currently open section name.
+
+Each section is its own component file with independent state (no prop drilling between unrelated forms):
+- `ProfileSection` — email/password forms
+- `BudgetPreferencesSection` — cycle, currency, max contribution
+- `FundsSection` — fund group CRUD (fetches its own data)
+- `AccountSection` — export/delete (manages its own router)
 
 ## Behavior
 
@@ -84,6 +102,15 @@ When a pay day or due date falls on a day that doesn't exist in a given month (e
 - Optional cap on how much the engine recommends setting aside per cycle
 - If total required exceeds this cap, the engine prioritizes by nearest due date and warns about shortfalls
 - User can clear the cap (no limit)
+
+### Funds
+
+Fund group CRUD within the settings page. Uses existing fund group API routes (`GET/POST /api/fund-groups`, `PUT/DELETE /api/fund-groups/[id]`).
+
+- **List**: fetches `GET /api/fund-groups` independently on mount. Shows each fund's name, "Default" badge (if applicable), and obligation count.
+- **Create**: inline form at the bottom of the list. `POST /api/fund-groups` with a name. Create button disabled when name is empty.
+- **Rename**: click "Rename" on a fund → name becomes an inline input. Enter/Save to commit via `PUT`, Escape/Cancel to revert.
+- **Delete**: uses `useConfirmDialog` for confirmation. `DELETE /api/fund-groups/[id]`. Delete button disabled for the default group and for groups with obligations (with tooltip explaining why). Shows API error for rejected cases.
 
 ### Account
 
@@ -148,18 +175,22 @@ Updated `User` fields:
 
 ## Acceptance Criteria
 
-- [ ] Settings page is accessible from the nav bar
-- [ ] User can view their email address
-- [ ] User can change their email with password confirmation
-- [ ] User can change their password
-- [ ] Contribution cycle shows auto-detected recommendation from income data
-- [ ] User can override cycle to weekly / fortnightly / twice monthly / monthly
-- [ ] Twice-monthly uses calendar-based cycle counting (not day division)
-- [ ] End-of-month clamping works correctly (30th in Feb → 28th/29th)
-- [ ] Cycle changes trigger engine recalculation
-- [ ] User can change currency symbol
-- [ ] User can set or clear max contribution per cycle
-- [ ] User can export their data
-- [ ] User can delete their account with confirmation
-- [ ] All preference changes persist and take effect immediately
-- [ ] `twice_monthly` frequency option is available for income sources
+- [x] Settings page is accessible from the nav bar
+- [x] Settings page uses accordion layout (one section open at a time, Profile starts expanded)
+- [x] User can view their email address
+- [x] User can change their email with password confirmation
+- [x] User can change their password
+- [x] Contribution cycle shows auto-detected recommendation from income data
+- [x] User can override cycle to weekly / fortnightly / twice monthly / monthly
+- [x] Twice-monthly uses calendar-based cycle counting (not day division)
+- [x] End-of-month clamping works correctly (30th in Feb → 28th/29th)
+- [x] Cycle changes trigger engine recalculation
+- [x] User can change currency symbol
+- [x] User can set or clear max contribution per cycle
+- [x] User can create, rename, and delete fund groups from settings
+- [x] Default fund group cannot be deleted
+- [x] Fund groups with obligations cannot be deleted
+- [x] User can export their data
+- [x] User can delete their account with confirmation
+- [x] All preference changes persist and take effect immediately
+- [x] `twice_monthly` frequency option is available for income sources

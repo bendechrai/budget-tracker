@@ -21,6 +21,7 @@
 │   │   │   ├── dashboard/
 │   │   │   ├── income/
 │   │   │   ├── obligations/
+│   │   │   ├── settings/      # Accordion sections: Profile, Budget, Funds, Account
 │   │   │   ├── suggestions/
 │   │   │   ├── import/
 │   │   │   └── transactions/

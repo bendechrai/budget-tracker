@@ -43,13 +43,39 @@
   margin-bottom: 32px;
 }
 
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  background: none;
+  border: none;
+  border-bottom: 1px solid #ddd;
+  padding: 0 0 8px 0;
+  margin-bottom: 16px;
+  cursor: pointer;
+}
+
 .sectionTitle {
   font-size: 20px;
   font-weight: 600;
   color: var(--foreground);
-  margin-bottom: 16px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid #ddd;
+  margin: 0;
+}
+
+.chevron {
+  font-size: 14px;
+  color: #666;
+  transition: transform 0.2s;
+  transform: rotate(-90deg);
+}
+
+.chevronExpanded {
+  transform: rotate(0deg);
+}
+
+.sectionContent {
+  /* container for section children */
 }
 
 .emailDisplay {
@@ -284,6 +310,130 @@
   cursor: not-allowed;
 }
 
+.fundList {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.fundItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border: 1px solid #ddd;
+  border-bottom: none;
+}
+
+.fundItem:first-child {
+  border-radius: 8px 8px 0 0;
+}
+
+.fundItem:last-child {
+  border-bottom: 1px solid #ddd;
+  border-radius: 0 0 8px 8px;
+}
+
+.fundItem:only-child {
+  border-radius: 8px;
+  border-bottom: 1px solid #ddd;
+}
+
+.fundInfo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+.fundName {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--foreground);
+}
+
+.fundBadge {
+  font-size: 11px;
+  font-weight: 500;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.06);
+  color: #666;
+}
+
+.fundMeta {
+  font-size: 12px;
+  color: #999;
+}
+
+.fundActions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.fundActionButton {
+  padding: 4px 10px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+  background: var(--background);
+  color: #666;
+  transition: border-color 0.15s;
+}
+
+.fundActionButton:hover {
+  border-color: #999;
+}
+
+.fundActionButton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.fundDeleteButton {
+  composes: fundActionButton;
+  color: #e53e3e;
+  border-color: #fed7d7;
+}
+
+.fundDeleteButton:hover {
+  border-color: #e53e3e;
+}
+
+.fundRenameInput {
+  padding: 4px 8px;
+  border: 1px solid var(--foreground);
+  border-radius: 6px;
+  font-size: 14px;
+  background: var(--background);
+  color: var(--foreground);
+  width: 160px;
+}
+
+.fundRenameInput:focus {
+  outline: none;
+}
+
+.fundCreateForm {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 12px;
+}
+
+.fundCreateForm .input {
+  flex: 1;
+}
+
+.fundHint {
+  font-size: 11px;
+  color: #999;
+  margin-left: 4px;
+}
+
 @media (prefers-color-scheme: dark) {
   .error {
     color: #fc8181;
@@ -295,8 +445,12 @@
     color: #999;
   }
 
-  .sectionTitle {
+  .sectionHeader {
     border-color: #333;
+  }
+
+  .chevron {
+    color: #999;
   }
 
   .emailDisplay {
@@ -372,6 +526,37 @@
 
   .dangerHint {
     color: #fc8181;
+  }
+
+  .fundItem {
+    border-color: #333;
+  }
+
+  .fundBadge {
+    background: rgba(255, 255, 255, 0.08);
+    color: #999;
+  }
+
+  .fundActionButton {
+    border-color: #333;
+    color: #999;
+  }
+
+  .fundActionButton:hover {
+    border-color: #666;
+  }
+
+  .fundDeleteButton {
+    color: #fc8181;
+    border-color: #4a1515;
+  }
+
+  .fundDeleteButton:hover {
+    border-color: #fc8181;
+  }
+
+  .fundRenameInput {
+    border-color: var(--foreground);
   }
 }
 

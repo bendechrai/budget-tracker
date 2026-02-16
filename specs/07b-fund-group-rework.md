@@ -159,7 +159,8 @@ Add fields:
 - [ ] Obligations page groups by fund with health summary in headers
 - [ ] Obligations page has a fund filter dropdown
 - [x] Per-obligation fund balance UI is removed (no progress bars on cards)
-- [ ] Settings has a Sinking Funds section with CRUD, balance, and contribution
+- [x] Settings has a Funds section with CRUD (create, rename, delete)
+- [ ] Settings Funds section includes balance management and contribution recording
 - [x] Dashboard hero card targets most underfunded fund
 - [x] Dashboard health bar shows individual fund bars with balances
 - [x] Catch-up modal distributes across underfunded funds

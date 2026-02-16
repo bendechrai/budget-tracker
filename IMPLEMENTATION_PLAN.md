@@ -1080,3 +1080,41 @@
   - Spec: `specs/05-bank-statement-import.md`
   - Acceptance: Destructures `isLoading` from `useBatchImport()`. Upload zone gated on `!isLoading` to prevent flash before active-batch check completes. No other page changes needed.
   - Tests: Existing page tests unaffected (no import page test file changes needed)
+
+### Settings page: collapsible sections + fund CRUD
+
+- [x] **Add CollapsibleSection controlled component**
+  - Files: `web/app/(app)/settings/CollapsibleSection.tsx`, `web/app/(app)/settings/settings.module.css`, `web/app/(app)/settings/__tests__/CollapsibleSection.test.tsx`
+  - Spec: `specs/13-settings.md`
+  - Acceptance: Controlled disclosure wrapper with `expanded` and `onToggle` props. Renders title in a button with chevron toggle and `aria-expanded`. Content hidden when collapsed. CSS styles for header, chevron rotation, dark mode.
+  - Tests: 4 tests: renders when expanded, aria-expanded values, hides when collapsed, calls onToggle on click
+
+- [x] **Extract ProfileSection component**
+  - Files: `web/app/(app)/settings/ProfileSection.tsx`, `web/app/(app)/settings/__tests__/ProfileSection.test.tsx`
+  - Spec: `specs/13-settings.md`
+  - Acceptance: Self-contained component with email display, change email form, change password form. Receives `email` and `onEmailChange` props from parent. All form state managed internally.
+  - Tests: 11 tests: email display, form rendering, submit success, validation errors, API errors
+
+- [x] **Extract BudgetPreferencesSection component**
+  - Files: `web/app/(app)/settings/BudgetPreferencesSection.tsx`, `web/app/(app)/settings/__tests__/BudgetPreferencesSection.test.tsx`
+  - Spec: `specs/13-settings.md`
+  - Acceptance: Self-contained component with contribution cycle selector, currency quick picks, max contribution input. Receives settings props and `onSettingsChange` callback. All form state managed internally.
+  - Tests: 7 tests: cycle selector, currency picks, max contribution save/clear
+
+- [x] **Extract AccountSection component**
+  - Files: `web/app/(app)/settings/AccountSection.tsx`, `web/app/(app)/settings/__tests__/AccountSection.test.tsx`
+  - Spec: `specs/13-settings.md`
+  - Acceptance: Self-contained component with export data button and delete account form. Manages its own router for post-delete redirect. All state managed internally.
+  - Tests: 7 tests: export button, download trigger, export error, delete form, confirmation validation, delete success redirect, API error
+
+- [x] **Build FundsSection with CRUD**
+  - Files: `web/app/(app)/settings/FundsSection.tsx`, `web/app/(app)/settings/__tests__/FundsSection.test.tsx`
+  - Spec: `specs/13-settings.md`, `specs/07b-fund-group-rework.md`
+  - Acceptance: Fetches `GET /api/fund-groups` on mount. Lists funds with name, "Default" badge, obligation count. Inline create form (`POST`). Inline rename via click-to-edit (`PUT`). Delete with `useConfirmDialog` confirmation (`DELETE`). Delete disabled for default group and groups with obligations.
+  - Tests: 16 tests: loading, list rendering, badges, counts, error handling, create, rename (save/cancel/escape), delete (confirm/cancel/disabled/error)
+
+- [x] **Wire up parent page with accordion layout**
+  - Files: `web/app/(app)/settings/page.tsx`, `web/app/(app)/settings/__tests__/page.test.tsx`
+  - Spec: `specs/13-settings.md`
+  - Acceptance: Parent slimmed to ~120 lines. Fetches settings, renders 4 CollapsibleSection wrappers (Profile, Budget Preferences, Funds, Account). Accordion behavior: only one section open at a time, Profile starts expanded. Opening a section closes the previous one.
+  - Tests: 7 tests: loading, title, fetch error, section headings, first section expanded by default, accordion toggle, collapse all
