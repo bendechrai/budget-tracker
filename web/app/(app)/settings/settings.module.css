@@ -316,27 +316,35 @@
   gap: 0;
 }
 
+.fundGroupEntry {
+  border: 1px solid #ddd;
+  border-bottom: none;
+}
+
+.fundGroupEntry:first-child {
+  border-radius: 8px 8px 0 0;
+}
+
+.fundGroupEntry:last-child {
+  border-bottom: 1px solid #ddd;
+  border-radius: 0 0 8px 8px;
+}
+
+.fundGroupEntry:only-child {
+  border-radius: 8px;
+  border-bottom: 1px solid #ddd;
+}
+
 .fundItem {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 12px 16px;
-  border: 1px solid #ddd;
-  border-bottom: none;
 }
 
-.fundItem:first-child {
-  border-radius: 8px 8px 0 0;
-}
-
-.fundItem:last-child {
-  border-bottom: 1px solid #ddd;
-  border-radius: 0 0 8px 8px;
-}
-
-.fundItem:only-child {
-  border-radius: 8px;
-  border-bottom: 1px solid #ddd;
+.fundHistoryPanel {
+  padding: 0 16px 12px;
+  border-top: 1px solid #eee;
 }
 
 .fundInfo {
@@ -528,7 +536,11 @@
     color: #fc8181;
   }
 
-  .fundItem {
+  .fundGroupEntry {
+    border-color: #333;
+  }
+
+  .fundHistoryPanel {
     border-color: #333;
   }
 

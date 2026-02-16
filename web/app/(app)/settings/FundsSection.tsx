@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, type FormEvent, type KeyboardEvent } from "react";
 import { logError } from "@/lib/logging";
 import { useConfirmDialog } from "@/lib/hooks/useConfirmDialog";
+import ContributionHistory from "./ContributionHistory";
 import styles from "./settings.module.css";
 
 interface FundGroup {
@@ -20,6 +21,7 @@ export default function FundsSection() {
   const [creating, setCreating] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
+  const [expandedHistoryId, setExpandedHistoryId] = useState<string | null>(null);
   const { confirm, confirmDialog } = useConfirmDialog();
 
   const fetchGroups = useCallback(async () => {
@@ -171,75 +173,93 @@ export default function FundsSection() {
       {groups.length > 0 && (
         <div className={styles.fundList}>
           {groups.map((group) => (
-            <div key={group.id} className={styles.fundItem}>
-              <div className={styles.fundInfo}>
-                {editingId === group.id ? (
-                  <input
-                    className={styles.fundRenameInput}
-                    value={editName}
-                    onChange={(e) => setEditName(e.target.value)}
-                    onKeyDown={(e) => handleRenameKeyDown(e, group.id)}
-                    onBlur={() => void submitRename(group.id)}
-                    autoFocus
-                    aria-label="Fund group name"
-                  />
-                ) : (
-                  <>
-                    <span className={styles.fundName}>{group.name}</span>
-                    {group.isDefault && (
-                      <span className={styles.fundBadge}>Default</span>
-                    )}
-                    <span className={styles.fundMeta}>
-                      {group._count.obligations} {group._count.obligations === 1 ? "obligation" : "obligations"}
-                    </span>
-                  </>
-                )}
+            <div key={group.id} className={styles.fundGroupEntry}>
+              <div className={styles.fundItem}>
+                <div className={styles.fundInfo}>
+                  {editingId === group.id ? (
+                    <input
+                      className={styles.fundRenameInput}
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      onKeyDown={(e) => handleRenameKeyDown(e, group.id)}
+                      onBlur={() => void submitRename(group.id)}
+                      autoFocus
+                      aria-label="Fund group name"
+                    />
+                  ) : (
+                    <>
+                      <span className={styles.fundName}>{group.name}</span>
+                      {group.isDefault && (
+                        <span className={styles.fundBadge}>Default</span>
+                      )}
+                      <span className={styles.fundMeta}>
+                        {group._count.obligations} {group._count.obligations === 1 ? "obligation" : "obligations"}
+                      </span>
+                    </>
+                  )}
+                </div>
+                <div className={styles.fundActions}>
+                  {editingId === group.id ? (
+                    <>
+                      <button
+                        type="button"
+                        className={styles.fundActionButton}
+                        onClick={() => void submitRename(group.id)}
+                      >
+                        Save
+                      </button>
+                      <button
+                        type="button"
+                        className={styles.fundActionButton}
+                        onClick={cancelRename}
+                      >
+                        Cancel
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        className={styles.fundActionButton}
+                        onClick={() =>
+                          setExpandedHistoryId(
+                            expandedHistoryId === group.id ? null : group.id
+                          )
+                        }
+                      >
+                        History
+                      </button>
+                      <button
+                        type="button"
+                        className={styles.fundActionButton}
+                        onClick={() => startRename(group)}
+                      >
+                        Rename
+                      </button>
+                      <button
+                        type="button"
+                        className={styles.fundDeleteButton}
+                        onClick={() => void handleDelete(group)}
+                        disabled={group.isDefault || group._count.obligations > 0}
+                        title={
+                          group.isDefault
+                            ? "Cannot delete the default group"
+                            : group._count.obligations > 0
+                              ? "Remove obligations first"
+                              : "Delete fund group"
+                        }
+                      >
+                        Delete
+                      </button>
+                    </>
+                  )}
+                </div>
               </div>
-              <div className={styles.fundActions}>
-                {editingId === group.id ? (
-                  <>
-                    <button
-                      type="button"
-                      className={styles.fundActionButton}
-                      onClick={() => void submitRename(group.id)}
-                    >
-                      Save
-                    </button>
-                    <button
-                      type="button"
-                      className={styles.fundActionButton}
-                      onClick={cancelRename}
-                    >
-                      Cancel
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <button
-                      type="button"
-                      className={styles.fundActionButton}
-                      onClick={() => startRename(group)}
-                    >
-                      Rename
-                    </button>
-                    <button
-                      type="button"
-                      className={styles.fundDeleteButton}
-                      onClick={() => void handleDelete(group)}
-                      disabled={group.isDefault || group._count.obligations > 0}
-                      title={
-                        group.isDefault
-                          ? "Cannot delete the default group"
-                          : group._count.obligations > 0
-                            ? "Remove obligations first"
-                            : "Delete fund group"
-                      }
-                    >
-                      Delete
-                    </button>
-                  </>
-                )}
-              </div>
+              {expandedHistoryId === group.id && (
+                <div className={styles.fundHistoryPanel}>
+                  <ContributionHistory fundGroupId={group.id} />
+                </div>
+              )}
             </div>
           ))}
         </div>

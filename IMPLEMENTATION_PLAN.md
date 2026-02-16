@@ -922,11 +922,11 @@
   - Acceptance: Each obligation has an "Adjust balance" link/button that opens AdjustBalanceModal. Available alongside the "Record contribution" button.
   - Tests: Component test: adjust balance button renders, opens modal
 
-- [x] **Add contribution history to obligation detail**
-  - Files: `web/app/api/contributions/[obligationId]/route.ts`, `web/app/(app)/obligations/ContributionHistory.tsx`, `web/app/(app)/obligations/contribution-history.module.css`
+- [x] **Add contribution history component**
+  - Files: `web/app/api/contributions/[obligationId]/route.ts`, `web/app/(app)/settings/ContributionHistory.tsx`, `web/app/(app)/settings/contribution-history.module.css`
   - Spec: `specs/14-contributions.md`
-  - Acceptance: GET /api/contributions/[obligationId] returns chronological list of contributions and adjustments for an obligation. UI component shows date, amount, type, and note for each entry. Displayed on the obligation edit/detail page.
-  - Tests: API test: returns contributions for user's obligation only. Component test: renders history list
+  - Acceptance: GET /api/contributions/[fundGroupId] returns chronological list of contributions and adjustments for a fund group. UI component shows date, amount, type, and note for each entry.
+  - Tests: API test: returns contributions for user's fund group only. Component test: renders history list
 
 - [x] **Show total contribution per cycle on dashboard hero card** (ad-hoc)
   - Files: `web/lib/engine/snapshot.ts`, `web/app/(app)/dashboard/page.tsx`, `web/app/(app)/dashboard/dashboard.module.css`, `web/app/api/engine/recalculate/route.ts`
@@ -1250,3 +1250,11 @@
   - Spec: `specs/06-pattern-detection.md`
   - Acceptance: When accepting a suggestion, next due date (obligations) and next expected date (income sources) are computed from linked transaction history instead of defaulting to today/null. Uses hybrid strategy: anchor-day (median day-of-month) when transactions cluster tightly (range ≤ 7), last-transaction + interval when they drift (range > 7). Twice-monthly splits into two clusters with per-cluster range check. Day/week always uses last-transaction + interval. End-of-month clamping applied to anchor days. User overrides via body fields still take precedence. Reuses `addInterval` from `calculate.ts`.
   - Tests: All 1322 existing tests pass. tsc and lint clean (no new errors).
+
+### Move contribution history from edit obligation to settings
+
+- [x] **Move ContributionHistory from edit obligation page to Settings → Funds section**
+  - Files: `web/app/(app)/obligations/edit/[id]/page.tsx`, `web/app/(app)/settings/FundsSection.tsx`, `web/app/(app)/settings/ContributionHistory.tsx`, `web/app/(app)/settings/contribution-history.module.css`, `web/app/(app)/settings/settings.module.css`, `web/app/(app)/settings/__tests__/ContributionHistory.test.tsx`, `web/app/(app)/settings/__tests__/FundsSection.test.tsx`
+  - Spec: `specs/13-settings.md`, `specs/14-contributions.md`
+  - Acceptance: ContributionHistory removed from edit obligation page. Component, CSS, and test moved from obligations/ to settings/. FundsSection has expandable "History" button per fund group — only one expanded at a time. CSS refactored: border/radius styling extracted to `.fundGroupEntry` wrapper to support the history panel below each fund item.
+  - Tests: 2 new FundsSection tests (show/hide contribution history). All 1324 tests pass. tsc and lint clean.

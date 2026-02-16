@@ -30,6 +30,7 @@ flowchart TD
     F --> F1[List fund groups]
     F --> F2[Create fund group]
     F --> F3[Rename fund group inline]
+    F --> F5[View contribution history per fund group]
     F --> F4[Delete fund group]
 
     E --> E1[Export data as CSV]
@@ -110,6 +111,7 @@ Fund group CRUD within the settings page. Uses existing fund group API routes (`
 - **List**: fetches `GET /api/fund-groups` independently on mount. Shows each fund's name, "Default" badge (if applicable), and obligation count.
 - **Create**: inline form at the bottom of the list. `POST /api/fund-groups` with a name. Create button disabled when name is empty.
 - **Rename**: click "Rename" on a fund → name becomes an inline input. Enter/Save to commit via `PUT`, Escape/Cancel to revert.
+- **History**: click "History" on a fund group → expands the contribution history below that group, showing all contributions and adjustments. Only one group's history is expanded at a time (toggling one collapses the other). Uses `ContributionHistory` component.
 - **Delete**: uses `useConfirmDialog` for confirmation. `DELETE /api/fund-groups/[id]`. Delete button disabled for the default group and for groups with obligations (with tooltip explaining why). Shows API error for rejected cases.
 
 ### Account
@@ -190,6 +192,7 @@ Updated `User` fields:
 - [x] User can create, rename, and delete fund groups from settings
 - [x] Default fund group cannot be deleted
 - [x] Fund groups with obligations cannot be deleted
+- [x] User can view contribution history per fund group in the Funds section
 - [x] User can export their data
 - [x] User can delete their account with confirmation
 - [x] All preference changes persist and take effect immediately

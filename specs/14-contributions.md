@@ -34,8 +34,8 @@ flowchart TD
     S --> T[Set exact balance modal]
     T --> O
 
-    R --> U[Contribution history]
-    U --> V[List of all contributions with dates and amounts]
+    W[Settings → Funds section] --> X["History" button per fund group]
+    X --> V[List of all contributions with dates and amounts]
 ```
 
 ## Behavior
@@ -84,10 +84,11 @@ When a user is behind on multiple obligations and wants to drop a larger amount 
 
 ### Contribution History
 
-- Accessible from each obligation's detail view
-- Shows a chronological list of all contributions and manual adjustments
+- Accessible from the Funds section in Settings — each fund group has a "History" toggle button
+- Shows a chronological list of all contributions and manual adjustments for that fund group
 - Each entry shows: date, amount, type (contribution or adjustment), and optional note
 - Lightweight — no pagination needed initially (contributions are infrequent)
+- Only one fund group's history is expanded at a time (toggling one collapses the other)
 
 ## Data Model
 
@@ -129,7 +130,7 @@ No schema changes needed. Existing models are sufficient:
 - [ ] User can adjust lump sum allocation before confirming
 - [ ] Distribution prioritizes nearest due date (most urgent first)
 - [ ] User can manually adjust (set exact) fund balance for any obligation
-- [ ] Contribution history is viewable per obligation
+- [x] Contribution history is viewable per fund group in Settings → Funds
 - [ ] All contributions trigger engine recalculation
 - [ ] Dashboard and obligation list refresh after contributions
 - [ ] Over-funding is allowed (balance can exceed amount needed)

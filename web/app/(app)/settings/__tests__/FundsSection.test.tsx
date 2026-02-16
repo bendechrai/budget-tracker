@@ -304,6 +304,62 @@ describe("FundsSection", () => {
     expect(screen.getByText("Empty Fund")).toBeDefined();
   });
 
+  it("shows contribution history when History button is clicked", async () => {
+    const user = userEvent.setup();
+    mockFetchGroups();
+    vi.mocked(global.fetch).mockResolvedValueOnce(
+      new Response(JSON.stringify([]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      })
+    );
+
+    render(<FundsSection />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Essentials")).toBeDefined();
+    });
+
+    expect(screen.queryByTestId("contribution-history")).toBeNull();
+
+    const historyButtons = screen.getAllByRole("button", { name: "History" });
+    await user.click(historyButtons[0]);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("contribution-history")).toBeDefined();
+    });
+  });
+
+  it("hides contribution history when History button is clicked again", async () => {
+    const user = userEvent.setup();
+    mockFetchGroups();
+    vi.mocked(global.fetch).mockResolvedValueOnce(
+      new Response(JSON.stringify([]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      })
+    );
+
+    render(<FundsSection />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Essentials")).toBeDefined();
+    });
+
+    const historyButtons = screen.getAllByRole("button", { name: "History" });
+    await user.click(historyButtons[0]);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("contribution-history")).toBeDefined();
+    });
+
+    await user.click(historyButtons[0]);
+
+    await waitFor(() => {
+      expect(screen.queryByTestId("contribution-history")).toBeNull();
+    });
+  });
+
   it("shows API error on delete failure", async () => {
     const user = userEvent.setup();
     mockFetchGroups();

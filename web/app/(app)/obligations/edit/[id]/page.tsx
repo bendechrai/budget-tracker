@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import ObligationForm from "../../ObligationForm";
 import type { ObligationFormData } from "../../ObligationForm";
-import ContributionHistory from "../../ContributionHistory";
 import styles from "../../obligations.module.css";
 import { logError } from "@/lib/logging";
 
@@ -142,8 +141,7 @@ export default function EditObligationPage({
         <Link href="/obligations" className={styles.backLink}>← Back</Link>
         <h1 className={styles.title}>Edit Obligation</h1>
         {obligation && (
-          <>
-            <ObligationForm
+          <ObligationForm
               initialData={{
                 name: obligation.name,
                 type: obligation.type,
@@ -162,8 +160,6 @@ export default function EditObligationPage({
               onSubmit={handleSubmit}
               submitLabel="Save Changes"
             />
-            <ContributionHistory fundGroupId={obligation.fundGroupId} />
-          </>
         )}
       </div>
     </div>
