@@ -13,11 +13,12 @@ function renderUseModalClose(
   onClose: () => void,
   isDirty: boolean,
   enabled = true,
+  onSubmit?: () => void,
 ) {
   let hookResult: { handleClose: () => void; confirmDialog: ReactNode };
 
   function TestComponent() {
-    const result = useModalClose(onClose, isDirty, enabled);
+    const result = useModalClose(onClose, isDirty, enabled, onSubmit);
     hookResult = result;
     return createElement("div", { "data-testid": "hook-host" }, result.confirmDialog);
   }
@@ -131,7 +132,7 @@ describe("useModalClose", () => {
     expect(onClose).not.toHaveBeenCalled();
   });
 
-  it("ignores non-Escape keys", () => {
+  it("ignores non-Escape keys when no onSubmit provided", () => {
     renderUseModalClose(onClose, false);
 
     act(() => {
@@ -139,6 +140,48 @@ describe("useModalClose", () => {
     });
 
     expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it("calls onSubmit on Enter when provided", () => {
+    const onSubmit = vi.fn();
+    renderUseModalClose(onClose, false, true, onSubmit);
+
+    act(() => {
+      document.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter" }));
+    });
+
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it("does not call onSubmit on Enter when enabled is false", () => {
+    const onSubmit = vi.fn();
+    renderUseModalClose(onClose, false, false, onSubmit);
+
+    act(() => {
+      document.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter" }));
+    });
+
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it("does not call onSubmit on Enter while confirm dialog is open", () => {
+    const onSubmit = vi.fn();
+    renderUseModalClose(onClose, true, true, onSubmit);
+
+    // Open the confirm dialog via Escape
+    act(() => {
+      document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+    });
+
+    expect(screen.getByTestId("confirm-dialog")).toBeDefined();
+
+    // Enter should not trigger onSubmit while confirming
+    act(() => {
+      document.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter" }));
+    });
+
+    expect(onSubmit).not.toHaveBeenCalled();
   });
 
   it("cleans up event listener on unmount", () => {

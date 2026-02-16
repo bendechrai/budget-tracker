@@ -9,11 +9,12 @@ interface UseModalCloseReturn {
 }
 
 /**
- * Hook that provides Escape-key-to-close and dirty-state confirmation for modals.
+ * Hook that provides Escape-key-to-close, Enter-key-to-submit, and dirty-state confirmation for modals.
  *
  * @param onClose - callback to close the modal
  * @param isDirty - whether the modal has unsaved changes
  * @param enabled - set to false while saving to prevent closing mid-save
+ * @param onSubmit - optional callback triggered by Enter key (skipped for textarea targets)
  * @returns { handleClose, confirmDialog } - use handleClose for x, Cancel, overlay click, and Escape;
  *   render confirmDialog in JSX
  */
@@ -21,9 +22,14 @@ export function useModalClose(
   onClose: () => void,
   isDirty: boolean,
   enabled = true,
+  onSubmit?: () => void,
 ): UseModalCloseReturn {
   const { confirm, confirmDialog } = useConfirmDialog();
   const isConfirmingRef = useRef(false);
+  const onSubmitRef = useRef(onSubmit);
+  useEffect(() => {
+    onSubmitRef.current = onSubmit;
+  }, [onSubmit]);
 
   const handleClose = useCallback(() => {
     if (!enabled) return;
@@ -50,10 +56,15 @@ export function useModalClose(
       if (e.key === "Escape") {
         handleClose();
       }
+      if (e.key === "Enter" && onSubmitRef.current && enabled && !isConfirmingRef.current) {
+        if (e.target instanceof HTMLTextAreaElement) return;
+        e.preventDefault();
+        onSubmitRef.current();
+      }
     }
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [handleClose]);
+  }, [handleClose, enabled]);
 
   return { handleClose, confirmDialog };
 }

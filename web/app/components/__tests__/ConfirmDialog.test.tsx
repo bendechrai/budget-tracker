@@ -159,6 +159,24 @@ describe("ConfirmDialog", () => {
     );
   });
 
+  it("calls onConfirm on Enter key", () => {
+    const onConfirm = vi.fn();
+
+    render(
+      <ConfirmDialog
+        open={true}
+        title="Test"
+        message="Test message"
+        onConfirm={onConfirm}
+        onCancel={vi.fn()}
+      />,
+    );
+
+    document.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter" }));
+
+    expect(onConfirm).toHaveBeenCalledTimes(1);
+  });
+
   it("has accessible dialog role", () => {
     render(
       <ConfirmDialog

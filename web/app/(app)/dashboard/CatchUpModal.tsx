@@ -85,7 +85,6 @@ export default function CatchUpModal({
   const [showPreview, setShowPreview] = useState(false);
 
   const isDirty = lumpSum !== "" && status.type !== "success";
-  const { handleClose, confirmDialog } = useModalClose(onClose, isDirty, status.type !== "loading");
 
   const handleDistribute = useCallback(() => {
     const parsed = parseFloat(lumpSum);
@@ -165,6 +164,17 @@ export default function CatchUpModal({
       setStatus({ type: "error", message });
     }
   }, [allocations, sumMatches, onSaved]);
+
+  const handlePrimaryAction = useCallback(() => {
+    if (allFunded || status.type === "success") return;
+    if (showPreview) {
+      if (sumMatches) void handleConfirm();
+      return;
+    }
+    handleDistribute();
+  }, [allFunded, status.type, showPreview, sumMatches, handleConfirm, handleDistribute]);
+
+  const { handleClose, confirmDialog } = useModalClose(onClose, isDirty, status.type !== "loading", handlePrimaryAction);
 
   const isLoading = status.type === "loading";
 

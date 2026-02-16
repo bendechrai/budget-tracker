@@ -31,7 +31,7 @@ export default function AdjustBalanceModal({
   const [status, setStatus] = useState<ModalStatus>({ type: "idle" });
 
   const isDirty = balance !== currentBalance.toFixed(2) && status.type !== "success";
-  const { handleClose, confirmDialog } = useModalClose(onClose, isDirty, status.type !== "loading");
+  const { handleClose, confirmDialog } = useModalClose(onClose, isDirty, status.type !== "loading", () => void handleSave());
 
   const handleSave = useCallback(async () => {
     const parsed = parseFloat(balance);

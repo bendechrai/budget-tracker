@@ -36,7 +36,7 @@ export default function ContributionModal({
   const [status, setStatus] = useState<ModalStatus>({ type: "idle" });
 
   const isDirty = amount !== initialAmount && status.type !== "success";
-  const { handleClose, confirmDialog } = useModalClose(onClose, isDirty, status.type !== "loading");
+  const { handleClose, confirmDialog } = useModalClose(onClose, isDirty, status.type !== "loading", () => void handleSave());
 
   const remaining = Math.max(0, amountNeeded - currentBalance);
 

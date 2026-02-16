@@ -56,6 +56,7 @@
 - Tests live alongside code in `__tests__/` directories
 - Git commits: no attribution in messages
 - Error logging: use `logError()` from `@/lib/logging` in catch blocks — never silently swallow errors
+- Modals: use `useModalClose(onClose, isDirty, enabled, onSubmit?)` for Escape-to-close, Enter-to-submit, and dirty-state confirmation. Pass the primary action as `onSubmit` — it is guarded against textareas, disabled state, and open confirm dialogs. Standalone `ConfirmDialog` also supports Enter-to-confirm.
 
 ## Docker Compose Exec Commands
 

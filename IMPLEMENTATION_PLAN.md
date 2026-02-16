@@ -1258,3 +1258,19 @@
   - Spec: `specs/13-settings.md`, `specs/14-contributions.md`
   - Acceptance: ContributionHistory removed from edit obligation page. Component, CSS, and test moved from obligations/ to settings/. FundsSection has expandable "History" button per fund group — only one expanded at a time. CSS refactored: border/radius styling extracted to `.fundGroupEntry` wrapper to support the history panel below each fund item.
   - Tests: 2 new FundsSection tests (show/hide contribution history). All 1324 tests pass. tsc and lint clean.
+
+### Enter key triggers primary action on modals
+
+- [x] **Add `onSubmit` parameter to `useModalClose` hook for Enter key support**
+  - Files: `web/lib/hooks/useModalClose.ts`, `web/lib/hooks/__tests__/useModalClose.test.ts`
+  - Acceptance: Optional 4th parameter `onSubmit`. Enter key calls it when: `enabled` is true, confirm dialog is not open, target is not a `<textarea>`. Stored in a ref to avoid re-registering the event listener. 3 new tests: Enter calls onSubmit, blocked when disabled, blocked while confirm dialog is open.
+  - Tests: 12 useModalClose tests pass
+
+- [x] **Add Enter key support to ConfirmDialog**
+  - Files: `web/app/components/ConfirmDialog.tsx`, `web/app/components/__tests__/ConfirmDialog.test.tsx`
+  - Acceptance: Enter key in the existing `handleKeyDown` calls `onConfirm()` with `preventDefault()`. 1 new test.
+  - Tests: 10 ConfirmDialog tests pass
+
+- [x] **Wire `onSubmit` into all modal consumers**
+  - Files: `web/app/(app)/obligations/ContributionModal.tsx`, `web/app/(app)/obligations/AdjustBalanceModal.tsx`, `web/app/components/AIPreview.tsx`, `web/app/(app)/dashboard/CatchUpModal.tsx`
+  - Acceptance: ContributionModal passes `handleSave`, AdjustBalanceModal passes `handleSave`, AIPreview passes `handleConfirm`, CatchUpModal passes `handlePrimaryAction` (routes to `handleDistribute` or `handleConfirm` depending on state with `sumMatches` guard). All 1328 tests pass. tsc and lint clean.

@@ -27,8 +27,12 @@ export default function ConfirmDialog({
       if (e.key === "Escape") {
         onCancel();
       }
+      if (e.key === "Enter") {
+        e.preventDefault();
+        onConfirm();
+      }
     },
-    [onCancel],
+    [onCancel, onConfirm],
   );
 
   useEffect(() => {

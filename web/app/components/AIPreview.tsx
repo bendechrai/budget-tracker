@@ -338,7 +338,7 @@ export default function AIPreview({ intent, onDone, onCancel }: AIPreviewProps) 
     if (onCancel) onCancel();
   }, [onCancel]);
 
-  const { handleClose, confirmDialog } = useModalClose(cancelFn, false, status.type !== "loading");
+  const { handleClose, confirmDialog } = useModalClose(cancelFn, false, status.type !== "loading", () => void handleConfirm());
 
   const isLoading = status.type === "loading";
   const isComplete = status.type === "success";
