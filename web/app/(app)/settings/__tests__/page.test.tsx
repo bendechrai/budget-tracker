@@ -16,7 +16,6 @@ const mockSettings = {
   contributionCycleType: null,
   contributionPayDays: [],
   currencySymbol: "$",
-  maxContributionPerCycle: null,
   autoDetectedCycle: { type: "monthly", payDays: [1] },
 };
 

@@ -41,7 +41,6 @@ describe("getCurrentUser", () => {
       currencySymbol: "$",
       onboardingComplete: false,
       currentFundBalance: 0,
-      maxContributionPerCycle: null,
       contributionCycleDays: null,
       contributionCycleType: null,
       contributionPayDays: [],

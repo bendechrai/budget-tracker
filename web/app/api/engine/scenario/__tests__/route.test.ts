@@ -57,7 +57,6 @@ import { POST } from "../route";
 const mockUser = {
   id: "user_1",
   email: "test@example.com",
-  maxContributionPerCycle: 500,
   currentFundBalance: 1000,
   contributionCycleType: "fortnightly" as const,
   contributionPayDays: [] as number[],

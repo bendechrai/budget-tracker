@@ -17,11 +17,9 @@ const CURRENCY_QUICK_PICKS = ["$", "\u00a3", "\u20ac", "\u00a5", "A$", "NZ$"];
 export default function OnboardingFundSetupPage() {
   const router = useRouter();
   const [currentBalance, setCurrentBalance] = useState("");
-  const [maxContribution, setMaxContribution] = useState("");
   const [cycleType, setCycleType] = useState("fortnightly");
   const [currencySymbol, setCurrencySymbol] = useState("$");
   const [customCurrency, setCustomCurrency] = useState("");
-  const [notSure, setNotSure] = useState(false);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -35,14 +33,6 @@ export default function OnboardingFundSetupPage() {
       return;
     }
 
-    if (!notSure) {
-      const contribution = parseFloat(maxContribution);
-      if (isNaN(contribution) || contribution <= 0) {
-        setError("Contribution amount must be a positive number");
-        return;
-      }
-    }
-
     if (!currencySymbol.trim()) {
       setError("Currency symbol is required");
       return;
@@ -54,12 +44,8 @@ export default function OnboardingFundSetupPage() {
       const body: Record<string, unknown> = {
         currentFundBalance: balance,
         currencySymbol: currencySymbol.trim(),
+        contributionCycleType: cycleType,
       };
-
-      if (!notSure) {
-        body.maxContributionPerCycle = parseFloat(maxContribution);
-        body.contributionCycleType = cycleType;
-      }
 
       const res = await fetch("/api/user/onboarding", {
         method: "PUT",
@@ -100,8 +86,8 @@ export default function OnboardingFundSetupPage() {
       <div className={styles.container}>
         <h1 className={styles.title}>Fund Setup</h1>
         <p className={styles.subtitle}>
-          Almost done! Tell us about your current savings and how much you can
-          set aside each cycle. You can always change these later.
+          Almost done! Tell us about your current savings and how often you
+          get paid. You can always change these later.
         </p>
 
         <form className={fundStyles.form} onSubmit={handleSubmit}>
@@ -131,45 +117,6 @@ export default function OnboardingFundSetupPage() {
           </div>
 
           <div className={fundStyles.field}>
-            <label className={fundStyles.label} htmlFor="max-contribution">
-              Max contribution per cycle
-            </label>
-            <span className={fundStyles.hint}>
-              The most you can set aside each pay cycle for your sinking fund.
-            </span>
-            <input
-              id="max-contribution"
-              className={fundStyles.input}
-              type="number"
-              min="0.01"
-              step="0.01"
-              value={maxContribution}
-              onChange={(e) => setMaxContribution(e.target.value)}
-              placeholder="0.00"
-              disabled={notSure}
-            />
-          </div>
-
-          <div className={fundStyles.checkboxRow}>
-            <input
-              id="not-sure"
-              className={fundStyles.checkbox}
-              type="checkbox"
-              checked={notSure}
-              onChange={(e) => {
-                setNotSure(e.target.checked);
-                if (e.target.checked) {
-                  setMaxContribution("");
-                  setCycleType("fortnightly");
-                }
-              }}
-            />
-            <label className={fundStyles.checkboxLabel} htmlFor="not-sure">
-              I&apos;m not sure yet
-            </label>
-          </div>
-
-          <div className={fundStyles.field}>
             <span className={fundStyles.label}>Contribution cycle</span>
             <span className={fundStyles.hint}>
               How often do you get paid?
@@ -190,7 +137,6 @@ export default function OnboardingFundSetupPage() {
                     value={opt.value}
                     checked={cycleType === opt.value}
                     onChange={() => setCycleType(opt.value)}
-                    disabled={notSure}
                     className={fundStyles.radioInput}
                   />
                   {opt.label}

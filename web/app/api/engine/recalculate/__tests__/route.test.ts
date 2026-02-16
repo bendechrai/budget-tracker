@@ -54,7 +54,6 @@ import { POST } from "../route";
 const mockUser = {
   id: "user_1",
   email: "test@example.com",
-  maxContributionPerCycle: 500,
   contributionCycleType: "fortnightly" as const,
   contributionPayDays: [] as number[],
 };
@@ -241,7 +240,6 @@ describe("POST /api/engine/recalculate", () => {
           currentBalance: 300,
         },
       ],
-      maxContributionPerCycle: 500,
       cycleConfig: { type: "fortnightly", payDays: [] },
     });
   });

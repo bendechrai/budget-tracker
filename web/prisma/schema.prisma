@@ -23,7 +23,6 @@ model User {
   currencySymbol          String         @default("$")
   onboardingComplete      Boolean        @default(false)
   currentFundBalance      Float          @default(0)
-  maxContributionPerCycle  Float?
   contributionCycleDays   Int?
   contributionCycleType   ContributionCycleType?
   contributionPayDays     Int[]          @default([])

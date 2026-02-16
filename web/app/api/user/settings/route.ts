@@ -31,7 +31,6 @@ export async function GET(): Promise<NextResponse> {
       contributionCycleType: user.contributionCycleType,
       contributionPayDays: user.contributionPayDays,
       currencySymbol: user.currencySymbol,
-      maxContributionPerCycle: user.maxContributionPerCycle,
       autoDetectedCycle: autoDetected,
     });
   } catch (error) {
@@ -53,7 +52,7 @@ export async function PUT(request: NextRequest): Promise<NextResponse> {
     const body = await request.json();
 
     const updateData: Record<string, unknown> = {};
-    let cycleOrMaxChanged = false;
+    let cycleChanged = false;
 
     // Handle contributionCycleType
     if ("contributionCycleType" in body) {
@@ -68,7 +67,7 @@ export async function PUT(request: NextRequest): Promise<NextResponse> {
       } else {
         updateData.contributionCycleType = null;
       }
-      cycleOrMaxChanged = true;
+      cycleChanged = true;
     }
 
     // Handle contributionPayDays
@@ -80,7 +79,7 @@ export async function PUT(request: NextRequest): Promise<NextResponse> {
         );
       }
       updateData.contributionPayDays = body.contributionPayDays;
-      cycleOrMaxChanged = true;
+      cycleChanged = true;
     }
 
     // Handle currencySymbol
@@ -92,22 +91,6 @@ export async function PUT(request: NextRequest): Promise<NextResponse> {
         );
       }
       updateData.currencySymbol = body.currencySymbol;
-    }
-
-    // Handle maxContributionPerCycle
-    if ("maxContributionPerCycle" in body) {
-      if (body.maxContributionPerCycle !== null) {
-        if (typeof body.maxContributionPerCycle !== "number" || body.maxContributionPerCycle <= 0) {
-          return NextResponse.json(
-            { error: "maxContributionPerCycle must be a positive number or null" },
-            { status: 400 },
-          );
-        }
-        updateData.maxContributionPerCycle = body.maxContributionPerCycle;
-      } else {
-        updateData.maxContributionPerCycle = null;
-      }
-      cycleOrMaxChanged = true;
     }
 
     if (Object.keys(updateData).length === 0) {
@@ -122,8 +105,8 @@ export async function PUT(request: NextRequest): Promise<NextResponse> {
       data: updateData,
     });
 
-    // Trigger engine recalculation if cycle or max contribution changed
-    if (cycleOrMaxChanged) {
+    // Trigger engine recalculation if cycle changed
+    if (cycleChanged) {
       try {
         const baseUrl = request.nextUrl.origin;
         await fetch(`${baseUrl}/api/engine/recalculate`, {
@@ -141,7 +124,6 @@ export async function PUT(request: NextRequest): Promise<NextResponse> {
       contributionCycleType: updated.contributionCycleType,
       contributionPayDays: updated.contributionPayDays,
       currencySymbol: updated.currencySymbol,
-      maxContributionPerCycle: updated.maxContributionPerCycle,
     });
   } catch (error) {
     logError("failed to update user settings", error);

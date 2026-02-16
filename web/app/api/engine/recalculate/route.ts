@@ -80,7 +80,6 @@ export async function POST(): Promise<NextResponse> {
     const { snapshot } = calculateAndSnapshot({
       obligations: obligationInputs,
       fundGroupBalances: fundGroupBalanceInputs,
-      maxContributionPerCycle: user.maxContributionPerCycle,
       cycleConfig,
     });
 

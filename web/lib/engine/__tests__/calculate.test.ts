@@ -40,7 +40,6 @@ describe("calculateContributions", () => {
       const result = calculateContributions({
         obligations: [makeObligation()],
         fundGroupBalances: [],
-        maxContributionPerCycle: null,
         cycleConfig: { type: "monthly", payDays: [1] },
         now: NOW,
       });
@@ -67,7 +66,6 @@ describe("calculateContributions", () => {
           }),
         ],
         fundGroupBalances: [],
-        maxContributionPerCycle: null,
         cycleConfig: { type: "monthly", payDays: [1] },
         now: NOW,
       });
@@ -86,7 +84,6 @@ describe("calculateContributions", () => {
           }),
         ],
         fundGroupBalances: [{ fundGroupId: "fg-1", name: "Housing", currentBalance: 300 }],
-        maxContributionPerCycle: null,
         cycleConfig: { type: "monthly", payDays: [1] },
         now: NOW,
       });
@@ -109,7 +106,6 @@ describe("calculateContributions", () => {
           }),
         ],
         fundGroupBalances: [],
-        maxContributionPerCycle: null,
         cycleConfig: { type: "monthly", payDays: [1] },
         now: NOW,
       });
@@ -131,7 +127,6 @@ describe("calculateContributions", () => {
           }),
         ],
         fundGroupBalances: [],
-        maxContributionPerCycle: null,
         cycleConfig: { type: "monthly", payDays: [1] },
         now: NOW,
       });
@@ -154,7 +149,6 @@ describe("calculateContributions", () => {
           }),
         ],
         fundGroupBalances: [{ fundGroupId: "fg-1", name: "Housing", currentBalance: 600 }],
-        maxContributionPerCycle: null,
         cycleConfig: { type: "monthly", payDays: [1] },
         now: NOW,
       });
@@ -168,7 +162,6 @@ describe("calculateContributions", () => {
       const result = calculateContributions({
         obligations: [makeObligation({ amount: 500 })],
         fundGroupBalances: [{ fundGroupId: "fg-1", name: "Housing", currentBalance: 500 }],
-        maxContributionPerCycle: null,
         cycleConfig: { type: "monthly", payDays: [1] },
         now: NOW,
       });
@@ -182,138 +175,12 @@ describe("calculateContributions", () => {
       const result = calculateContributions({
         obligations: [makeObligation({ amount: 500 })],
         fundGroupBalances: [{ fundGroupId: "fg-1", name: "Housing", currentBalance: 700 }],
-        maxContributionPerCycle: null,
         cycleConfig: { type: "monthly", payDays: [1] },
         now: NOW,
       });
 
       const c = result.contributions[0];
       expect(c.contributionPerCycle).toBe(0);
-    });
-  });
-
-  describe("capacity exceeded prioritization", () => {
-    it("prioritizes nearest due date when capacity is exceeded", () => {
-      const result = calculateContributions({
-        obligations: [
-          makeObligation({
-            id: "obl-far",
-            name: "Insurance",
-            amount: 600,
-            nextDueDate: new Date("2025-05-30"),
-          }),
-          makeObligation({
-            id: "obl-near",
-            name: "Rent",
-            amount: 600,
-            nextDueDate: new Date("2025-03-31"),
-          }),
-        ],
-        fundGroupBalances: [],
-        maxContributionPerCycle: 500,
-        cycleConfig: { type: "monthly", payDays: [1] },
-        now: NOW,
-      });
-
-      expect(result.capacityExceeded).toBe(true);
-      // Should be sorted by due date
-      expect(result.contributions[0].obligationId).toBe("obl-near");
-      expect(result.contributions[1].obligationId).toBe("obl-far");
-
-      // obl-near needs $600 in 1 cycle = $600/cycle
-      // obl-far: 3 cycles, $600 needed = $200/cycle
-      // Total: $800/cycle, max is $500
-      // obl-near gets $500 (partial), remaining capacity = $0
-      // obl-far gets $0 → shortfall
-      const nearContrib = result.contributions[0];
-      expect(nearContrib.contributionPerCycle).toBe(500);
-      expect(nearContrib.hasShortfall).toBe(true);
-
-      const farContrib = result.contributions[1];
-      expect(farContrib.contributionPerCycle).toBe(0);
-      expect(farContrib.hasShortfall).toBe(true);
-
-      // Both have shortfall warnings
-      expect(result.shortfallWarnings).toHaveLength(2);
-      expect(result.shortfallWarnings[0].obligationId).toBe("obl-near");
-      expect(result.shortfallWarnings[1].obligationId).toBe("obl-far");
-    });
-
-    it("partially funds lower-priority obligations with remaining capacity", () => {
-      const result = calculateContributions({
-        obligations: [
-          makeObligation({
-            id: "obl-near",
-            name: "Rent",
-            amount: 300,
-            nextDueDate: new Date("2025-03-31"),
-          }),
-          makeObligation({
-            id: "obl-far",
-            name: "Insurance",
-            amount: 600,
-            nextDueDate: new Date("2025-05-30"),
-          }),
-        ],
-        fundGroupBalances: [],
-        maxContributionPerCycle: 400,
-        cycleConfig: { type: "monthly", payDays: [1] },
-        now: NOW,
-      });
-
-      // obl-near: 1 cycle, $300/cycle → fully allocated
-      // obl-far: 3 cycles, $200/cycle → gets $100 (400 - 300 remaining)
-      expect(result.contributions[0].contributionPerCycle).toBe(300);
-      expect(result.contributions[1].contributionPerCycle).toBe(100);
-      expect(result.contributions[1].hasShortfall).toBe(true);
-      expect(result.capacityExceeded).toBe(true);
-    });
-  });
-
-  describe("shortfall warning generation", () => {
-    it("generates warning message with specific amounts", () => {
-      const result = calculateContributions({
-        obligations: [
-          makeObligation({
-            id: "obl-1",
-            name: "Rent",
-            amount: 1000,
-            nextDueDate: new Date("2025-03-31"),
-          }),
-        ],
-        fundGroupBalances: [],
-        maxContributionPerCycle: 200,
-        cycleConfig: { type: "monthly", payDays: [1] },
-        now: NOW,
-      });
-
-      expect(result.shortfallWarnings).toHaveLength(1);
-      const warning = result.shortfallWarnings[0];
-      expect(warning.obligationId).toBe("obl-1");
-      expect(warning.obligationName).toBe("Rent");
-      expect(warning.amountNeeded).toBe(1000);
-      expect(warning.shortfall).toBeGreaterThan(0);
-      expect(warning.dueDate).toEqual(new Date("2025-03-31"));
-      expect(warning.message).toContain("Rent");
-      expect(warning.message).toContain("1000.00");
-    });
-
-    it("does not generate warnings when capacity is sufficient", () => {
-      const result = calculateContributions({
-        obligations: [
-          makeObligation({
-            amount: 300,
-            nextDueDate: new Date("2025-03-31"),
-          }),
-        ],
-        fundGroupBalances: [],
-        maxContributionPerCycle: 500,
-        cycleConfig: { type: "monthly", payDays: [1] },
-        now: NOW,
-      });
-
-      expect(result.shortfallWarnings).toHaveLength(0);
-      expect(result.capacityExceeded).toBe(false);
     });
   });
 
@@ -329,7 +196,6 @@ describe("calculateContributions", () => {
           }),
         ],
         fundGroupBalances: [],
-        maxContributionPerCycle: null,
         cycleConfig: { type: "monthly", payDays: [1] },
         now: NOW,
       });
@@ -350,7 +216,6 @@ describe("calculateContributions", () => {
           }),
         ],
         fundGroupBalances: [],
-        maxContributionPerCycle: null,
         cycleConfig: { type: "monthly", payDays: [1] },
         now: NOW, // 2025-03-01
       });
@@ -371,7 +236,6 @@ describe("calculateContributions", () => {
           }),
         ],
         fundGroupBalances: [],
-        maxContributionPerCycle: null,
         cycleConfig: { type: "monthly", payDays: [1] },
         now: NOW,
       });
@@ -386,7 +250,6 @@ describe("calculateContributions", () => {
       const result = calculateContributions({
         obligations: [makeObligation({ isPaused: true })],
         fundGroupBalances: [],
-        maxContributionPerCycle: null,
         cycleConfig: { type: "monthly", payDays: [1] },
         now: NOW,
       });
@@ -398,7 +261,6 @@ describe("calculateContributions", () => {
       const result = calculateContributions({
         obligations: [makeObligation({ isActive: false })],
         fundGroupBalances: [],
-        maxContributionPerCycle: null,
         cycleConfig: { type: "monthly", payDays: [1] },
         now: NOW,
       });
@@ -419,7 +281,6 @@ describe("calculateContributions", () => {
           }),
         ],
         fundGroupBalances: [],
-        maxContributionPerCycle: null,
         cycleConfig: { type: "monthly", payDays: [1] },
         now: NOW,
       });
@@ -458,7 +319,6 @@ describe("calculateContributions", () => {
           }),
         ],
         fundGroupBalances: [],
-        maxContributionPerCycle: null,
         cycleConfig: { type: "monthly", payDays: [1] },
         now: NOW,
       });
@@ -484,7 +344,6 @@ describe("calculateContributions", () => {
           }),
         ],
         fundGroupBalances: [],
-        maxContributionPerCycle: null,
         cycleConfig: { type: "monthly", payDays: [1] },
         now: NOW,
       });
@@ -498,7 +357,6 @@ describe("calculateContributions", () => {
       const result = calculateContributions({
         obligations: [],
         fundGroupBalances: [],
-        maxContributionPerCycle: null,
         cycleConfig: { type: "monthly", payDays: [1] },
         now: NOW,
       });
@@ -508,7 +366,6 @@ describe("calculateContributions", () => {
       expect(result.totalFunded).toBe(0);
       // No obligations means nothing is funded (empty state, not celebration)
       expect(result.isFullyFunded).toBe(false);
-      expect(result.shortfallWarnings).toHaveLength(0);
     });
 
     it("uses monthly cycle config with pay day on the 1st", () => {
@@ -520,7 +377,6 @@ describe("calculateContributions", () => {
           }),
         ],
         fundGroupBalances: [],
-        maxContributionPerCycle: null,
         cycleConfig: { type: "monthly", payDays: [1] },
         now: NOW,
       });
@@ -540,7 +396,6 @@ describe("calculateContributions", () => {
         fundGroupBalances: [
           { fundGroupId: "fg-1", name: "Housing", currentBalance: 800 },
         ],
-        maxContributionPerCycle: null,
         cycleConfig: { type: "monthly", payDays: [1] },
         now: NOW,
       });
@@ -557,7 +412,6 @@ describe("calculateContributions", () => {
         fundGroupBalances: [
           { fundGroupId: "fg-1", name: "Housing", currentBalance: 0 },
         ],
-        maxContributionPerCycle: null,
         cycleConfig: { type: "monthly", payDays: [1] },
         now: NOW,
       });
@@ -585,7 +439,6 @@ describe("calculateContributions", () => {
           }),
         ],
         fundGroupBalances: [],
-        maxContributionPerCycle: null,
         cycleConfig: { type: "monthly", payDays: [1] },
         now: NOW,
       });
@@ -609,7 +462,6 @@ describe("calculateContributions", () => {
           }),
         ],
         fundGroupBalances: [],
-        maxContributionPerCycle: null,
         cycleConfig: { type: "weekly", payDays: [] },
         now: NOW,
       });
@@ -827,7 +679,6 @@ describe("calculateWithWhatIf", () => {
         {
           obligations,
           fundGroupBalances: [],
-          maxContributionPerCycle: null,
           cycleConfig: { type: "monthly", payDays: [1] },
           now: NOW,
         },
@@ -852,7 +703,6 @@ describe("calculateWithWhatIf", () => {
         {
           obligations: [makeObligation({ id: "obl-1", amount: 500 })],
           fundGroupBalances: [],
-          maxContributionPerCycle: null,
           cycleConfig: { type: "monthly", payDays: [1] },
           now: NOW,
         },
@@ -882,7 +732,6 @@ describe("calculateWithWhatIf", () => {
             }),
           ],
           fundGroupBalances: [],
-          maxContributionPerCycle: null,
           cycleConfig: { type: "monthly", payDays: [1] },
           now: NOW,
         },
@@ -919,7 +768,6 @@ describe("calculateWithWhatIf", () => {
             makeObligation({ id: "obl-1", amount: 600, nextDueDate: new Date("2025-04-01") }),
           ],
           fundGroupBalances: [],
-          maxContributionPerCycle: null,
           cycleConfig: { type: "monthly", payDays: [1] },
           now: NOW,
         },
@@ -942,41 +790,6 @@ describe("calculateWithWhatIf", () => {
       expect(hypContrib).toBeDefined();
       expect(hypContrib!.amountNeeded).toBe(2000);
     });
-
-    it("generates shortfall when hypothetical pushes past capacity", () => {
-      const hypothetical: ObligationInput = makeObligation({
-        id: "hyp-1",
-        name: "Holiday",
-        type: "one_off",
-        amount: 5000,
-        intervalUnit: null,
-        nextDueDate: new Date("2025-04-01"),
-      });
-
-      const result = calculateWithWhatIf(
-        {
-          obligations: [
-            makeObligation({ id: "obl-1", amount: 600, nextDueDate: new Date("2025-04-01") }),
-          ],
-          fundGroupBalances: [],
-          maxContributionPerCycle: 500,
-          cycleConfig: { type: "monthly", payDays: [1] },
-          now: NOW,
-        },
-        {
-          ...emptyOverrides,
-          hypotheticals: [hypothetical],
-        }
-      );
-
-      // Actual: $600 in 1 cycle, capacity $500 → shortfall
-      expect(result.actual.capacityExceeded).toBe(true);
-
-      // Scenario: $600 + $5000 in 1 cycle, capacity $500 → worse shortfall
-      expect(result.scenario.capacityExceeded).toBe(true);
-      expect(result.scenario.shortfallWarnings.length).toBeGreaterThanOrEqual(1);
-      expect(result.scenario.totalRequired).toBe(5600);
-    });
   });
 
   describe("with no overrides", () => {
@@ -985,7 +798,6 @@ describe("calculateWithWhatIf", () => {
         {
           obligations: [makeObligation({ id: "obl-1", amount: 600 })],
           fundGroupBalances: [],
-          maxContributionPerCycle: null,
           cycleConfig: { type: "monthly", payDays: [1] },
           now: NOW,
         },
@@ -1020,7 +832,6 @@ describe("calculateWithWhatIf", () => {
             makeObligation({ id: "obl-3", name: "Netflix", amount: 15, nextDueDate: new Date("2025-04-01") }),
           ],
           fundGroupBalances: [],
-          maxContributionPerCycle: null,
           cycleConfig: { type: "monthly", payDays: [1] },
           now: NOW,
         },
@@ -1086,7 +897,6 @@ describe("what-if escalation overrides", () => {
           }),
         ],
         fundGroupBalances: [],
-        maxContributionPerCycle: null,
         cycleConfig: { type: "monthly", payDays: [1] },
         now: NOW,
       },
@@ -1125,7 +935,6 @@ describe("what-if escalation overrides", () => {
           }),
         ],
         fundGroupBalances: [],
-        maxContributionPerCycle: null,
         cycleConfig: { type: "monthly", payDays: [1] },
         now: NOW,
       },
@@ -1178,7 +987,6 @@ describe("what-if escalation overrides", () => {
           }),
         ],
         fundGroupBalances: [],
-        maxContributionPerCycle: null,
         cycleConfig: { type: "monthly", payDays: [1] },
         now: NOW,
       },
@@ -1219,7 +1027,6 @@ describe("what-if escalation overrides", () => {
           }),
         ],
         fundGroupBalances: [],
-        maxContributionPerCycle: null,
         cycleConfig: { type: "monthly", payDays: [1] },
         now: NOW,
       },
@@ -1282,7 +1089,6 @@ describe("escalation integration", () => {
           }),
         ],
         fundGroupBalances: [],
-        maxContributionPerCycle: null,
         cycleConfig: { type: "monthly", payDays: [1] },
         now: NOW,
       });
@@ -1312,7 +1118,6 @@ describe("escalation integration", () => {
           }),
         ],
         fundGroupBalances: [],
-        maxContributionPerCycle: null,
         cycleConfig: { type: "monthly", payDays: [1] },
         now: NOW,
       });
@@ -1341,7 +1146,6 @@ describe("escalation integration", () => {
           }),
         ],
         fundGroupBalances: [],
-        maxContributionPerCycle: null,
         cycleConfig: { type: "monthly", payDays: [1] },
         now: NOW,
       });
@@ -1349,81 +1153,6 @@ describe("escalation integration", () => {
       const c = result.contributions[0];
       // 2000 * 1.05 = 2100
       expect(c.amountNeeded).toBe(2100);
-    });
-  });
-
-  describe("shortfall detected for post-increase amount", () => {
-    it("generates shortfall warning using escalated amount", () => {
-      // Rent $1000, escalation to $1500 on March 15, due April 1
-      // Max capacity $800 — was enough for $1000 but not for $1500
-      const result = calculateContributions({
-        obligations: [
-          makeObligation({
-            id: "obl-1",
-            name: "Rent",
-            amount: 1000,
-            nextDueDate: new Date("2025-04-01"),
-            escalationRules: [
-              makeEscalationRule({
-                changeType: "absolute",
-                value: 1500,
-                effectiveDate: new Date("2025-03-15"),
-              }),
-            ],
-          }),
-        ],
-        fundGroupBalances: [],
-        maxContributionPerCycle: 800,
-        cycleConfig: { type: "monthly", payDays: [1] },
-        now: NOW,
-      });
-
-      // Shortfall should be based on $1500 (escalated) not $1000
-      expect(result.capacityExceeded).toBe(true);
-      expect(result.shortfallWarnings).toHaveLength(1);
-      expect(result.shortfallWarnings[0].amountNeeded).toBe(1500);
-    });
-  });
-
-  describe("crunch point uses escalated amount", () => {
-    it("uses escalated amount for contribution calculation when capacity is limited", () => {
-      // Two obligations, one with escalation that pushes total over capacity
-      const result = calculateContributions({
-        obligations: [
-          makeObligation({
-            id: "obl-1",
-            name: "Rent",
-            amount: 1000,
-            nextDueDate: new Date("2025-04-01"),
-            escalationRules: [
-              makeEscalationRule({
-                changeType: "absolute",
-                value: 1800,
-                effectiveDate: new Date("2025-03-15"),
-              }),
-            ],
-          }),
-          makeObligation({
-            id: "obl-2",
-            name: "Insurance",
-            amount: 500,
-            nextDueDate: new Date("2025-05-30"),
-          }),
-        ],
-        fundGroupBalances: [],
-        maxContributionPerCycle: 1900,
-        cycleConfig: { type: "monthly", payDays: [1] },
-        now: NOW,
-      });
-
-      // Rent escalated to $1800 in 1 cycle, Insurance $500 in 3 cycles = ~$167/cycle
-      // Total: $1800 + $167 = $1967 > $1900 capacity
-      expect(result.capacityExceeded).toBe(true);
-
-      // Rent gets priority (earlier due date), uses escalated $1800
-      const rent = result.contributions[0];
-      expect(rent.obligationId).toBe("obl-1");
-      expect(rent.amountNeeded).toBe(1800);
     });
   });
 
@@ -1439,7 +1168,6 @@ describe("escalation integration", () => {
           }),
         ],
         fundGroupBalances: [],
-        maxContributionPerCycle: null,
         cycleConfig: { type: "monthly", payDays: [1] },
         now: NOW,
       });
@@ -1459,7 +1187,6 @@ describe("escalation integration", () => {
           }),
         ],
         fundGroupBalances: [],
-        maxContributionPerCycle: null,
         cycleConfig: { type: "monthly", payDays: [1] },
         now: NOW,
       });

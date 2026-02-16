@@ -53,7 +53,6 @@ export interface CycleConfig {
 export interface EngineInput {
   obligations: ObligationInput[];
   fundGroupBalances: FundGroupBalanceInput[];
-  maxContributionPerCycle: number | null;
   cycleConfig: CycleConfig;
   now?: Date;
 }
@@ -81,25 +80,13 @@ export interface FundGroupContribution {
   obligationCount: number;
 }
 
-export interface ShortfallWarning {
-  obligationId: string;
-  obligationName: string;
-  amountNeeded: number;
-  amountCanFund: number;
-  shortfall: number;
-  dueDate: Date;
-  message: string;
-}
-
 export interface EngineResult {
   contributions: ObligationContribution[];
   fundGroupContributions: FundGroupContribution[];
   totalRequired: number;
   totalFunded: number;
   totalContributionPerCycle: number;
-  shortfallWarnings: ShortfallWarning[];
   isFullyFunded: boolean;
-  capacityExceeded: boolean;
 }
 
 const MS_PER_DAY = 86_400_000;
@@ -376,7 +363,6 @@ export function calculateContributions(input: EngineInput): EngineResult {
   const {
     obligations,
     fundGroupBalances,
-    maxContributionPerCycle,
     cycleConfig,
     now = new Date(),
   } = input;
@@ -578,69 +564,14 @@ export function calculateContributions(input: EngineInput): EngineResult {
     0
   );
 
-  const shortfallWarnings: ShortfallWarning[] = [];
-
-  // If max capacity is set and exceeded, prioritize by due date
-  if (
-    maxContributionPerCycle !== null &&
-    maxContributionPerCycle > 0 &&
-    rawTotalPerCycle > maxContributionPerCycle
-  ) {
-    let remainingCapacity = maxContributionPerCycle;
-
-    for (const contribution of rawContributions) {
-      if (contribution.contributionPerCycle <= 0) continue;
-
-      if (remainingCapacity >= contribution.contributionPerCycle) {
-        remainingCapacity -= contribution.contributionPerCycle;
-      } else {
-        // This obligation gets partial funding
-        const allocated = remainingCapacity;
-        const originalPerCycle = contribution.contributionPerCycle;
-        contribution.contributionPerCycle = allocated;
-        contribution.hasShortfall = true;
-        remainingCapacity = 0;
-
-        // Calculate shortfall over the remaining cycles
-        const shortfallPerCycle = originalPerCycle - allocated;
-        const totalShortfall = shortfallPerCycle * Math.max(1, contribution.cyclesUntilDue);
-        const amountCanFund =
-          allocated * Math.max(1, contribution.cyclesUntilDue);
-
-        shortfallWarnings.push({
-          obligationId: contribution.obligationId,
-          obligationName: contribution.obligationName,
-          amountNeeded: contribution.amountNeeded,
-          amountCanFund: Math.min(amountCanFund, contribution.amountNeeded),
-          shortfall: Math.min(totalShortfall, contribution.amountNeeded),
-          dueDate: contribution.nextDueDate,
-          message: `You need $${contribution.amountNeeded.toFixed(2)} for ${contribution.obligationName} by ${contribution.nextDueDate.toISOString().split("T")[0]} but can only save $${amountCanFund.toFixed(2)} at current capacity`,
-        });
-      }
-    }
-
-    return {
-      contributions: rawContributions,
-      fundGroupContributions,
-      totalRequired,
-      totalFunded,
-      totalContributionPerCycle: maxContributionPerCycle,
-      shortfallWarnings,
-      isFullyFunded: fundGroupContributions.every((fgc) => fgc.isFullyFunded),
-      capacityExceeded: true,
-    };
-  }
-
   return {
     contributions: rawContributions,
     fundGroupContributions,
     totalRequired,
     totalFunded,
     totalContributionPerCycle: rawTotalPerCycle,
-    shortfallWarnings,
     isFullyFunded: fundGroupContributions.length > 0 &&
       fundGroupContributions.every((fgc) => fgc.isFullyFunded),
-    capacityExceeded: false,
   };
 }
 

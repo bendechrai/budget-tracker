@@ -13,13 +13,11 @@ interface BudgetPreferencesSectionProps {
   contributionCycleType: "weekly" | "fortnightly" | "twice_monthly" | "monthly" | null;
   contributionPayDays: number[];
   currencySymbol: string;
-  maxContributionPerCycle: number | null;
   autoDetectedCycle: AutoDetectedCycle;
   onSettingsChange: (updated: {
     contributionCycleType: BudgetPreferencesSectionProps["contributionCycleType"];
     contributionPayDays: number[];
     currencySymbol: string;
-    maxContributionPerCycle: number | null;
   }) => void;
 }
 
@@ -39,7 +37,6 @@ function cycleLabel(type: string): string {
 export default function BudgetPreferencesSection({
   contributionCycleType,
   currencySymbol,
-  maxContributionPerCycle,
   autoDetectedCycle,
   onSettingsChange,
 }: BudgetPreferencesSectionProps) {
@@ -69,7 +66,6 @@ export default function BudgetPreferencesSection({
         contributionCycleType: BudgetPreferencesSectionProps["contributionCycleType"];
         contributionPayDays: number[];
         currencySymbol: string;
-        maxContributionPerCycle: number | null;
       };
       onSettingsChange(data);
       setBudgetSuccess("Saved");
@@ -100,23 +96,6 @@ export default function BudgetPreferencesSection({
     const value = input.value.trim();
     if (value) {
       void handleBudgetSave("currencySymbol", value);
-    }
-  }
-
-  function handleMaxContributionSubmit(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const form = e.currentTarget;
-    const input = form.elements.namedItem("max-contribution") as HTMLInputElement;
-    const value = input.value.trim();
-    if (value === "") {
-      void handleBudgetSave("maxContributionPerCycle", null);
-    } else {
-      const num = parseFloat(value);
-      if (isNaN(num) || num <= 0) {
-        setBudgetError("Max contribution must be a positive number");
-        return;
-      }
-      void handleBudgetSave("maxContributionPerCycle", num);
     }
   }
 
@@ -224,49 +203,6 @@ export default function BudgetPreferencesSection({
         </form>
       </div>
 
-      <div className={styles.form}>
-        <h3 className={styles.formTitle}>Max Contribution Per Cycle</h3>
-        <p className={styles.hint}>
-          Optional cap on how much to set aside each cycle. Leave empty for no limit.
-        </p>
-
-        <form
-          className={styles.inlineForm}
-          onSubmit={(e) => handleMaxContributionSubmit(e)}
-        >
-          <input
-            id="max-contribution"
-            name="max-contribution"
-            className={styles.input}
-            type="number"
-            step="0.01"
-            min="0"
-            defaultValue={
-              maxContributionPerCycle != null
-                ? String(maxContributionPerCycle)
-                : ""
-            }
-            placeholder="No limit"
-          />
-          <button
-            type="submit"
-            className={styles.submitButton}
-            disabled={budgetSubmitting}
-          >
-            Save
-          </button>
-          {maxContributionPerCycle != null && (
-            <button
-              type="button"
-              className={styles.clearButton}
-              onClick={() => void handleBudgetSave("maxContributionPerCycle", null)}
-              disabled={budgetSubmitting}
-            >
-              Clear
-            </button>
-          )}
-        </form>
-      </div>
     </>
   );
 }

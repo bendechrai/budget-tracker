@@ -9,7 +9,6 @@ const VALID_CYCLE_TYPES = ["weekly", "fortnightly", "twice_monthly", "monthly"];
 interface OnboardingBody {
   currentFundBalance: number;
   currencySymbol: string;
-  maxContributionPerCycle?: number;
   contributionCycleDays?: number;
   contributionCycleType?: string;
 }
@@ -45,16 +44,6 @@ export async function PUT(request: NextRequest): Promise<NextResponse> {
     }
 
     if (
-      body.maxContributionPerCycle !== undefined &&
-      (typeof body.maxContributionPerCycle !== "number" || body.maxContributionPerCycle <= 0)
-    ) {
-      return NextResponse.json(
-        { error: "maxContributionPerCycle must be a positive number" },
-        { status: 400 }
-      );
-    }
-
-    if (
       body.contributionCycleDays !== undefined &&
       (typeof body.contributionCycleDays !== "number" || body.contributionCycleDays <= 0 || !Number.isInteger(body.contributionCycleDays))
     ) {
@@ -79,7 +68,6 @@ export async function PUT(request: NextRequest): Promise<NextResponse> {
       data: {
         currentFundBalance: body.currentFundBalance,
         currencySymbol: body.currencySymbol.trim(),
-        maxContributionPerCycle: body.maxContributionPerCycle ?? null,
         contributionCycleDays: body.contributionCycleDays ?? null,
         ...(body.contributionCycleType !== undefined && {
           contributionCycleType: body.contributionCycleType as "weekly" | "fortnightly" | "twice_monthly" | "monthly",
@@ -96,7 +84,6 @@ export async function PUT(request: NextRequest): Promise<NextResponse> {
       email: updated.email,
       currencySymbol: updated.currencySymbol,
       currentFundBalance: updated.currentFundBalance,
-      maxContributionPerCycle: updated.maxContributionPerCycle,
       contributionCycleDays: updated.contributionCycleDays,
       contributionCycleType: updated.contributionCycleType,
       onboardingComplete: updated.onboardingComplete,

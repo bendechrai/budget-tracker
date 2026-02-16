@@ -125,7 +125,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const engineInput = {
       obligations: obligationInputs,
       fundGroupBalances: fundGroupBalanceInputs,
-      maxContributionPerCycle: user.maxContributionPerCycle,
       cycleConfig,
     };
 

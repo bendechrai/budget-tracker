@@ -19,7 +19,6 @@ interface UserSettings {
   contributionCycleType: "weekly" | "fortnightly" | "twice_monthly" | "monthly" | null;
   contributionPayDays: number[];
   currencySymbol: string;
-  maxContributionPerCycle: number | null;
   autoDetectedCycle: AutoDetectedCycle;
 }
 
@@ -87,7 +86,6 @@ export default function SettingsPage() {
                 contributionCycleType={settings.contributionCycleType}
                 contributionPayDays={settings.contributionPayDays}
                 currencySymbol={settings.currencySymbol}
-                maxContributionPerCycle={settings.maxContributionPerCycle}
                 autoDetectedCycle={settings.autoDetectedCycle}
                 onSettingsChange={(updated) =>
                   setSettings((prev) =>
@@ -97,7 +95,6 @@ export default function SettingsPage() {
                           contributionCycleType: updated.contributionCycleType,
                           contributionPayDays: updated.contributionPayDays,
                           currencySymbol: updated.currencySymbol,
-                          maxContributionPerCycle: updated.maxContributionPerCycle,
                         }
                       : prev
                   )

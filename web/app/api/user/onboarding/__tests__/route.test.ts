@@ -48,7 +48,6 @@ describe("PUT /api/user/onboarding", () => {
       email: "test@example.com",
       currencySymbol: "$",
       currentFundBalance: 500,
-      maxContributionPerCycle: 200,
       contributionCycleDays: 14,
       onboardingComplete: true,
     });
@@ -57,7 +56,6 @@ describe("PUT /api/user/onboarding", () => {
       makeRequest({
         currentFundBalance: 500,
         currencySymbol: "$",
-        maxContributionPerCycle: 200,
         contributionCycleDays: 14,
       })
     );
@@ -69,7 +67,6 @@ describe("PUT /api/user/onboarding", () => {
       email: "test@example.com",
       currencySymbol: "$",
       currentFundBalance: 500,
-      maxContributionPerCycle: 200,
       contributionCycleDays: 14,
       onboardingComplete: true,
     });
@@ -79,7 +76,6 @@ describe("PUT /api/user/onboarding", () => {
       data: {
         currentFundBalance: 500,
         currencySymbol: "$",
-        maxContributionPerCycle: 200,
         contributionCycleDays: 14,
         onboardingComplete: true,
       },
@@ -95,7 +91,6 @@ describe("PUT /api/user/onboarding", () => {
       email: "test@example.com",
       currencySymbol: "€",
       currentFundBalance: 0,
-      maxContributionPerCycle: null,
       contributionCycleDays: null,
       onboardingComplete: true,
     });
@@ -109,7 +104,6 @@ describe("PUT /api/user/onboarding", () => {
 
     expect(res.status).toBe(200);
     const data = await res.json();
-    expect(data.maxContributionPerCycle).toBeNull();
     expect(data.contributionCycleDays).toBeNull();
     expect(data.onboardingComplete).toBe(true);
 
@@ -118,7 +112,6 @@ describe("PUT /api/user/onboarding", () => {
       data: {
         currentFundBalance: 0,
         currencySymbol: "€",
-        maxContributionPerCycle: null,
         contributionCycleDays: null,
         onboardingComplete: true,
       },
@@ -182,22 +175,6 @@ describe("PUT /api/user/onboarding", () => {
     expect(res.status).toBe(400);
     const data = await res.json();
     expect(data.error).toBe("currencySymbol is required");
-  });
-
-  it("returns 400 when maxContributionPerCycle is not a positive number", async () => {
-    mockGetCurrentUser.mockResolvedValue({ id: "user_1", email: "test@example.com" });
-
-    const res = await PUT(
-      makeRequest({
-        currentFundBalance: 500,
-        currencySymbol: "$",
-        maxContributionPerCycle: -50,
-      })
-    );
-
-    expect(res.status).toBe(400);
-    const data = await res.json();
-    expect(data.error).toBe("maxContributionPerCycle must be a positive number");
   });
 
   it("returns 400 when contributionCycleDays is not a positive integer", async () => {

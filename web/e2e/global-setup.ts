@@ -35,7 +35,6 @@ async function globalSetup(config: FullConfig): Promise<void> {
         passwordHash,
         onboardingComplete: true,
         currentFundBalance: 1000,
-        maxContributionPerCycle: 500,
         contributionCycleDays: 14,
         currencySymbol: "$",
       },

@@ -12,7 +12,6 @@ describe("BudgetPreferencesSection", () => {
     contributionCycleType: null as "weekly" | "fortnightly" | "twice_monthly" | "monthly" | null,
     contributionPayDays: [] as number[],
     currencySymbol: "$",
-    maxContributionPerCycle: null as number | null,
     autoDetectedCycle: { type: "monthly" as const, payDays: [1] },
     onSettingsChange: vi.fn(),
   };
@@ -63,7 +62,6 @@ describe("BudgetPreferencesSection", () => {
           contributionCycleType: "weekly",
           contributionPayDays: [],
           currencySymbol: "$",
-          maxContributionPerCycle: null,
         }),
         { status: 200, headers: { "Content-Type": "application/json" } }
       )
@@ -99,7 +97,6 @@ describe("BudgetPreferencesSection", () => {
           contributionCycleType: null,
           contributionPayDays: [],
           currencySymbol: "\u00a3",
-          maxContributionPerCycle: null,
         }),
         { status: 200, headers: { "Content-Type": "application/json" } }
       )
@@ -118,59 +115,4 @@ describe("BudgetPreferencesSection", () => {
     });
   });
 
-  it("saves max contribution via form submit", async () => {
-    const user = userEvent.setup();
-    vi.mocked(global.fetch).mockResolvedValueOnce(
-      new Response(
-        JSON.stringify({
-          contributionCycleType: null,
-          contributionPayDays: [],
-          currencySymbol: "$",
-          maxContributionPerCycle: 500,
-        }),
-        { status: 200, headers: { "Content-Type": "application/json" } }
-      )
-    );
-
-    render(<BudgetPreferencesSection {...defaultProps} />);
-
-    const maxInput = screen.getByPlaceholderText("No limit");
-    await user.type(maxInput, "500");
-    await user.click(screen.getByRole("button", { name: "Save" }));
-
-    await waitFor(() => {
-      expect(global.fetch).toHaveBeenCalledWith("/api/user/settings", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ maxContributionPerCycle: 500 }),
-      });
-    });
-  });
-
-  it("clears max contribution when Clear button is clicked", async () => {
-    const user = userEvent.setup();
-    vi.mocked(global.fetch).mockResolvedValueOnce(
-      new Response(
-        JSON.stringify({
-          contributionCycleType: null,
-          contributionPayDays: [],
-          currencySymbol: "$",
-          maxContributionPerCycle: null,
-        }),
-        { status: 200, headers: { "Content-Type": "application/json" } }
-      )
-    );
-
-    render(<BudgetPreferencesSection {...defaultProps} maxContributionPerCycle={500} />);
-
-    await user.click(screen.getByRole("button", { name: "Clear" }));
-
-    await waitFor(() => {
-      expect(global.fetch).toHaveBeenCalledWith("/api/user/settings", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ maxContributionPerCycle: null }),
-      });
-    });
-  });
 });

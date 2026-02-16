@@ -56,7 +56,6 @@ describe("GET /api/user/settings", () => {
       contributionCycleType: "monthly",
       contributionPayDays: [1],
       currencySymbol: "$",
-      maxContributionPerCycle: 500,
     });
 
     mockFindMany.mockResolvedValue([
@@ -74,7 +73,6 @@ describe("GET /api/user/settings", () => {
       contributionCycleType: "monthly",
       contributionPayDays: [1],
       currencySymbol: "$",
-      maxContributionPerCycle: 500,
       autoDetectedCycle: { type: "monthly", payDays: [1] },
     });
   });
@@ -97,7 +95,6 @@ describe("GET /api/user/settings", () => {
       contributionCycleType: null,
       contributionPayDays: [],
       currencySymbol: "£",
-      maxContributionPerCycle: null,
     });
 
     mockFindMany.mockResolvedValue([
@@ -120,7 +117,6 @@ describe("GET /api/user/settings", () => {
     expect(data.autoDetectedCycle).toEqual({ type: "fortnightly", payDays: [] });
     expect(data.contributionCycleType).toBeNull();
     expect(data.currencySymbol).toBe("£");
-    expect(data.maxContributionPerCycle).toBeNull();
   });
 });
 
@@ -147,7 +143,6 @@ describe("PUT /api/user/settings", () => {
       contributionCycleType: "weekly",
       contributionPayDays: [],
       currencySymbol: "$",
-      maxContributionPerCycle: null,
     });
 
     const res = await PUT(makePutRequest({ contributionCycleType: "weekly" }));
@@ -167,7 +162,6 @@ describe("PUT /api/user/settings", () => {
       contributionCycleType: null,
       contributionPayDays: [],
       currencySymbol: "€",
-      maxContributionPerCycle: null,
     });
 
     const res = await PUT(makePutRequest({ currencySymbol: "€" }));
@@ -187,27 +181,9 @@ describe("PUT /api/user/settings", () => {
       contributionCycleType: "fortnightly",
       contributionPayDays: [],
       currencySymbol: "$",
-      maxContributionPerCycle: null,
     });
 
     await PUT(makePutRequest({ contributionCycleType: "fortnightly" }));
-
-    expect(mockFetch).toHaveBeenCalledWith(
-      "http://localhost/api/engine/recalculate",
-      expect.objectContaining({ method: "POST" }),
-    );
-  });
-
-  it("max contribution change triggers engine recalculation", async () => {
-    mockGetCurrentUser.mockResolvedValue({ id: "user_1" });
-    mockUserUpdate.mockResolvedValue({
-      contributionCycleType: null,
-      contributionPayDays: [],
-      currencySymbol: "$",
-      maxContributionPerCycle: 1000,
-    });
-
-    await PUT(makePutRequest({ maxContributionPerCycle: 1000 }));
 
     expect(mockFetch).toHaveBeenCalledWith(
       "http://localhost/api/engine/recalculate",
@@ -221,7 +197,6 @@ describe("PUT /api/user/settings", () => {
       contributionCycleType: null,
       contributionPayDays: [],
       currencySymbol: "£",
-      maxContributionPerCycle: null,
     });
 
     await PUT(makePutRequest({ currencySymbol: "£" }));
@@ -246,7 +221,6 @@ describe("PUT /api/user/settings", () => {
       contributionCycleType: null,
       contributionPayDays: [],
       currencySymbol: "$",
-      maxContributionPerCycle: null,
     });
 
     const res = await PUT(makePutRequest({ contributionCycleType: null }));
@@ -255,24 +229,6 @@ describe("PUT /api/user/settings", () => {
     expect(mockUserUpdate).toHaveBeenCalledWith({
       where: { id: "user_1" },
       data: { contributionCycleType: null },
-    });
-  });
-
-  it("allows clearing max contribution to null", async () => {
-    mockGetCurrentUser.mockResolvedValue({ id: "user_1" });
-    mockUserUpdate.mockResolvedValue({
-      contributionCycleType: null,
-      contributionPayDays: [],
-      currencySymbol: "$",
-      maxContributionPerCycle: null,
-    });
-
-    const res = await PUT(makePutRequest({ maxContributionPerCycle: null }));
-
-    expect(res.status).toBe(200);
-    expect(mockUserUpdate).toHaveBeenCalledWith({
-      where: { id: "user_1" },
-      data: { maxContributionPerCycle: null },
     });
   });
 
@@ -293,14 +249,12 @@ describe("PUT /api/user/settings", () => {
       contributionCycleType: "twice_monthly",
       contributionPayDays: [1, 15],
       currencySymbol: "A$",
-      maxContributionPerCycle: 750,
     });
 
     const res = await PUT(makePutRequest({
       contributionCycleType: "twice_monthly",
       contributionPayDays: [1, 15],
       currencySymbol: "A$",
-      maxContributionPerCycle: 750,
     }));
 
     expect(res.status).toBe(200);
@@ -309,7 +263,6 @@ describe("PUT /api/user/settings", () => {
       contributionCycleType: "twice_monthly",
       contributionPayDays: [1, 15],
       currencySymbol: "A$",
-      maxContributionPerCycle: 750,
     });
     expect(mockUserUpdate).toHaveBeenCalledWith({
       where: { id: "user_1" },
@@ -317,7 +270,6 @@ describe("PUT /api/user/settings", () => {
         contributionCycleType: "twice_monthly",
         contributionPayDays: [1, 15],
         currencySymbol: "A$",
-        maxContributionPerCycle: 750,
       },
     });
   });

@@ -28,9 +28,7 @@ function makeEngineResult(
     totalRequired: 1200,
     totalFunded: 0,
     totalContributionPerCycle: 1200,
-    shortfallWarnings: [],
     isFullyFunded: false,
-    capacityExceeded: false,
     ...overrides,
   };
 }
@@ -287,7 +285,6 @@ describe("calculateAndSnapshot", () => {
         },
       ],
       fundGroupBalances: [{ fundGroupId: "fg-1", name: "Housing", currentBalance: 0 }],
-      maxContributionPerCycle: null,
       cycleConfig: { type: "monthly", payDays: [1] },
       now: NOW,
     });
@@ -318,7 +315,6 @@ describe("calculateAndSnapshot", () => {
         },
       ],
       fundGroupBalances: [{ fundGroupId: "fg-1", name: "Housing", currentBalance: 1200 }],
-      maxContributionPerCycle: null,
       cycleConfig: { type: "monthly", payDays: [1] },
       now: NOW,
     });
