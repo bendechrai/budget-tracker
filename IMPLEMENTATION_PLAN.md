@@ -1137,3 +1137,11 @@
   - Spec: `specs/07b-fund-group-rework.md`
   - Acceptance: `fundGroups` state fetched from `GET /api/fund-groups` in parallel with obligations. `handleMoveFund` PUTs to `/api/obligations/[id]` with `{ fundGroupId }`, updates local state from response. `<FundPill>` rendered on each active obligation card (not on archived or hypothetical cards). Fund groups sorted alphabetically in the listing.
   - Tests: 7 new tests: pills render on active cards, correct fund name shown, move API called with correct fundGroupId, error state on API failure, static pill with single fund, no pills on archived cards. 2 existing tests updated for text ambiguity with fund pill text.
+
+### Obligation action button icons
+
+- [x] **Replace obligation action button text with icons and right-align**
+  - Files: `web/app/(app)/obligations/page.tsx`, `web/app/(app)/obligations/obligations.module.css`, `web/app/(app)/obligations/HypotheticalForm.tsx`, `web/app/(app)/obligations/__tests__/page.test.tsx`
+  - Spec: `specs/04-expenses-obligations.md`
+  - Acceptance: Action buttons (sparkle, pause/play, edit, delete) use inline SVG icons instead of text labels. Pause shows two vertical bars; play shows a triangle. Edit shows a pencil. Delete shows a trash can. Buttons are right-aligned via `margin-left: auto` on the actions container. All buttons have `title` tooltips and `aria-label` attributes. `.pauseButton` and `.editButton` CSS classes replaced with shared `.iconButton` class. HypotheticalForm cancel button uses new `.secondaryButton` class. Dark mode styles updated.
+  - Tests: Existing tests updated to use aria-label queries instead of text content assertions. All 54 obligation page tests pass.

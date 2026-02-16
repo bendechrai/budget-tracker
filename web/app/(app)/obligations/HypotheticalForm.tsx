@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { HypotheticalObligation } from "@/app/contexts/WhatIfContext";
-import type { ObligationType, IncomeFrequency } from "@/app/generated/prisma/client";
+import type { ObligationType, IntervalUnit } from "@/app/generated/prisma/client";
 import styles from "./obligations.module.css";
 
 interface HypotheticalFormProps {
@@ -10,11 +10,24 @@ interface HypotheticalFormProps {
   onCancel: () => void;
 }
 
+const INTERVAL_PRESETS: Array<{
+  label: string;
+  unit: string;
+  count: number;
+}> = [
+  { label: "Weekly", unit: "week", count: 1 },
+  { label: "Fortnightly", unit: "week", count: 2 },
+  { label: "Monthly", unit: "month", count: 1 },
+  { label: "Quarterly", unit: "quarter", count: 1 },
+  { label: "Annual", unit: "year", count: 1 },
+];
+
 export default function HypotheticalForm({ onAdd, onCancel }: HypotheticalFormProps) {
   const [name, setName] = useState("");
   const [amount, setAmount] = useState("");
   const [type, setType] = useState<ObligationType>("one_off");
-  const [frequency, setFrequency] = useState<IncomeFrequency | "">("");
+  const [intervalUnit, setIntervalUnit] = useState<IntervalUnit | "">("");
+  const [intervalCount, setIntervalCount] = useState("1");
   const [nextDueDate, setNextDueDate] = useState("");
   const [formError, setFormError] = useState("");
 
@@ -38,8 +51,14 @@ export default function HypotheticalForm({ onAdd, onCancel }: HypotheticalFormPr
       return;
     }
 
-    if (type !== "one_off" && !frequency) {
+    if (type !== "one_off" && !intervalUnit) {
       setFormError("Frequency is required for recurring obligations");
+      return;
+    }
+
+    const parsedCount = parseInt(intervalCount, 10);
+    if (type !== "one_off" && (isNaN(parsedCount) || parsedCount <= 0)) {
+      setFormError("Interval count must be a positive number");
       return;
     }
 
@@ -48,14 +67,19 @@ export default function HypotheticalForm({ onAdd, onCancel }: HypotheticalFormPr
       name: name.trim(),
       type,
       amount: parsedAmount,
-      frequency: frequency || null,
-      frequencyDays: null,
+      intervalUnit: intervalUnit || null,
+      intervalCount: type !== "one_off" && intervalUnit ? parsedCount : 1,
       nextDueDate: new Date(nextDueDate),
       endDate: null,
       fundGroupId: null,
     };
 
     onAdd(hypo);
+  }
+
+  function applyPreset(unit: string, count: number) {
+    setIntervalUnit(unit as IntervalUnit);
+    setIntervalCount(count.toString());
   }
 
   return (
@@ -104,20 +128,65 @@ export default function HypotheticalForm({ onAdd, onCancel }: HypotheticalFormPr
 
       {type !== "one_off" && (
         <div className={styles.hypotheticalFormField}>
-          <label htmlFor="hypo-frequency">Frequency</label>
-          <select
-            id="hypo-frequency"
-            value={frequency}
-            onChange={(e) => setFrequency(e.target.value as IncomeFrequency)}
-          >
-            <option value="">Select...</option>
-            <option value="weekly">Weekly</option>
-            <option value="fortnightly">Fortnightly</option>
-            <option value="twice_monthly">Twice monthly</option>
-            <option value="monthly">Monthly</option>
-            <option value="quarterly">Quarterly</option>
-            <option value="annual">Annual</option>
-          </select>
+          <label>Frequency</label>
+          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "8px" }}>
+            {INTERVAL_PRESETS.map((preset) => (
+              <button
+                key={preset.label}
+                type="button"
+                style={{
+                  padding: "4px 10px",
+                  border: "1px solid #ddd",
+                  borderRadius: "6px",
+                  cursor: "pointer",
+                  background:
+                    intervalUnit === preset.unit &&
+                    parseInt(intervalCount, 10) === preset.count
+                      ? "var(--foreground)"
+                      : "transparent",
+                  color:
+                    intervalUnit === preset.unit &&
+                    parseInt(intervalCount, 10) === preset.count
+                      ? "var(--background)"
+                      : "inherit",
+                  fontSize: "13px",
+                }}
+                onClick={() => applyPreset(preset.unit, preset.count)}
+              >
+                {preset.label}
+              </button>
+            ))}
+          </div>
+          <div style={{ display: "flex", gap: "8px" }}>
+            <div style={{ flex: 1 }}>
+              <label htmlFor="hypo-interval-count">Every</label>
+              <input
+                id="hypo-interval-count"
+                type="number"
+                min="1"
+                step="1"
+                value={intervalCount}
+                onChange={(e) => setIntervalCount(e.target.value)}
+                style={{ width: "100%" }}
+              />
+            </div>
+            <div style={{ flex: 1 }}>
+              <label htmlFor="hypo-interval-unit">Unit</label>
+              <select
+                id="hypo-interval-unit"
+                value={intervalUnit}
+                onChange={(e) => setIntervalUnit(e.target.value as IntervalUnit)}
+                style={{ width: "100%" }}
+              >
+                <option value="">Select...</option>
+                <option value="day">days</option>
+                <option value="week">weeks</option>
+                <option value="month">months</option>
+                <option value="quarter">quarters</option>
+                <option value="year">years</option>
+              </select>
+            </div>
+          </div>
         </div>
       )}
 
@@ -135,7 +204,7 @@ export default function HypotheticalForm({ onAdd, onCancel }: HypotheticalFormPr
         <button type="submit" className={styles.addButton}>
           Add
         </button>
-        <button type="button" className={styles.pauseButton} onClick={onCancel}>
+        <button type="button" className={styles.secondaryButton} onClick={onCancel}>
           Cancel
         </button>
       </div>

@@ -39,9 +39,8 @@ interface Obligation {
   name: string;
   type: "recurring" | "recurring_with_end" | "one_off" | "custom";
   amount: number;
-  frequency: string | null;
-  frequencyDays: number | null;
-  startDate: string;
+  intervalUnit: string | null;
+  intervalCount: number;
   endDate: string | null;
   nextDueDate: string;
   isPaused: boolean;
@@ -58,26 +57,20 @@ const TYPE_LABELS: Record<string, string> = {
   custom: "Custom",
 };
 
-const FREQUENCY_LABELS: Record<string, string> = {
-  weekly: "Weekly",
-  fortnightly: "Fortnightly",
-  twice_monthly: "Twice monthly",
-  monthly: "Monthly",
-  quarterly: "Quarterly",
-  annual: "Annual",
-  custom: "Custom",
-  irregular: "Irregular",
-};
-
-function formatFrequency(
-  frequency: string | null,
-  frequencyDays: number | null
-): string | null {
-  if (!frequency) return null;
-  if (frequency === "custom" && frequencyDays) {
-    return `Every ${frequencyDays} days`;
-  }
-  return FREQUENCY_LABELS[frequency] ?? frequency;
+function formatInterval(unit: string | null, count: number): string | null {
+  if (!unit) return null;
+  if (unit === "twice_monthly") return "Twice monthly";
+  const labels: Record<string, [string, string]> = {
+    day: ["Daily", "days"],
+    week: ["Weekly", "weeks"],
+    month: ["Monthly", "months"],
+    quarter: ["Quarterly", "quarters"],
+    year: ["Annually", "years"],
+  };
+  const [singular, plural] = labels[unit] ?? [unit, unit + "s"];
+  if (count === 1) return singular;
+  if (unit === "week" && count === 2) return "Fortnightly";
+  return `Every ${count} ${plural}`;
 }
 
 function formatDate(dateStr: string): string {
@@ -435,7 +428,7 @@ export default function ObligationsPage() {
                   if (ob.isPaused) classNames.push(styles.listItemPaused);
                   if (pastDue) classNames.push(styles.listItemPastDue);
 
-                  const freq = formatFrequency(ob.frequency, ob.frequencyDays);
+                  const freq = formatInterval(ob.intervalUnit, ob.intervalCount);
                   const displayAmount = amountOverride ?? ob.amount;
 
                   return (
@@ -512,7 +505,7 @@ export default function ObligationsPage() {
                             id: ob.id,
                             name: ob.name,
                             amount: ob.amount,
-                            frequency: ob.frequency,
+                            frequency: freq,
                             type: "obligation",
                             obligationType: ob.type,
                           }}
@@ -520,26 +513,34 @@ export default function ObligationsPage() {
                         />
                         <button
                           type="button"
-                          className={styles.pauseButton}
+                          className={styles.iconButton}
                           onClick={() => void handleTogglePause(ob.id, ob.isPaused)}
                           aria-label={ob.isPaused ? `Resume ${ob.name}` : `Pause ${ob.name}`}
+                          title={ob.isPaused ? "Resume" : "Pause"}
                         >
-                          {ob.isPaused ? "Resume" : "Pause"}
+                          {ob.isPaused ? (
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M4 2l10 6-10 6V2z"/></svg>
+                          ) : (
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><rect x="3" y="2" width="3.5" height="12" rx="1"/><rect x="9.5" y="2" width="3.5" height="12" rx="1"/></svg>
+                          )}
                         </button>
                         <button
                           type="button"
-                          className={styles.editButton}
+                          className={styles.iconButton}
                           onClick={() => handleEdit(ob.id)}
+                          aria-label={`Edit ${ob.name}`}
+                          title="Edit"
                         >
-                          Edit
+                          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M11.5 1.5a1.5 1.5 0 012.12 2.12L5.83 11.4l-2.83.71.71-2.83L11.5 1.5z"/></svg>
                         </button>
                         <button
                           type="button"
                           className={styles.deleteButton}
                           onClick={() => void handleDelete(ob.id, ob.name)}
                           aria-label={`Delete ${ob.name}`}
+                          title="Delete"
                         >
-                          Delete
+                          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M5.5 0.5C5.5 0.22 5.72 0 6 0h4c0.28 0 0.5 0.22 0.5 0.5V2h4a0.5 0.5 0 010 1h-1.04l-.87 11.28A1.5 1.5 0 0111.1 15.5H4.9a1.5 1.5 0 01-1.49-1.22L2.54 3H1.5a0.5 0.5 0 010-1h4V0.5zM6.5 1v1h3V1h-3zM3.55 3l.84 11.09a0.5 0.5 0 00.5.41h6.22a0.5 0.5 0 00.5-.41L12.45 3H3.55z"/></svg>
                         </button>
                       </div>
                       {ob.type !== "one_off" && (
@@ -632,7 +633,7 @@ export default function ObligationsPage() {
             <h2 className={styles.groupTitle}>Hypothetical obligations</h2>
             <ul className={styles.list}>
               {overrides.hypotheticals.map((hypo) => {
-                const freq = formatFrequency(hypo.frequency, hypo.frequencyDays);
+                const freq = formatInterval(hypo.intervalUnit, hypo.intervalCount);
                 return (
                   <li key={hypo.id} className={`${styles.listItem} ${styles.listItemHypothetical}`}>
                     <div className={styles.listItemInfo}>
@@ -696,7 +697,7 @@ export default function ObligationsPage() {
             ) : (
               <ul className={styles.list}>
                 {archivedObligations.map((ob) => {
-                  const freq = formatFrequency(ob.frequency, ob.frequencyDays);
+                  const freq = formatInterval(ob.intervalUnit, ob.intervalCount);
                   return (
                     <li key={ob.id} className={`${styles.listItem} ${styles.listItemArchived}`}>
                       <div className={styles.listItemInfo}>

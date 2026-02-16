@@ -366,8 +366,8 @@ describe("ObligationsPage", () => {
       expect(screen.getByText("Netflix")).toBeDefined();
     });
 
-    const editButtons = screen.getAllByRole("button", { name: "Edit" });
-    await user.click(editButtons[0]);
+    const editButton = screen.getByRole("button", { name: "Edit Netflix" });
+    await user.click(editButton);
 
     expect(mockPush).toHaveBeenCalledWith("/obligations/edit/1");
   });
@@ -531,9 +531,8 @@ describe("ObligationsPage", () => {
       expect(screen.getByText("Netflix")).toBeDefined();
     });
 
-    // Netflix is not paused, so the button should say "Pause"
+    // Netflix is not paused, so the button should have "Pause Netflix" aria-label
     const pauseButton = screen.getByRole("button", { name: "Pause Netflix" });
-    expect(pauseButton.textContent).toBe("Pause");
 
     // Mock the PUT response
     vi.mocked(global.fetch).mockResolvedValueOnce(
@@ -566,9 +565,8 @@ describe("ObligationsPage", () => {
       expect(screen.getByText("Car Rego")).toBeDefined();
     });
 
-    // Car Rego is paused, so the button should say "Resume"
+    // Car Rego is paused, so the button should have "Resume Car Rego" aria-label
     const resumeButton = screen.getByRole("button", { name: "Resume Car Rego" });
-    expect(resumeButton.textContent).toBe("Resume");
 
     // Mock the PUT response
     vi.mocked(global.fetch).mockResolvedValueOnce(

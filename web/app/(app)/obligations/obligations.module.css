@@ -209,44 +209,38 @@
 
 .listItemActions {
   display: flex;
-  gap: 8px;
+  gap: 4px;
+  margin-left: auto;
+  align-items: center;
 }
 
-.pauseButton {
-  padding: 6px 12px;
-  border: 1px solid #ddd;
+.iconButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
   border-radius: 6px;
-  font-size: 13px;
   cursor: pointer;
   background: transparent;
+  color: #666;
+  transition: color 0.2s, background-color 0.2s;
+}
+
+.iconButton:hover {
   color: var(--foreground);
-  transition: border-color 0.2s;
-}
-
-.pauseButton:hover {
-  border-color: var(--foreground);
-}
-
-.editButton {
-  padding: 6px 12px;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  font-size: 13px;
-  cursor: pointer;
-  background: transparent;
-  color: var(--foreground);
-  transition: border-color 0.2s;
-}
-
-.editButton:hover {
-  border-color: var(--foreground);
+  background: #f0f0f0;
 }
 
 .deleteButton {
-  padding: 6px 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
   border: none;
   border-radius: 6px;
-  font-size: 13px;
   cursor: pointer;
   background: transparent;
   color: #e53e3e;
@@ -255,6 +249,21 @@
 
 .deleteButton:hover {
   background: #fff5f5;
+}
+
+.secondaryButton {
+  padding: 6px 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  background: transparent;
+  color: var(--foreground);
+  transition: border-color 0.2s;
+}
+
+.secondaryButton:hover {
+  border-color: var(--foreground);
 }
 
 .archiveSection {
@@ -811,12 +820,13 @@
     background: #2d3748;
   }
 
-  .pauseButton {
-    border-color: #333;
+  .iconButton {
+    color: #999;
   }
 
-  .pauseButton:hover {
-    border-color: var(--foreground);
+  .iconButton:hover {
+    color: var(--foreground);
+    background: #2d3748;
   }
 
   .backLink {
@@ -827,20 +837,20 @@
     border-color: var(--foreground);
   }
 
-  .editButton {
-    border-color: #333;
-  }
-
-  .editButton:hover {
-    border-color: var(--foreground);
-  }
-
   .deleteButton {
     color: #fc8181;
   }
 
   .deleteButton:hover {
     background: #1a0000;
+  }
+
+  .secondaryButton {
+    border-color: #333;
+  }
+
+  .secondaryButton:hover {
+    border-color: var(--foreground);
   }
 
   .archivedBadge {

@@ -49,6 +49,7 @@ flowchart TD
 - Completed obligations (past end date or paid one-off) are archived automatically, not deleted
 - User can edit via ✨ sparkle button (contextual presets) or floating AI bar
 - User can delete with confirmation
+- Action buttons (sparkle, pause/play, edit, delete) use icons only (no text labels), right-aligned on obligation cards. Tooltips and aria-labels provide accessibility.
 - Creating, editing, pausing, or deleting triggers engine recalculation
 
 ## Data Model
