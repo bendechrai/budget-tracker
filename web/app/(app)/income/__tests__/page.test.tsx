@@ -18,9 +18,8 @@ const mockIncomeSources = [
     id: "1",
     name: "Salary",
     expectedAmount: 5000,
-    frequency: "monthly",
-    frequencyDays: null,
-    isIrregular: false,
+    intervalUnit: "month",
+    intervalCount: 1,
     minimumExpected: null,
     nextExpectedDate: "2026-03-01T00:00:00.000Z",
     isPaused: false,
@@ -29,9 +28,8 @@ const mockIncomeSources = [
     id: "2",
     name: "Freelance",
     expectedAmount: 1500,
-    frequency: "irregular",
-    frequencyDays: null,
-    isIrregular: true,
+    intervalUnit: null,
+    intervalCount: 1,
     minimumExpected: 500,
     nextExpectedDate: null,
     isPaused: true,
@@ -73,7 +71,7 @@ describe("IncomePage", () => {
     expect(screen.getByText(/\$5000\.00/)).toBeDefined();
     expect(screen.getByText(/Monthly/)).toBeDefined();
     expect(screen.getByText(/\$1500\.00/)).toBeDefined();
-    expect(screen.getByText(/Irregular/)).toBeDefined();
+    expect(screen.getByText(/—/)).toBeDefined();
   });
 
   it("shows the empty state when there are no income sources", async () => {
@@ -433,9 +431,8 @@ describe("IncomePage", () => {
         id: "3",
         name: "Contract Work",
         expectedAmount: 3000,
-        frequency: "custom",
-        frequencyDays: 14,
-        isIrregular: false,
+        intervalUnit: "day",
+        intervalCount: 14,
         minimumExpected: null,
         nextExpectedDate: null,
         isPaused: false,

@@ -19,30 +19,16 @@ describe("IncomeForm", () => {
 
     expect(screen.getByLabelText("Name")).toBeDefined();
     expect(screen.getByLabelText("Expected Amount")).toBeDefined();
-    expect(screen.getByLabelText("Frequency")).toBeDefined();
-    expect(
-      screen.getByLabelText("Irregular income (variable timing or amount)")
-    ).toBeDefined();
+    expect(screen.getByText("Frequency")).toBeDefined();
     expect(screen.getByLabelText("Next Expected Date")).toBeDefined();
     expect(screen.getByRole("button", { name: "Create" })).toBeDefined();
   });
 
-  it("renders all frequency options in dropdown", () => {
+  it("renders frequency interval controls", () => {
     render(<IncomeForm onSubmit={mockSubmit} submitLabel="Create" />);
 
-    const select = screen.getByLabelText("Frequency") as HTMLSelectElement;
-    const options = Array.from(select.options).map((o) => o.value);
-
-    expect(options).toEqual([
-      "weekly",
-      "fortnightly",
-      "twice_monthly",
-      "monthly",
-      "quarterly",
-      "annual",
-      "custom",
-      "irregular",
-    ]);
+    expect(screen.getByLabelText("Every")).toBeDefined();
+    expect(screen.getByLabelText("Unit")).toBeDefined();
   });
 
   it("submits valid data", async () => {
@@ -60,9 +46,8 @@ describe("IncomeForm", () => {
     expect(mockSubmit).toHaveBeenCalledWith({
       name: "Salary",
       expectedAmount: 5000,
-      frequency: "monthly",
-      frequencyDays: null,
-      isIrregular: false,
+      intervalUnit: "month",
+      intervalCount: 1,
       minimumExpected: null,
       nextExpectedDate: null,
     });
@@ -95,37 +80,7 @@ describe("IncomeForm", () => {
     expect(mockSubmit).not.toHaveBeenCalled();
   });
 
-  it("shows frequency days field when custom frequency is selected", async () => {
-    const user = userEvent.setup();
-
-    render(<IncomeForm onSubmit={mockSubmit} submitLabel="Create" />);
-
-    expect(screen.queryByLabelText("Every how many days?")).toBeNull();
-
-    await user.selectOptions(screen.getByLabelText("Frequency"), "custom");
-
-    expect(screen.getByLabelText("Every how many days?")).toBeDefined();
-  });
-
-  it("validates frequency days for custom frequency", async () => {
-    const user = userEvent.setup();
-
-    render(<IncomeForm onSubmit={mockSubmit} submitLabel="Create" />);
-
-    await user.type(screen.getByLabelText("Name"), "Contract");
-    await user.clear(screen.getByLabelText("Expected Amount"));
-    await user.type(screen.getByLabelText("Expected Amount"), "3000");
-    await user.selectOptions(screen.getByLabelText("Frequency"), "custom");
-
-    await user.click(screen.getByRole("button", { name: "Create" }));
-
-    expect(screen.getByRole("alert").textContent).toBe(
-      "Frequency days must be a positive number"
-    );
-    expect(mockSubmit).not.toHaveBeenCalled();
-  });
-
-  it("submits with custom frequency and days", async () => {
+  it("allows changing interval count via the Every input", async () => {
     const user = userEvent.setup();
     mockSubmit.mockResolvedValueOnce(undefined);
 
@@ -134,31 +89,72 @@ describe("IncomeForm", () => {
     await user.type(screen.getByLabelText("Name"), "Contract");
     await user.clear(screen.getByLabelText("Expected Amount"));
     await user.type(screen.getByLabelText("Expected Amount"), "3000");
-    await user.selectOptions(screen.getByLabelText("Frequency"), "custom");
-    await user.type(screen.getByLabelText("Every how many days?"), "14");
+
+    // Change interval count from default 1 to 3
+    await user.clear(screen.getByLabelText("Every"));
+    await user.type(screen.getByLabelText("Every"), "3");
 
     await user.click(screen.getByRole("button", { name: "Create" }));
 
     expect(mockSubmit).toHaveBeenCalledWith(
       expect.objectContaining({
-        frequency: "custom",
-        frequencyDays: 14,
+        intervalUnit: "month",
+        intervalCount: 3,
       })
     );
   });
 
-  it("shows minimum expected field when irregular is checked", async () => {
+  it("validates interval count must be positive", async () => {
     const user = userEvent.setup();
 
     render(<IncomeForm onSubmit={mockSubmit} submitLabel="Create" />);
 
-    expect(screen.queryByLabelText("Minimum Expected")).toBeNull();
+    await user.type(screen.getByLabelText("Name"), "Contract");
+    await user.clear(screen.getByLabelText("Expected Amount"));
+    await user.type(screen.getByLabelText("Expected Amount"), "3000");
 
-    await user.click(
-      screen.getByLabelText("Irregular income (variable timing or amount)")
+    // Clear interval count to trigger validation
+    await user.clear(screen.getByLabelText("Every"));
+
+    await user.click(screen.getByRole("button", { name: "Create" }));
+
+    expect(screen.getByRole("alert").textContent).toBe(
+      "Interval count must be a positive number"
     );
+    expect(mockSubmit).not.toHaveBeenCalled();
+  });
 
-    expect(screen.getByLabelText("Minimum Expected")).toBeDefined();
+  it("submits with custom interval unit and count", async () => {
+    const user = userEvent.setup();
+    mockSubmit.mockResolvedValueOnce(undefined);
+
+    render(<IncomeForm onSubmit={mockSubmit} submitLabel="Create" />);
+
+    await user.type(screen.getByLabelText("Name"), "Contract");
+    await user.clear(screen.getByLabelText("Expected Amount"));
+    await user.type(screen.getByLabelText("Expected Amount"), "3000");
+
+    // Set interval to every 14 days
+    await user.clear(screen.getByLabelText("Every"));
+    await user.type(screen.getByLabelText("Every"), "14");
+    await user.selectOptions(screen.getByLabelText("Unit"), "day");
+
+    await user.click(screen.getByRole("button", { name: "Create" }));
+
+    expect(mockSubmit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        intervalUnit: "day",
+        intervalCount: 14,
+      })
+    );
+  });
+
+  it("shows helper text for variable income", () => {
+    render(<IncomeForm onSubmit={mockSubmit} submitLabel="Create" />);
+
+    expect(
+      screen.getByText(/conservative estimate/)
+    ).toBeDefined();
   });
 
   it("populates fields in edit mode", () => {
@@ -167,9 +163,8 @@ describe("IncomeForm", () => {
         initialData={{
           name: "Salary",
           expectedAmount: 5000,
-          frequency: "monthly",
-          frequencyDays: null,
-          isIrregular: false,
+          intervalUnit: "month",
+          intervalCount: 1,
           minimumExpected: null,
           nextExpectedDate: "2026-03-01",
         }}
@@ -185,41 +180,19 @@ describe("IncomeForm", () => {
       (screen.getByLabelText("Expected Amount") as HTMLInputElement).value
     ).toBe("5000");
     expect(
-      (screen.getByLabelText("Frequency") as HTMLSelectElement).value
-    ).toBe("monthly");
-    expect(
       (screen.getByLabelText("Next Expected Date") as HTMLInputElement).value
     ).toBe("2026-03-01");
     expect(
       screen.getByRole("button", { name: "Save Changes" })
     ).toBeDefined();
-  });
 
-  it("populates irregular fields in edit mode", () => {
-    render(
-      <IncomeForm
-        initialData={{
-          name: "Freelance",
-          expectedAmount: 1500,
-          frequency: "irregular",
-          frequencyDays: null,
-          isIrregular: true,
-          minimumExpected: 500,
-          nextExpectedDate: null,
-        }}
-        onSubmit={mockSubmit}
-        submitLabel="Save Changes"
-      />
-    );
-
-    const irregularCheckbox = screen.getByLabelText(
-      "Irregular income (variable timing or amount)"
-    ) as HTMLInputElement;
-    expect(irregularCheckbox.checked).toBe(true);
-
+    // Monthly preset should be visually active (intervalUnit=month, intervalCount=1)
     expect(
-      (screen.getByLabelText("Minimum Expected") as HTMLInputElement).value
-    ).toBe("500");
+      (screen.getByLabelText("Every") as HTMLInputElement).value
+    ).toBe("1");
+    expect(
+      (screen.getByLabelText("Unit") as HTMLSelectElement).value
+    ).toBe("month");
   });
 
   it("shows error from onSubmit rejection", async () => {

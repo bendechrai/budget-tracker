@@ -9,8 +9,31 @@ import obligationStyles from "./obligations.module.css";
 interface ObligationEntry {
   name: string;
   amount: string;
-  frequency: string;
+  intervalUnit: string;
+  intervalCount: number;
   dueDate: string;
+}
+
+const INTERVAL_UNIT_OPTIONS = [
+  { value: "day", label: "days" },
+  { value: "week", label: "weeks" },
+  { value: "month", label: "months" },
+  { value: "quarter", label: "quarters" },
+  { value: "year", label: "years" },
+];
+
+function formatInterval(unit: string, count: number): string {
+  if (unit === "twice_monthly") return "Twice monthly";
+  const labels: Record<string, [string, string]> = {
+    day: ["Daily", "days"],
+    week: ["Weekly", "weeks"],
+    month: ["Monthly", "months"],
+    quarter: ["Quarterly", "quarters"],
+    year: ["Annually", "years"],
+  };
+  const [singular, plural] = labels[unit] ?? [unit, unit + "s"];
+  if (count === 1) return singular;
+  return `Every ${count} ${plural}`;
 }
 
 export default function OnboardingManualObligationsPage() {
@@ -18,7 +41,8 @@ export default function OnboardingManualObligationsPage() {
   const [entries, setEntries] = useState<ObligationEntry[]>([]);
   const [name, setName] = useState("");
   const [amount, setAmount] = useState("");
-  const [frequency, setFrequency] = useState("monthly");
+  const [intervalUnit, setIntervalUnit] = useState("month");
+  const [intervalCount, setIntervalCount] = useState("1");
   const [dueDate, setDueDate] = useState("");
   const [error, setError] = useState("");
 
@@ -37,10 +61,26 @@ export default function OnboardingManualObligationsPage() {
       return;
     }
 
-    setEntries([...entries, { name: name.trim(), amount, frequency, dueDate }]);
+    const parsedCount = parseInt(intervalCount, 10);
+    if (isNaN(parsedCount) || parsedCount <= 0) {
+      setError("Interval count must be a positive number");
+      return;
+    }
+
+    setEntries([
+      ...entries,
+      {
+        name: name.trim(),
+        amount,
+        intervalUnit,
+        intervalCount: parsedCount,
+        dueDate,
+      },
+    ]);
     setName("");
     setAmount("");
-    setFrequency("monthly");
+    setIntervalUnit("month");
+    setIntervalCount("1");
     setDueDate("");
   }
 
@@ -71,7 +111,7 @@ export default function OnboardingManualObligationsPage() {
                     {entry.name}
                   </span>
                   <span className={obligationStyles.listItemDetail}>
-                    ${entry.amount} / {entry.frequency}
+                    ${entry.amount} / {formatInterval(entry.intervalUnit, entry.intervalCount)}
                     {entry.dueDate && ` — due ${entry.dueDate}`}
                   </span>
                 </div>
@@ -132,21 +172,38 @@ export default function OnboardingManualObligationsPage() {
             <div className={obligationStyles.field}>
               <label
                 className={obligationStyles.label}
-                htmlFor="obligation-frequency"
+                htmlFor="obligation-interval-count"
               >
-                Frequency
+                Every
+              </label>
+              <input
+                id="obligation-interval-count"
+                className={obligationStyles.input}
+                type="number"
+                min="1"
+                step="1"
+                value={intervalCount}
+                onChange={(e) => setIntervalCount(e.target.value)}
+              />
+            </div>
+            <div className={obligationStyles.field}>
+              <label
+                className={obligationStyles.label}
+                htmlFor="obligation-interval-unit"
+              >
+                Unit
               </label>
               <select
-                id="obligation-frequency"
+                id="obligation-interval-unit"
                 className={obligationStyles.input}
-                value={frequency}
-                onChange={(e) => setFrequency(e.target.value)}
+                value={intervalUnit}
+                onChange={(e) => setIntervalUnit(e.target.value)}
               >
-                <option value="weekly">Weekly</option>
-                <option value="fortnightly">Fortnightly</option>
-                <option value="monthly">Monthly</option>
-                <option value="quarterly">Quarterly</option>
-                <option value="annually">Annually</option>
+                {INTERVAL_UNIT_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
               </select>
             </div>
           </div>

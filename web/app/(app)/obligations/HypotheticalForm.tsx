@@ -10,16 +10,12 @@ interface HypotheticalFormProps {
   onCancel: () => void;
 }
 
-const INTERVAL_PRESETS: Array<{
-  label: string;
-  unit: string;
-  count: number;
-}> = [
-  { label: "Weekly", unit: "week", count: 1 },
-  { label: "Fortnightly", unit: "week", count: 2 },
-  { label: "Monthly", unit: "month", count: 1 },
-  { label: "Quarterly", unit: "quarter", count: 1 },
-  { label: "Annual", unit: "year", count: 1 },
+const INTERVAL_UNIT_OPTIONS = [
+  { value: "day", label: "days" },
+  { value: "week", label: "weeks" },
+  { value: "month", label: "months" },
+  { value: "quarter", label: "quarters" },
+  { value: "year", label: "years" },
 ];
 
 export default function HypotheticalForm({ onAdd, onCancel }: HypotheticalFormProps) {
@@ -77,11 +73,6 @@ export default function HypotheticalForm({ onAdd, onCancel }: HypotheticalFormPr
     onAdd(hypo);
   }
 
-  function applyPreset(unit: string, count: number) {
-    setIntervalUnit(unit as IntervalUnit);
-    setIntervalCount(count.toString());
-  }
-
   return (
     <form onSubmit={handleSubmit} className={styles.hypotheticalForm} data-testid="hypothetical-form">
       <h3 className={styles.hypotheticalFormTitle}>Add hypothetical obligation</h3>
@@ -129,34 +120,6 @@ export default function HypotheticalForm({ onAdd, onCancel }: HypotheticalFormPr
       {type !== "one_off" && (
         <div className={styles.hypotheticalFormField}>
           <label>Frequency</label>
-          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "8px" }}>
-            {INTERVAL_PRESETS.map((preset) => (
-              <button
-                key={preset.label}
-                type="button"
-                style={{
-                  padding: "4px 10px",
-                  border: "1px solid #ddd",
-                  borderRadius: "6px",
-                  cursor: "pointer",
-                  background:
-                    intervalUnit === preset.unit &&
-                    parseInt(intervalCount, 10) === preset.count
-                      ? "var(--foreground)"
-                      : "transparent",
-                  color:
-                    intervalUnit === preset.unit &&
-                    parseInt(intervalCount, 10) === preset.count
-                      ? "var(--background)"
-                      : "inherit",
-                  fontSize: "13px",
-                }}
-                onClick={() => applyPreset(preset.unit, preset.count)}
-              >
-                {preset.label}
-              </button>
-            ))}
-          </div>
           <div style={{ display: "flex", gap: "8px" }}>
             <div style={{ flex: 1 }}>
               <label htmlFor="hypo-interval-count">Every</label>
@@ -179,11 +142,11 @@ export default function HypotheticalForm({ onAdd, onCancel }: HypotheticalFormPr
                 style={{ width: "100%" }}
               >
                 <option value="">Select...</option>
-                <option value="day">days</option>
-                <option value="week">weeks</option>
-                <option value="month">months</option>
-                <option value="quarter">quarters</option>
-                <option value="year">years</option>
+                {INTERVAL_UNIT_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
               </select>
             </div>
           </div>

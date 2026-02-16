@@ -12,9 +12,8 @@ export interface ObligationFormData {
   name: string;
   type: string;
   amount: number;
-  frequency: string | null;
-  frequencyDays: number | null;
-  startDate: string;
+  intervalUnit: string | null;
+  intervalCount: number;
   endDate: string | null;
   nextDueDate: string;
   fundGroupId: string | undefined;
@@ -42,13 +41,12 @@ const TYPE_OPTIONS = [
   { value: "custom", label: "Custom schedule" },
 ];
 
-const FREQUENCY_OPTIONS = [
-  { value: "weekly", label: "Weekly" },
-  { value: "fortnightly", label: "Fortnightly" },
-  { value: "monthly", label: "Monthly" },
-  { value: "quarterly", label: "Quarterly" },
-  { value: "annual", label: "Annual" },
-  { value: "custom", label: "Custom" },
+const INTERVAL_UNIT_OPTIONS = [
+  { value: "day", label: "days" },
+  { value: "week", label: "weeks" },
+  { value: "month", label: "months" },
+  { value: "quarter", label: "quarters" },
+  { value: "year", label: "years" },
 ];
 
 function formatDateForInput(dateStr: string | undefined | null): string {
@@ -69,14 +67,11 @@ export default function ObligationForm({
   const [amount, setAmount] = useState(
     initialData?.amount?.toString() ?? ""
   );
-  const [frequency, setFrequency] = useState(
-    initialData?.frequency ?? "monthly"
+  const [intervalUnit, setIntervalUnit] = useState(
+    initialData?.intervalUnit ?? "month"
   );
-  const [frequencyDays, setFrequencyDays] = useState(
-    initialData?.frequencyDays?.toString() ?? ""
-  );
-  const [startDate, setStartDate] = useState(
-    formatDateForInput(initialData?.startDate)
+  const [intervalCount, setIntervalCount] = useState(
+    initialData?.intervalCount?.toString() ?? "1"
   );
   const [endDate, setEndDate] = useState(
     formatDateForInput(initialData?.endDate)
@@ -136,25 +131,21 @@ export default function ObligationForm({
       return;
     }
 
-    // Validate frequency for recurring types
-    let finalFrequency: string | null = null;
-    let finalFrequencyDays: number | null = null;
+    // Validate interval for recurring types
+    let finalIntervalUnit: string | null = null;
+    let finalIntervalCount = 1;
     if (showFrequency) {
-      finalFrequency = frequency;
-      if (frequency === "custom") {
-        const fd = parseInt(frequencyDays, 10);
-        if (isNaN(fd) || fd <= 0) {
-          setError("Frequency days must be a positive number");
-          return;
-        }
-        finalFrequencyDays = fd;
+      if (!intervalUnit) {
+        setError("Interval unit is required for recurring obligations");
+        return;
       }
-    }
-
-    // Validate startDate
-    if (!startDate) {
-      setError("Start date is required");
-      return;
+      finalIntervalUnit = intervalUnit;
+      const ic = parseInt(intervalCount, 10);
+      if (isNaN(ic) || ic <= 0) {
+        setError("Interval count must be a positive number");
+        return;
+      }
+      finalIntervalCount = ic;
     }
 
     // Validate nextDueDate
@@ -202,9 +193,8 @@ export default function ObligationForm({
       name: trimmedName,
       type,
       amount: parsedAmount,
-      frequency: finalFrequency,
-      frequencyDays: finalFrequencyDays,
-      startDate,
+      intervalUnit: finalIntervalUnit,
+      intervalCount: finalIntervalCount,
       endDate: finalEndDate,
       nextDueDate,
       fundGroupId: fundGroupId || undefined,
@@ -263,88 +253,72 @@ export default function ObligationForm({
         </select>
       </div>
 
-      <div className={styles.fieldRow}>
-        <div className={styles.field}>
-          <label className={styles.label} htmlFor="obligation-amount">
-            Amount
-          </label>
-          <input
-            id="obligation-amount"
-            className={styles.input}
-            type="number"
-            min="0"
-            step="0.01"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            placeholder="0.00"
-          />
-        </div>
-
-        {showFrequency && (
-          <div className={styles.field}>
-            <label className={styles.label} htmlFor="obligation-frequency">
-              Frequency
-            </label>
-            <select
-              id="obligation-frequency"
-              className={styles.input}
-              value={frequency}
-              onChange={(e) => setFrequency(e.target.value)}
-            >
-              {FREQUENCY_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
+      <div className={styles.field}>
+        <label className={styles.label} htmlFor="obligation-amount">
+          Amount
+        </label>
+        <input
+          id="obligation-amount"
+          className={styles.input}
+          type="number"
+          min="0"
+          step="0.01"
+          value={amount}
+          onChange={(e) => setAmount(e.target.value)}
+          placeholder="0.00"
+        />
       </div>
 
-      {showFrequency && frequency === "custom" && (
+      {showFrequency && (
         <div className={styles.field}>
-          <label className={styles.label} htmlFor="obligation-frequency-days">
-            Every how many days?
-          </label>
-          <input
-            id="obligation-frequency-days"
-            className={styles.input}
-            type="number"
-            min="1"
-            step="1"
-            value={frequencyDays}
-            onChange={(e) => setFrequencyDays(e.target.value)}
-            placeholder="e.g. 14"
-          />
+          <label className={styles.label}>Frequency</label>
+          <div className={styles.fieldRow}>
+            <div className={styles.field}>
+              <label className={styles.label} htmlFor="obligation-interval-count">
+                Every
+              </label>
+              <input
+                id="obligation-interval-count"
+                className={styles.input}
+                type="number"
+                min="1"
+                step="1"
+                value={intervalCount}
+                onChange={(e) => setIntervalCount(e.target.value)}
+              />
+            </div>
+            <div className={styles.field}>
+              <label className={styles.label} htmlFor="obligation-interval-unit">
+                Unit
+              </label>
+              <select
+                id="obligation-interval-unit"
+                className={styles.input}
+                value={intervalUnit}
+                onChange={(e) => setIntervalUnit(e.target.value)}
+              >
+                {INTERVAL_UNIT_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
         </div>
       )}
 
-      <div className={styles.fieldRow}>
-        <div className={styles.field}>
-          <label className={styles.label} htmlFor="obligation-start-date">
-            Start Date
-          </label>
-          <input
-            id="obligation-start-date"
-            className={styles.input}
-            type="date"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-          />
-        </div>
-
-        <div className={styles.field}>
-          <label className={styles.label} htmlFor="obligation-next-due-date">
-            Next Due Date
-          </label>
-          <input
-            id="obligation-next-due-date"
-            className={styles.input}
-            type="date"
-            value={nextDueDate}
-            onChange={(e) => setNextDueDate(e.target.value)}
-          />
-        </div>
+      <div className={styles.field}>
+        <label className={styles.label} htmlFor="obligation-next-due-date">
+          Next Due Date
+        </label>
+        <input
+          id="obligation-next-due-date"
+          className={styles.input}
+          type="date"
+          value={nextDueDate}
+          onChange={(e) => setNextDueDate(e.target.value)}
+        />
       </div>
 
       {showEndDate && (

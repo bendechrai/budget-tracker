@@ -11,30 +11,26 @@ interface IncomeSource {
   id: string;
   name: string;
   expectedAmount: number;
-  frequency: string;
-  frequencyDays: number | null;
-  isIrregular: boolean;
+  intervalUnit: string | null;
+  intervalCount: number;
   minimumExpected: number | null;
   nextExpectedDate: string | null;
   isPaused: boolean;
 }
 
-const FREQUENCY_LABELS: Record<string, string> = {
-  weekly: "Weekly",
-  fortnightly: "Fortnightly",
-  twice_monthly: "Twice monthly",
-  monthly: "Monthly",
-  quarterly: "Quarterly",
-  annual: "Annual",
-  custom: "Custom",
-  irregular: "Irregular",
-};
-
-function formatFrequency(frequency: string, frequencyDays: number | null): string {
-  if (frequency === "custom" && frequencyDays) {
-    return `Every ${frequencyDays} days`;
-  }
-  return FREQUENCY_LABELS[frequency] ?? frequency;
+function formatInterval(unit: string | null, count: number): string {
+  if (!unit) return "—";
+  if (unit === "twice_monthly") return "Twice monthly";
+  const labels: Record<string, [string, string]> = {
+    day: ["Daily", "days"],
+    week: ["Weekly", "weeks"],
+    month: ["Monthly", "months"],
+    quarter: ["Quarterly", "quarters"],
+    year: ["Annually", "years"],
+  };
+  const [singular, plural] = labels[unit] ?? [unit, unit + "s"];
+  if (count === 1) return singular;
+  return `Every ${count} ${plural}`;
 }
 
 function formatDate(dateStr: string | null): string | null {
@@ -186,7 +182,7 @@ export default function IncomePage() {
                   </span>
                   <span className={styles.listItemDetail}>
                     ${source.expectedAmount.toFixed(2)} /{" "}
-                    {formatFrequency(source.frequency, source.frequencyDays)}
+                    {formatInterval(source.intervalUnit, source.intervalCount)}
                     {source.nextExpectedDate && (
                       <> &middot; Next: {formatDate(source.nextExpectedDate)}</>
                     )}
@@ -198,7 +194,7 @@ export default function IncomePage() {
                       id: source.id,
                       name: source.name,
                       amount: source.expectedAmount,
-                      frequency: source.frequency,
+                      frequency: formatInterval(source.intervalUnit, source.intervalCount),
                       type: "income",
                     }}
                     onAction={() => void fetchIncomeSources()}

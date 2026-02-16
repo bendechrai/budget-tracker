@@ -26,7 +26,8 @@ describe("OnboardingManualObligationsPage", () => {
     ).toBeDefined();
     expect(screen.getByLabelText("Name")).toBeDefined();
     expect(screen.getByLabelText("Amount")).toBeDefined();
-    expect(screen.getByLabelText("Frequency")).toBeDefined();
+    expect(screen.getByLabelText("Every")).toBeDefined();
+    expect(screen.getByLabelText("Unit")).toBeDefined();
     expect(screen.getByLabelText("Next due date (optional)")).toBeDefined();
     expect(
       screen.getByRole("button", { name: "Add obligation" })
@@ -42,7 +43,7 @@ describe("OnboardingManualObligationsPage", () => {
     await user.click(screen.getByRole("button", { name: "Add obligation" }));
 
     expect(screen.getByText("Rent")).toBeDefined();
-    expect(screen.getByText("$1500 / monthly")).toBeDefined();
+    expect(screen.getByText("$1500 / Monthly")).toBeDefined();
   });
 
   it("shows due date in entry detail when provided", async () => {
@@ -56,7 +57,7 @@ describe("OnboardingManualObligationsPage", () => {
 
     expect(screen.getByText("Insurance")).toBeDefined();
     expect(
-      screen.getByText("$200 / monthly — due 2026-03-15")
+      screen.getByText("$200 / Monthly — due 2026-03-15")
     ).toBeDefined();
   });
 
@@ -151,9 +152,9 @@ describe("OnboardingManualObligationsPage", () => {
 
     await user.type(screen.getByLabelText("Name"), "Insurance");
     await user.type(screen.getByLabelText("Amount"), "600");
-    await user.selectOptions(screen.getByLabelText("Frequency"), "quarterly");
+    await user.selectOptions(screen.getByLabelText("Unit"), "quarter");
     await user.click(screen.getByRole("button", { name: "Add obligation" }));
 
-    expect(screen.getByText("$600 / quarterly")).toBeDefined();
+    expect(screen.getByText("$600 / Quarterly")).toBeDefined();
   });
 });

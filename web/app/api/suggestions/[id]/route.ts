@@ -2,15 +2,101 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth/getCurrentUser";
 import { logError } from "@/lib/logging";
-import type { IncomeFrequency } from "@/app/generated/prisma/client";
+import type { IntervalUnit } from "@/app/generated/prisma/client";
+
+const MS_PER_DAY = 1000 * 60 * 60 * 24;
+
+interface IrregularBaseline {
+  amount: number;
+  intervalUnit: IntervalUnit;
+  intervalCount: number;
+  minimumExpected: number | null;
+}
+
+function computeIrregularBaseline(
+  transactions: { date: Date; amount: number }[]
+): IrregularBaseline {
+  if (transactions.length === 0) {
+    return { amount: 0, intervalUnit: "month", intervalCount: 1, minimumExpected: null };
+  }
+
+  const sorted = [...transactions].sort(
+    (a, b) => a.date.getTime() - b.date.getTime()
+  );
+
+  const totalAmount = sorted.reduce((sum, t) => sum + Math.abs(t.amount), 0);
+  const minAmount = Math.min(...sorted.map((t) => Math.abs(t.amount)));
+
+  if (sorted.length === 1) {
+    return {
+      amount: Math.abs(sorted[0].amount),
+      intervalUnit: "month",
+      intervalCount: 1,
+      minimumExpected: minAmount,
+    };
+  }
+
+  const spanDays =
+    (sorted[sorted.length - 1].date.getTime() - sorted[0].date.getTime()) / MS_PER_DAY;
+
+  if (spanDays <= 0) {
+    return {
+      amount: totalAmount / sorted.length,
+      intervalUnit: "month",
+      intervalCount: 1,
+      minimumExpected: minAmount,
+    };
+  }
+
+  const perWeek = totalAmount / (spanDays / 7);
+  const perMonth = totalAmount / (spanDays / 30);
+
+  // Compute median per-period for conservative estimate
+  const amounts = sorted.map((t) => Math.abs(t.amount));
+  amounts.sort((a, b) => a - b);
+  const median =
+    amounts.length % 2 === 0
+      ? (amounts[amounts.length / 2 - 1] + amounts[amounts.length / 2]) / 2
+      : amounts[Math.floor(amounts.length / 2)];
+
+  if (perWeek < 10) {
+    // Use monthly baseline
+    const conservativeAmount = Math.min(perMonth, median);
+    return {
+      amount: Math.round(conservativeAmount * 100) / 100,
+      intervalUnit: "month",
+      intervalCount: 1,
+      minimumExpected: minAmount,
+    };
+  }
+
+  // Use weekly baseline
+  const avgPerTransaction = totalAmount / sorted.length;
+  const conservativeAmount = Math.min(perWeek, median);
+  // If average transaction is much higher than weekly rate, use weekly
+  if (avgPerTransaction > perWeek * 2) {
+    return {
+      amount: Math.round(conservativeAmount * 100) / 100,
+      intervalUnit: "week",
+      intervalCount: 1,
+      minimumExpected: minAmount,
+    };
+  }
+
+  return {
+    amount: Math.round(conservativeAmount * 100) / 100,
+    intervalUnit: "week",
+    intervalCount: 1,
+    minimumExpected: minAmount,
+  };
+}
 
 interface AcceptBody {
   action: "accept" | "dismiss";
   name?: string;
   amount?: number;
-  frequency?: IncomeFrequency;
-  frequencyDays?: number | null;
-  isIrregular?: boolean;
+  intervalUnit?: IntervalUnit | null;
+  intervalCount?: number;
   minimumExpected?: number | null;
   nextExpectedDate?: string | null;
   nextDueDate?: string | null;
@@ -38,6 +124,11 @@ export async function PUT(
 
     const suggestion = await prisma.suggestion.findUnique({
       where: { id },
+      include: {
+        suggestionTransactions: {
+          include: { transaction: true },
+        },
+      },
     });
 
     if (!suggestion || suggestion.userId !== user.id) {
@@ -63,10 +154,28 @@ export async function PUT(
     }
 
     // Accept: create the corresponding IncomeSource or Obligation
-    const name = body.name ?? suggestion.vendorPattern;
-    const amount = body.amount ?? suggestion.detectedAmount;
-    const frequency = body.frequency ?? suggestion.detectedFrequency;
+    let name = body.name ?? suggestion.vendorPattern;
+    let amount = body.amount ?? suggestion.detectedAmount;
+    let intervalUnit: IntervalUnit | null = body.intervalUnit !== undefined ? body.intervalUnit : suggestion.detectedIntervalUnit;
+    let intervalCount = body.intervalCount ?? suggestion.detectedIntervalCount ?? 1;
+    let minimumExpected: number | null = body.minimumExpected ?? suggestion.detectedAmountMin ?? null;
     const now = new Date();
+
+    // Compute baseline for irregular patterns
+    if (intervalUnit === null) {
+      const transactions = suggestion.suggestionTransactions.map((st) => ({
+        date: new Date(st.transaction.date),
+        amount: Number(st.transaction.amount),
+      }));
+      const baseline = computeIrregularBaseline(transactions);
+      amount = body.amount ?? baseline.amount;
+      intervalUnit = baseline.intervalUnit;
+      intervalCount = baseline.intervalCount;
+      minimumExpected = baseline.minimumExpected;
+      if (!body.name) {
+        name = `${suggestion.vendorPattern} (irregular baseline)`;
+      }
+    }
 
     if (suggestion.type === "income") {
       const result = await prisma.$transaction(async (tx) => {
@@ -75,10 +184,9 @@ export async function PUT(
             userId: user.id,
             name,
             expectedAmount: amount,
-            frequency,
-            frequencyDays: body.frequencyDays ?? null,
-            isIrregular: body.isIrregular ?? false,
-            minimumExpected: body.minimumExpected ?? suggestion.detectedAmountMin ?? null,
+            intervalUnit,
+            intervalCount,
+            minimumExpected,
             nextExpectedDate: body.nextExpectedDate ? new Date(body.nextExpectedDate) : null,
           },
         });
@@ -114,9 +222,8 @@ export async function PUT(
           name,
           type: "recurring",
           amount,
-          frequency,
-          frequencyDays: body.frequencyDays ?? null,
-          startDate: now,
+          intervalUnit,
+          intervalCount,
           nextDueDate: body.nextDueDate ? new Date(body.nextDueDate) : now,
           fundGroupId: defaultFundGroup.id,
         },

@@ -1145,3 +1145,70 @@
   - Spec: `specs/04-expenses-obligations.md`
   - Acceptance: Action buttons (sparkle, pause/play, edit, delete) use inline SVG icons instead of text labels. Pause shows two vertical bars; play shows a triangle. Edit shows a pencil. Delete shows a trash can. Buttons are right-aligned via `margin-left: auto` on the actions container. All buttons have `title` tooltips and `aria-label` attributes. `.pauseButton` and `.editButton` CSS classes replaced with shared `.iconButton` class. HypotheticalForm cancel button uses new `.secondaryButton` class. Dark mode styles updated.
   - Tests: Existing tests updated to use aria-label queries instead of text content assertions. All 54 obligation page tests pass.
+
+### Simplify frequency UI and fix suggestion display
+
+- [x] **Simplify frequency controls in IncomeForm**
+  - Files: `web/app/(app)/income/IncomeForm.tsx`, `web/app/(app)/income/income-form.module.css`, `web/app/(app)/income/__tests__/IncomeForm.test.tsx`
+  - Spec: `specs/03-income-sources.md`
+  - Acceptance: Removed `INTERVAL_PRESETS` buttons, `isPresetMatch()`, `applyPreset()`, `activePreset`, `isIrregular` flag, and `minimumExpected` state. Form always shows "Every N [unit]" controls with `intervalUnit` defaulting to `"month"`. Added helper text: "If your income varies, enter a conservative estimate for the amount and period you can count on." Removed irregular minimum-expected section. `intervalUnit` is always non-null (`string` not `string | null`).
+  - Tests: 12 tests — replaced preset button and irregular tests with interval control and helper text tests.
+
+- [x] **Simplify frequency controls in ObligationForm**
+  - Files: `web/app/(app)/obligations/ObligationForm.tsx`, `web/app/(app)/obligations/__tests__/ObligationForm.test.tsx`
+  - Spec: `specs/04-expenses-obligations.md`
+  - Acceptance: Removed `INTERVAL_PRESETS`, `isPresetMatch()`, `applyPreset()`, `activePreset`, and preset button row. Only "Every N [unit]" controls remain for recurring and recurring_with_end types.
+  - Tests: 18 tests — replaced preset button tests with interval unit dropdown tests.
+
+- [x] **Simplify frequency controls in HypotheticalForm**
+  - Files: `web/app/(app)/obligations/HypotheticalForm.tsx`
+  - Spec: `specs/04-expenses-obligations.md`
+  - Acceptance: Removed `INTERVAL_PRESETS` and `applyPreset()`. Added `INTERVAL_UNIT_OPTIONS` constant. Replaced inline-styled preset buttons with clean unit dropdown.
+
+- [x] **Replace frequency presets with interval controls in onboarding income page**
+  - Files: `web/app/onboarding/manual/income/page.tsx`, `web/app/onboarding/manual/income/__tests__/page.test.tsx`
+  - Spec: `specs/02-onboarding.md`
+  - Acceptance: Replaced `INTERVAL_PRESETS` array and `selectedPreset` state with `intervalUnit`/`intervalCount` states. Form shows "Every" number input + "Unit" select dropdown instead of preset `<select>`. Updated `handleAdd()` to validate count and use new state. Removed "Irregular" option. Updated `formatInterval()` to remove "Irregular" and "Fortnightly" special cases.
+  - Tests: 10 tests — updated to use "Every"/"Unit" labels instead of "Frequency".
+
+- [x] **Replace frequency presets with interval controls in onboarding obligations page**
+  - Files: `web/app/onboarding/manual/obligations/page.tsx`, `web/app/onboarding/manual/obligations/__tests__/page.test.tsx`
+  - Spec: `specs/02-onboarding.md`
+  - Acceptance: Same treatment as onboarding income page — `INTERVAL_UNIT_OPTIONS`, `intervalUnit`/`intervalCount` states, "Every N [unit]" controls, updated `formatInterval()`.
+  - Tests: 9 tests — updated to use "Every"/"Unit" labels instead of "Frequency".
+
+- [x] **Update formatInterval() display across list pages**
+  - Files: `web/app/(app)/income/page.tsx`, `web/app/(app)/obligations/page.tsx`, `web/app/(app)/income/__tests__/page.test.tsx`
+  - Spec: `specs/03-income-sources.md`, `specs/04-expenses-obligations.md`
+  - Acceptance: Removed "Fortnightly" special case (now "Every 2 weeks"). Income page: `null` unit displays "—" instead of "Irregular". Count=1 shows friendly label (Weekly, Monthly, etc.), count>1 shows "Every N [units]".
+  - Tests: Updated assertion from "Irregular" to "—".
+
+- [x] **Fix suggestion display on suggestions page**
+  - Files: `web/app/(app)/suggestions/page.tsx`, `web/app/(app)/suggestions/__tests__/page.test.tsx`
+  - Spec: `specs/06-pattern-detection.md`
+  - Acceptance: Replaced `Suggestion` interface: `detectedFrequency` → `detectedIntervalUnit`/`detectedIntervalCount`. Replaced `FREQUENCY_LABELS`/`FREQUENCY_OPTIONS` with `INTERVAL_UNIT_OPTIONS` and `formatInterval()`. Tweak form uses "Every N [unit]" controls instead of frequency `<select>`. `handleSaveTweak()` sends `intervalUnit`/`intervalCount` instead of `frequency`. `handleStartTweak()` reads from `detectedIntervalUnit`/`detectedIntervalCount`. Irregular check uses `detectedIntervalUnit === null`.
+  - Tests: 15 tests — updated mocks to use `detectedIntervalUnit`/`detectedIntervalCount`, tweak form assertions updated for "Every"/"Unit" labels and new request body format.
+
+- [x] **Fix suggestion display on onboarding upload page**
+  - Files: `web/app/onboarding/upload/page.tsx`, `web/app/onboarding/upload/__tests__/page.test.tsx`
+  - Spec: `specs/02-onboarding.md`, `specs/06-pattern-detection.md`
+  - Acceptance: Same changes as suggestions page — updated `Suggestion` interface, replaced frequency constants, updated tweak state/handlers, replaced tweak form controls with "Every N [unit]".
+  - Tests: Already using new interval fields in mocks — no test changes needed.
+
+- [x] **Fix suggestion display on dashboard NudgeCards**
+  - Files: `web/app/(app)/dashboard/NudgeCards.tsx`, `web/app/(app)/dashboard/__tests__/NudgeCards.test.tsx`
+  - Spec: `specs/08-dashboard.md`
+  - Acceptance: Updated `Suggestion` interface with `detectedIntervalUnit`/`detectedIntervalCount`. Replaced `FREQUENCY_LABELS` with `formatInterval()` function (lowercase labels for inline text: "weekly", "monthly", etc.).
+  - Tests: 8 tests — removed `detectedFrequency` from all mock data.
+
+- [x] **Fix suggestion display on dashboard SuggestionsCard**
+  - Files: `web/app/(app)/dashboard/SuggestionsCard.tsx`, `web/app/(app)/dashboard/__tests__/SuggestionsCard.test.tsx`
+  - Spec: `specs/08-dashboard.md`
+  - Acceptance: Updated `Suggestion` interface with interval fields. Replaced `frequencyShort(freq: string)` with `frequencyShort(unit: string | null, count: number)` supporting count>1 cases (e.g. `/2wks`).
+  - Tests: Already using new interval fields — no test changes needed.
+
+- [x] **Add irregular income baseline computation in suggestion acceptance API**
+  - Files: `web/app/api/suggestions/[id]/route.ts`, `web/app/api/suggestions/[id]/__tests__/route.test.ts`
+  - Spec: `specs/06-pattern-detection.md`
+  - Acceptance: Added `computeIrregularBaseline()` helper that takes transaction dates+amounts and returns `{ amount, intervalUnit, intervalCount, minimumExpected }`. When `intervalUnit` is null on acceptance: computes baseline from linked transactions, sets conservative amount (min of average and median), defaults to monthly (or weekly if per-week > $10), appends "(irregular baseline)" to name, sets `minimumExpected` to minimum observed amount. Works for both income and expense suggestion types.
+  - Tests: Added `suggestionTransactions` to existing mock data. Added test for irregular income baseline computation verifying name suffix, interval fields, and minimumExpected.

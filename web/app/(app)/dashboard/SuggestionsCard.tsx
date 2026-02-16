@@ -10,30 +10,35 @@ interface Suggestion {
   type: "income" | "expense";
   vendorPattern: string;
   detectedAmount: number;
-  detectedFrequency: string;
+  detectedIntervalUnit: string | null;
+  detectedIntervalCount: number;
 }
 
 function formatAmount(amount: number): string {
   return `$${amount.toFixed(2)}`;
 }
 
-function frequencyShort(freq: string): string {
-  switch (freq) {
-    case "weekly":
-      return "/wk";
-    case "fortnightly":
-      return "/fn";
-    case "twice_monthly":
-      return "/2wk";
-    case "monthly":
-      return "/mo";
-    case "quarterly":
-      return "/qtr";
-    case "annual":
-      return "/yr";
-    default:
-      return "";
+function frequencyShort(unit: string | null, count: number): string {
+  if (!unit) return "";
+  if (count === 1) {
+    switch (unit) {
+      case "day": return "/day";
+      case "week": return "/wk";
+      case "twice_monthly": return "/2wk";
+      case "month": return "/mo";
+      case "quarter": return "/qtr";
+      case "year": return "/yr";
+      default: return "";
+    }
   }
+  const plurals: Record<string, string> = {
+    day: "days",
+    week: "wks",
+    month: "mos",
+    quarter: "qtrs",
+    year: "yrs",
+  };
+  return `/${count}${plurals[unit] ?? unit}`;
 }
 
 export default function SuggestionsCard() {
@@ -77,7 +82,7 @@ export default function SuggestionsCard() {
                 <span className={styles.vendor}>{s.vendorPattern}</span>
                 <span className={styles.detail}>
                   {formatAmount(s.detectedAmount)}
-                  {frequencyShort(s.detectedFrequency)}
+                  {frequencyShort(s.detectedIntervalUnit, s.detectedIntervalCount)}
                   {" \u2014 "}
                   {s.type}
                 </span>

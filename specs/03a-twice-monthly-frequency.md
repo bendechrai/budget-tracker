@@ -1,5 +1,7 @@
 # Rework: Add Twice-Monthly Income Frequency
 
+> **Note**: This rework spec has been completed. The frequency model was subsequently reworked again to use `intervalUnit`/`intervalCount` instead of the enum-based `frequency` field. `twice_monthly` is now one of the `IntervalUnit` enum values. See `specs/03-income-sources.md` for the current data model.
+
 ## References
 
 - Original spec: `specs/03-income-sources.md`

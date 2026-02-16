@@ -39,13 +39,13 @@ flowchart TD
 - **Each suggestion displays**:
   - Vendor/description
   - Detected amount (single value for consistent amounts, range for variable)
-  - Detected frequency
+  - Detected frequency as interval unit + count (e.g. "Monthly", "Every 2 weeks") or "Irregular" when no clear pattern
   - Confidence level: high, medium, or low
   - Number of matching transactions found
   - Suggested classification: income or expense, and which obligation pattern type
 - **User actions**:
-  - **Accept**: creates an income source or obligation with the detected parameters
-  - **Tweak**: opens a pre-filled form where the user can adjust any field before saving
+  - **Accept**: creates an income source or obligation with the detected parameters. For irregular patterns (no detected interval), the system computes a conservative baseline from transaction history (average/median per-period amount, minimum as floor) and names it "Vendor (irregular baseline)"
+  - **Tweak**: opens a pre-filled form with "Every N [unit]" controls where the user can adjust name, amount, and frequency before saving
   - **Dismiss**: hides the suggestion; same pattern won't be re-suggested unless significant new transaction data strengthens the case
 - Suggestions are sorted by confidence (high first, then medium, then low), with newest first within each confidence level
 - Suggestions feed is accessible via a nav item with a badge showing the count of pending suggestions
@@ -55,7 +55,7 @@ flowchart TD
 
 ## Data Model
 
-- `Suggestion`: id, userId, type (enum: income, expense), vendorPattern, detectedAmount, detectedAmountMin (nullable — for variable amounts), detectedAmountMax (nullable), detectedFrequency (enum), confidence (enum: high, medium, low), matchingTransactionCount, status (enum: pending, accepted, dismissed), linkedIncomeSourceId (nullable), linkedObligationId (nullable), createdAt, updatedAt
+- `Suggestion`: id, userId, type (enum: income, expense), vendorPattern, detectedAmount, detectedAmountMin (nullable — for variable amounts), detectedAmountMax (nullable), detectedIntervalUnit (enum: day, week, twice_monthly, month, quarter, year — nullable for irregular patterns), detectedIntervalCount (integer, default 1), confidence (enum: high, medium, low), matchingTransactionCount, status (enum: pending, accepted, dismissed), linkedIncomeSourceId (nullable), linkedObligationId (nullable), createdAt, updatedAt
 - `SuggestionTransaction`: suggestionId, transactionId (junction table linking a suggestion to its matching transactions)
 
 ## Edge Cases

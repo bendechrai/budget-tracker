@@ -31,10 +31,10 @@ flowchart TD
 ## Behavior
 
 - User can create income sources via NL input, traditional form, or by accepting suggestions from bank statement analysis
-- Each income source has: name, expected amount, frequency, variability flag
-- Supported frequency types: weekly, fortnightly, twice monthly, monthly, quarterly, annual, custom (every N days), irregular/ad-hoc
-- **Regular income**: system knows the next expected date and amount
-- **Irregular income**: system calculates average amount per period from transaction history; uses minimum expected amount for conservative sinking fund calculations
+- Each income source has: name, expected amount, frequency (as interval unit + count), next expected date
+- Frequency is expressed as "Every N [unit]" where unit is one of: day, week, twice_monthly, month, quarter, year. Combined with an interval count (e.g. every 2 weeks, every 1 month)
+- There is no separate "irregular" frequency. If income varies, the user enters a conservative estimate for the amount and period they can count on
+- When accepting irregular income suggestions from pattern detection, the system computes a conservative baseline (average or median per-period amount) and creates the income source with that baseline
 - **Variable amounts**: even regular income can vary (e.g. two monthly paychecks with different amounts). System tracks expected amount but allows for variation.
 - User can edit any income source via the ✨ sparkle button (with contextual presets) or the floating AI bar
 - User can pause an income source (temporarily excluded from calculations)
@@ -43,12 +43,11 @@ flowchart TD
 
 ## Data Model
 
-- `IncomeSource`: id, userId, name, expectedAmount, frequency (enum: weekly, fortnightly, twice_monthly, monthly, quarterly, annual, custom, irregular), frequencyDays (nullable — for custom frequency), isIrregular (boolean), minimumExpected (nullable — for irregular income), nextExpectedDate (nullable), isPaused (boolean, default false), isActive (boolean, default true), createdAt, updatedAt
+- `IncomeSource`: id, userId, name, expectedAmount, intervalUnit (enum: day, week, twice_monthly, month, quarter, year), intervalCount (integer, default 1), minimumExpected (nullable — for variable income), nextExpectedDate (nullable), isPaused (boolean, default false), isActive (boolean, default true), createdAt, updatedAt
 
 ## Edge Cases
 
 - No income sources: dashboard still works but shows warning "add income sources for per-cycle recommendations"
-- Irregular income with no transaction history: prompt user for estimated minimum per period
 - Income source deleted: triggers sinking fund engine recalculation
 - Amount changes over time: user can update expected amount; historical data is unaffected
 - Multiple incomes on the same day: both are counted
@@ -59,8 +58,8 @@ flowchart TD
 - [ ] User can add income via NL input
 - [ ] User can add income via traditional form
 - [ ] User can accept detected income from suggestions
-- [ ] All frequency types are supported (weekly through irregular)
-- [ ] Irregular income uses minimum expected for conservative calculations
+- [ ] All frequency types are supported via "Every N [unit]" controls
+- [ ] Variable income: helper text guides user to enter a conservative estimate
 - [ ] User can edit income via sparkle button (presets + free text)
 - [ ] User can edit income via floating AI bar
 - [ ] User can pause and resume income sources

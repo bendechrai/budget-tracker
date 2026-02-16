@@ -54,7 +54,7 @@ flowchart TD
 
 ## Data Model
 
-- `Obligation`: id, userId, name, type (enum: recurring, recurring_with_end, one_off, custom), amount, frequency (nullable), frequencyDays (nullable), startDate, endDate (nullable), nextDueDate, isPaused (boolean, default false), isActive (boolean, default true), isArchived (boolean, default false), fundGroupId (nullable — null means default group), createdAt, updatedAt
+- `Obligation`: id, userId, name, type (enum: recurring, recurring_with_end, one_off, custom), amount, intervalUnit (enum: day, week, twice_monthly, month, quarter, year — nullable for one_off/custom), intervalCount (integer, default 1), startDate, endDate (nullable), nextDueDate, isPaused (boolean, default false), isActive (boolean, default true), isArchived (boolean, default false), fundGroupId (nullable — null means default group), createdAt, updatedAt
 - `CustomScheduleEntry`: id, obligationId, dueDate, amount, isPaid (boolean, default false)
 - `FundGroup`: id, userId, name, createdAt, updatedAt
 

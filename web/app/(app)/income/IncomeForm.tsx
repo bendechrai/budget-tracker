@@ -6,9 +6,8 @@ import styles from "./income-form.module.css";
 export interface IncomeFormData {
   name: string;
   expectedAmount: number;
-  frequency: string;
-  frequencyDays: number | null;
-  isIrregular: boolean;
+  intervalUnit: string | null;
+  intervalCount: number;
   minimumExpected: number | null;
   nextExpectedDate: string | null;
 }
@@ -19,15 +18,13 @@ interface IncomeFormProps {
   submitLabel: string;
 }
 
-const FREQUENCY_OPTIONS = [
-  { value: "weekly", label: "Weekly" },
-  { value: "fortnightly", label: "Fortnightly" },
-  { value: "twice_monthly", label: "Twice monthly" },
-  { value: "monthly", label: "Monthly" },
-  { value: "quarterly", label: "Quarterly" },
-  { value: "annual", label: "Annual" },
-  { value: "custom", label: "Custom" },
-  { value: "irregular", label: "Irregular" },
+const INTERVAL_UNIT_OPTIONS = [
+  { value: "day", label: "days" },
+  { value: "week", label: "weeks" },
+  { value: "twice_monthly", label: "twice monthly" },
+  { value: "month", label: "months" },
+  { value: "quarter", label: "quarters" },
+  { value: "year", label: "years" },
 ];
 
 export default function IncomeForm({
@@ -39,17 +36,11 @@ export default function IncomeForm({
   const [expectedAmount, setExpectedAmount] = useState(
     initialData?.expectedAmount?.toString() ?? ""
   );
-  const [frequency, setFrequency] = useState(
-    initialData?.frequency ?? "monthly"
+  const [intervalUnit, setIntervalUnit] = useState(
+    initialData?.intervalUnit ?? "month"
   );
-  const [frequencyDays, setFrequencyDays] = useState(
-    initialData?.frequencyDays?.toString() ?? ""
-  );
-  const [isIrregular, setIsIrregular] = useState(
-    initialData?.isIrregular ?? false
-  );
-  const [minimumExpected, setMinimumExpected] = useState(
-    initialData?.minimumExpected?.toString() ?? ""
+  const [intervalCount, setIntervalCount] = useState(
+    initialData?.intervalCount?.toString() ?? "1"
   );
   const [nextExpectedDate, setNextExpectedDate] = useState(
     initialData?.nextExpectedDate ?? ""
@@ -73,32 +64,18 @@ export default function IncomeForm({
       return;
     }
 
-    let parsedFrequencyDays: number | null = null;
-    if (frequency === "custom") {
-      const fd = parseInt(frequencyDays, 10);
-      if (isNaN(fd) || fd <= 0) {
-        setError("Frequency days must be a positive number");
-        return;
-      }
-      parsedFrequencyDays = fd;
-    }
-
-    let parsedMinimumExpected: number | null = null;
-    if (minimumExpected.trim() !== "") {
-      parsedMinimumExpected = parseFloat(minimumExpected);
-      if (isNaN(parsedMinimumExpected) || parsedMinimumExpected < 0) {
-        setError("Minimum expected must be a non-negative number");
-        return;
-      }
+    const ic = parseInt(intervalCount, 10);
+    if (isNaN(ic) || ic <= 0) {
+      setError("Interval count must be a positive number");
+      return;
     }
 
     const data: IncomeFormData = {
       name: trimmedName,
       expectedAmount: parsedAmount,
-      frequency,
-      frequencyDays: parsedFrequencyDays,
-      isIrregular,
-      minimumExpected: parsedMinimumExpected,
+      intervalUnit,
+      intervalCount: ic,
+      minimumExpected: null,
       nextExpectedDate: nextExpectedDate || null,
     };
 
@@ -136,88 +113,62 @@ export default function IncomeForm({
         />
       </div>
 
-      <div className={styles.fieldRow}>
-        <div className={styles.field}>
-          <label className={styles.label} htmlFor="income-amount">
-            Expected Amount
-          </label>
-          <input
-            id="income-amount"
-            className={styles.input}
-            type="number"
-            min="0"
-            step="0.01"
-            value={expectedAmount}
-            onChange={(e) => setExpectedAmount(e.target.value)}
-            placeholder="0.00"
-          />
-        </div>
-
-        <div className={styles.field}>
-          <label className={styles.label} htmlFor="income-frequency">
-            Frequency
-          </label>
-          <select
-            id="income-frequency"
-            className={styles.input}
-            value={frequency}
-            onChange={(e) => setFrequency(e.target.value)}
-          >
-            {FREQUENCY_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-        </div>
+      <div className={styles.field}>
+        <label className={styles.label} htmlFor="income-amount">
+          Expected Amount
+        </label>
+        <input
+          id="income-amount"
+          className={styles.input}
+          type="number"
+          min="0"
+          step="0.01"
+          value={expectedAmount}
+          onChange={(e) => setExpectedAmount(e.target.value)}
+          placeholder="0.00"
+        />
       </div>
-
-      {frequency === "custom" && (
-        <div className={styles.field}>
-          <label className={styles.label} htmlFor="income-frequency-days">
-            Every how many days?
-          </label>
-          <input
-            id="income-frequency-days"
-            className={styles.input}
-            type="number"
-            min="1"
-            step="1"
-            value={frequencyDays}
-            onChange={(e) => setFrequencyDays(e.target.value)}
-            placeholder="e.g. 14"
-          />
-        </div>
-      )}
 
       <div className={styles.field}>
-        <label className={styles.checkboxLabel}>
-          <input
-            type="checkbox"
-            checked={isIrregular}
-            onChange={(e) => setIsIrregular(e.target.checked)}
-          />
-          <span>Irregular income (variable timing or amount)</span>
-        </label>
-      </div>
-
-      {isIrregular && (
-        <div className={styles.field}>
-          <label className={styles.label} htmlFor="income-minimum">
-            Minimum Expected
-          </label>
-          <input
-            id="income-minimum"
-            className={styles.input}
-            type="number"
-            min="0"
-            step="0.01"
-            value={minimumExpected}
-            onChange={(e) => setMinimumExpected(e.target.value)}
-            placeholder="Conservative estimate"
-          />
+        <label className={styles.label}>Frequency</label>
+        <div className={styles.fieldRow}>
+          <div className={styles.field}>
+            <label className={styles.label} htmlFor="income-interval-count">
+              Every
+            </label>
+            <input
+              id="income-interval-count"
+              className={styles.input}
+              type="number"
+              min="1"
+              step="1"
+              value={intervalCount}
+              onChange={(e) => setIntervalCount(e.target.value)}
+            />
+          </div>
+          <div className={styles.field}>
+            <label className={styles.label} htmlFor="income-interval-unit">
+              Unit
+            </label>
+            <select
+              id="income-interval-unit"
+              className={styles.input}
+              value={intervalUnit}
+              onChange={(e) => setIntervalUnit(e.target.value)}
+            >
+              {INTERVAL_UNIT_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
-      )}
+        <p className={styles.helperText}>
+          If your income varies, enter a conservative estimate for the amount
+          and period you can count on.
+        </p>
+      </div>
 
       <div className={styles.field}>
         <label className={styles.label} htmlFor="income-next-date">

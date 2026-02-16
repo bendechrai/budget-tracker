@@ -12,21 +12,26 @@ interface Suggestion {
   detectedAmount: number;
   detectedAmountMin: number | null;
   detectedAmountMax: number | null;
-  detectedFrequency: string;
+  detectedIntervalUnit: string | null;
+  detectedIntervalCount: number;
   confidence: "high" | "medium" | "low";
   matchingTransactionCount: number;
 }
 
-const FREQUENCY_LABELS: Record<string, string> = {
-  weekly: "weekly",
-  fortnightly: "fortnightly",
-  twice_monthly: "twice-monthly",
-  monthly: "monthly",
-  quarterly: "quarterly",
-  annual: "annual",
-  custom: "custom",
-  irregular: "irregular",
-};
+function formatInterval(unit: string | null, count: number): string {
+  if (!unit) return "irregular";
+  if (unit === "twice_monthly") return "twice-monthly";
+  const labels: Record<string, [string, string]> = {
+    day: ["daily", "days"],
+    week: ["weekly", "weeks"],
+    month: ["monthly", "months"],
+    quarter: ["quarterly", "quarters"],
+    year: ["annual", "years"],
+  };
+  const [singular, plural] = labels[unit] ?? [unit, unit + "s"];
+  if (count === 1) return singular;
+  return `every ${count} ${plural}`;
+}
 
 function formatAmount(amount: number): string {
   return `$${amount.toFixed(2)}`;
@@ -82,9 +87,7 @@ export default function NudgeCards() {
   return (
     <div className={styles.nudgeSection} data-testid="nudge-cards">
       {suggestions.map((suggestion) => {
-        const freq =
-          FREQUENCY_LABELS[suggestion.detectedFrequency] ??
-          suggestion.detectedFrequency;
+        const freq = formatInterval(suggestion.detectedIntervalUnit, suggestion.detectedIntervalCount);
         const typeLabel =
           suggestion.type === "income" ? "income" : "charge";
 

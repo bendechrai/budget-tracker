@@ -26,7 +26,8 @@ interface Suggestion {
   detectedAmount: number;
   detectedAmountMin: number | null;
   detectedAmountMax: number | null;
-  detectedFrequency: string;
+  detectedIntervalUnit: string | null;
+  detectedIntervalCount: number;
   confidence: "high" | "medium" | "low";
   matchingTransactionCount: number;
   status: string;
@@ -35,27 +36,29 @@ interface Suggestion {
 
 type Step = "upload" | "processing" | "suggestions" | "done";
 
-const FREQUENCY_LABELS: Record<string, string> = {
-  weekly: "Weekly",
-  fortnightly: "Fortnightly",
-  twice_monthly: "Twice monthly",
-  monthly: "Monthly",
-  quarterly: "Quarterly",
-  annual: "Annual",
-  custom: "Custom",
-  irregular: "Irregular",
-};
-
-const FREQUENCY_OPTIONS = [
-  { value: "weekly", label: "Weekly" },
-  { value: "fortnightly", label: "Fortnightly" },
-  { value: "twice_monthly", label: "Twice monthly" },
-  { value: "monthly", label: "Monthly" },
-  { value: "quarterly", label: "Quarterly" },
-  { value: "annual", label: "Annual" },
-  { value: "custom", label: "Custom" },
-  { value: "irregular", label: "Irregular" },
+const INTERVAL_UNIT_OPTIONS = [
+  { value: "day", label: "days" },
+  { value: "week", label: "weeks" },
+  { value: "twice_monthly", label: "twice monthly" },
+  { value: "month", label: "months" },
+  { value: "quarter", label: "quarters" },
+  { value: "year", label: "years" },
 ];
+
+function formatInterval(unit: string | null, count: number): string {
+  if (!unit) return "Irregular";
+  if (unit === "twice_monthly") return "Twice monthly";
+  const labels: Record<string, [string, string]> = {
+    day: ["Daily", "days"],
+    week: ["Weekly", "weeks"],
+    month: ["Monthly", "months"],
+    quarter: ["Quarterly", "quarters"],
+    year: ["Annually", "years"],
+  };
+  const [singular, plural] = labels[unit] ?? [unit, unit + "s"];
+  if (count === 1) return singular;
+  return `Every ${count} ${plural}`;
+}
 
 function formatAmount(amount: number): string {
   return `$${amount.toFixed(2)}`;
@@ -111,7 +114,8 @@ export default function OnboardingUploadPage() {
   const [tweakingId, setTweakingId] = useState<string | null>(null);
   const [tweakName, setTweakName] = useState("");
   const [tweakAmount, setTweakAmount] = useState("");
-  const [tweakFrequency, setTweakFrequency] = useState("");
+  const [tweakIntervalUnit, setTweakIntervalUnit] = useState("");
+  const [tweakIntervalCount, setTweakIntervalCount] = useState("1");
   const [fetchingSuggestions, setFetchingSuggestions] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -266,14 +270,16 @@ export default function OnboardingUploadPage() {
     setTweakingId(suggestion.id);
     setTweakName(suggestion.vendorPattern);
     setTweakAmount(suggestion.detectedAmount.toString());
-    setTweakFrequency(suggestion.detectedFrequency);
+    setTweakIntervalUnit(suggestion.detectedIntervalUnit ?? "month");
+    setTweakIntervalCount(suggestion.detectedIntervalCount?.toString() ?? "1");
   }
 
   function handleCancelTweak() {
     setTweakingId(null);
     setTweakName("");
     setTweakAmount("");
-    setTweakFrequency("");
+    setTweakIntervalUnit("");
+    setTweakIntervalCount("1");
   }
 
   async function handleSaveTweak(id: string) {
@@ -292,6 +298,7 @@ export default function OnboardingUploadPage() {
     setActionLoading(id);
     setError("");
     try {
+      const parsedCount = parseInt(tweakIntervalCount, 10);
       const res = await fetch(`/api/suggestions/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -299,7 +306,8 @@ export default function OnboardingUploadPage() {
           action: "accept",
           name: trimmedName,
           amount: parsedAmount,
-          frequency: tweakFrequency,
+          intervalUnit: tweakIntervalUnit || null,
+          intervalCount: isNaN(parsedCount) || parsedCount <= 0 ? 1 : parsedCount,
         }),
       });
       if (!res.ok) {
@@ -480,8 +488,7 @@ export default function OnboardingUploadPage() {
                       )}
                     </span>
                     <span className={uploadStyles.cardDetail}>
-                      {FREQUENCY_LABELS[suggestion.detectedFrequency] ??
-                        suggestion.detectedFrequency}
+                      {formatInterval(suggestion.detectedIntervalUnit, suggestion.detectedIntervalCount)}
                     </span>
                     <span
                       className={`${uploadStyles.confidenceBadge} ${
@@ -539,17 +546,34 @@ export default function OnboardingUploadPage() {
                         <div className={uploadStyles.tweakField}>
                           <label
                             className={uploadStyles.tweakLabel}
-                            htmlFor={`tweak-frequency-${suggestion.id}`}
+                            htmlFor={`tweak-interval-count-${suggestion.id}`}
                           >
-                            Frequency
+                            Every
+                          </label>
+                          <input
+                            id={`tweak-interval-count-${suggestion.id}`}
+                            className={uploadStyles.tweakInput}
+                            type="number"
+                            min="1"
+                            step="1"
+                            value={tweakIntervalCount}
+                            onChange={(e) => setTweakIntervalCount(e.target.value)}
+                          />
+                        </div>
+                        <div className={uploadStyles.tweakField}>
+                          <label
+                            className={uploadStyles.tweakLabel}
+                            htmlFor={`tweak-interval-unit-${suggestion.id}`}
+                          >
+                            Unit
                           </label>
                           <select
-                            id={`tweak-frequency-${suggestion.id}`}
+                            id={`tweak-interval-unit-${suggestion.id}`}
                             className={uploadStyles.tweakInput}
-                            value={tweakFrequency}
-                            onChange={(e) => setTweakFrequency(e.target.value)}
+                            value={tweakIntervalUnit}
+                            onChange={(e) => setTweakIntervalUnit(e.target.value)}
                           >
-                            {FREQUENCY_OPTIONS.map((opt) => (
+                            {INTERVAL_UNIT_OPTIONS.map((opt) => (
                               <option key={opt.value} value={opt.value}>
                                 {opt.label}
                               </option>

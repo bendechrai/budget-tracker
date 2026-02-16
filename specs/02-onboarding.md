@@ -29,7 +29,7 @@ flowchart TD
 
 - Welcome screen explains the sinking fund concept and presents two equally visible paths side by side
 - **Statement upload path**: user uploads one or more statements, system detects patterns, presents suggestions for review (accept/tweak/dismiss each)
-- **Manual path**: user adds income sources and obligations one at a time using NL input or traditional forms
+- **Manual path**: user adds income sources and obligations one at a time using traditional forms with "Every N [unit]" frequency controls
 - Both paths converge on fund setup: current fund balance, maximum contribution capacity per cycle, contribution cycle type (radio buttons: Weekly/Fortnightly/Twice monthly/Monthly), currency symbol (quick-pick buttons + custom input)
 - User can skip any step and complete it later
 - Onboarding state is tracked — user can resume if they leave partway through

@@ -56,6 +56,12 @@
   cursor: pointer;
 }
 
+.helperText {
+  font-size: 13px;
+  color: #666;
+  margin: 0;
+}
+
 .submitButton {
   padding: 12px 24px;
   border: none;

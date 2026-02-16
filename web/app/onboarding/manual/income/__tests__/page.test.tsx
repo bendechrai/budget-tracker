@@ -26,7 +26,8 @@ describe("OnboardingManualIncomePage", () => {
     ).toBeDefined();
     expect(screen.getByLabelText("Name")).toBeDefined();
     expect(screen.getByLabelText("Amount")).toBeDefined();
-    expect(screen.getByLabelText("Frequency")).toBeDefined();
+    expect(screen.getByLabelText("Every")).toBeDefined();
+    expect(screen.getByLabelText("Unit")).toBeDefined();
     expect(
       screen.getByRole("button", { name: "Add income source" })
     ).toBeDefined();
@@ -129,22 +130,17 @@ describe("OnboardingManualIncomePage", () => {
 
     await user.type(screen.getByLabelText("Name"), "Freelance");
     await user.type(screen.getByLabelText("Amount"), "2000");
-    await user.selectOptions(screen.getByLabelText("Frequency"), "weekly");
+    await user.selectOptions(screen.getByLabelText("Unit"), "week");
     await user.click(screen.getByRole("button", { name: "Add income source" }));
 
     expect(screen.getByText("$2000 / Weekly")).toBeDefined();
   });
 
-  it("renders 'Twice monthly' option in frequency dropdown", () => {
+  it("renders 'twice monthly' option in unit dropdown", () => {
     render(<OnboardingManualIncomePage />);
 
-    const frequencySelect = screen.getByLabelText("Frequency") as HTMLSelectElement;
-    const options = Array.from(frequencySelect.options).map((o) => o.value);
-    expect(options).toContain("twice_monthly");
-
-    const twiceMonthlyOption = Array.from(frequencySelect.options).find(
-      (o) => o.value === "twice_monthly"
-    );
-    expect(twiceMonthlyOption?.textContent).toBe("Twice monthly");
+    const unitSelect = screen.getByLabelText("Unit") as HTMLSelectElement;
+    const optionLabels = Array.from(unitSelect.options).map((o) => o.textContent);
+    expect(optionLabels).toContain("twice monthly");
   });
 });

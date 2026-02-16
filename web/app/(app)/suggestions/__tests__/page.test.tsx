@@ -24,7 +24,8 @@ const mockSuggestions = [
     detectedAmount: 22.99,
     detectedAmountMin: null,
     detectedAmountMax: null,
-    detectedFrequency: "monthly",
+    detectedIntervalUnit: "month",
+    detectedIntervalCount: 1,
     confidence: "high",
     matchingTransactionCount: 6,
     status: "pending",
@@ -65,7 +66,8 @@ const mockSuggestions = [
     detectedAmount: 5000,
     detectedAmountMin: 4800,
     detectedAmountMax: 5200,
-    detectedFrequency: "monthly",
+    detectedIntervalUnit: "month",
+    detectedIntervalCount: 1,
     confidence: "medium",
     matchingTransactionCount: 3,
     status: "pending",
@@ -97,7 +99,8 @@ const mockSuggestions = [
     detectedAmount: 50,
     detectedAmountMin: 30,
     detectedAmountMax: 80,
-    detectedFrequency: "irregular",
+    detectedIntervalUnit: null,
+    detectedIntervalCount: 1,
     confidence: "low",
     matchingTransactionCount: 3,
     status: "pending",
@@ -287,11 +290,13 @@ describe("SuggestionsPage", () => {
 
     const nameInput = screen.getByLabelText("Name") as HTMLInputElement;
     const amountInput = screen.getByLabelText("Amount") as HTMLInputElement;
-    const frequencySelect = screen.getByLabelText("Frequency") as HTMLSelectElement;
+    const everyInput = screen.getByLabelText("Every") as HTMLInputElement;
+    const unitSelect = screen.getByLabelText("Unit") as HTMLSelectElement;
 
     expect(nameInput.value).toBe("Netflix");
     expect(amountInput.value).toBe("22.99");
-    expect(frequencySelect.value).toBe("monthly");
+    expect(everyInput.value).toBe("1");
+    expect(unitSelect.value).toBe("month");
   });
 
   it("saves tweaked suggestion with modified values", async () => {
@@ -326,7 +331,8 @@ describe("SuggestionsPage", () => {
         action: "accept",
         name: "Netflix",
         amount: 25.99,
-        frequency: "monthly",
+        intervalUnit: "month",
+        intervalCount: 1,
       }),
     });
 

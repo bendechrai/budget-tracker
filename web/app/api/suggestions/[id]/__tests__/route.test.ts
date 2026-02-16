@@ -48,7 +48,8 @@ const mockPendingSuggestion = {
   detectedAmount: 14.99,
   detectedAmountMin: null,
   detectedAmountMax: null,
-  detectedFrequency: "monthly",
+  detectedIntervalUnit: "month",
+  detectedIntervalCount: 1,
   confidence: "high",
   matchingTransactionCount: 3,
   status: "pending",
@@ -56,6 +57,7 @@ const mockPendingSuggestion = {
   linkedObligationId: null,
   createdAt: new Date("2024-03-01"),
   updatedAt: new Date("2024-03-01"),
+  suggestionTransactions: [],
 };
 
 const mockIncomeSuggestion = {
@@ -66,6 +68,44 @@ const mockIncomeSuggestion = {
   detectedAmount: 5000,
   detectedAmountMin: 4800,
   detectedAmountMax: 5200,
+  detectedIntervalUnit: "month",
+  detectedIntervalCount: 1,
+  suggestionTransactions: [],
+};
+
+const mockIrregularIncomeSuggestion = {
+  ...mockPendingSuggestion,
+  id: "sug_3",
+  type: "income",
+  vendorPattern: "Freelance Gigs",
+  detectedAmount: 500,
+  detectedAmountMin: 200,
+  detectedAmountMax: 800,
+  detectedIntervalUnit: null,
+  detectedIntervalCount: null,
+  suggestionTransactions: [
+    {
+      transaction: {
+        id: "t1",
+        date: new Date("2025-10-01"),
+        amount: 200,
+      },
+    },
+    {
+      transaction: {
+        id: "t2",
+        date: new Date("2025-11-15"),
+        amount: 500,
+      },
+    },
+    {
+      transaction: {
+        id: "t3",
+        date: new Date("2025-12-20"),
+        amount: 800,
+      },
+    },
+  ],
 };
 
 function makeRequest(body: Record<string, unknown>): NextRequest {
@@ -208,7 +248,8 @@ describe("PUT /api/suggestions/[id]", () => {
         name: "Netflix",
         type: "recurring",
         amount: 14.99,
-        frequency: "monthly",
+        intervalUnit: "month",
+        intervalCount: 1,
       };
       const updatedSuggestion = {
         ...mockPendingSuggestion,
@@ -234,7 +275,8 @@ describe("PUT /api/suggestions/[id]", () => {
             name: "Netflix",
             type: "recurring",
             amount: 14.99,
-            frequency: "monthly",
+            intervalUnit: "month",
+            intervalCount: 1,
           }),
         })
       );
@@ -247,7 +289,8 @@ describe("PUT /api/suggestions/[id]", () => {
         name: "Netflix Premium",
         type: "recurring",
         amount: 22.99,
-        frequency: "monthly",
+        intervalUnit: "month",
+        intervalCount: 1,
       };
       const updatedSuggestion = {
         ...mockPendingSuggestion,
@@ -294,8 +337,8 @@ describe("PUT /api/suggestions/[id]", () => {
         userId: "user_1",
         name: "Employer Inc",
         expectedAmount: 5000,
-        frequency: "monthly",
-        isIrregular: false,
+        intervalUnit: "month",
+        intervalCount: 1,
       };
       const updatedSuggestion = {
         ...mockIncomeSuggestion,
@@ -323,8 +366,8 @@ describe("PUT /api/suggestions/[id]", () => {
             userId: "user_1",
             name: "Employer Inc",
             expectedAmount: 5000,
-            frequency: "monthly",
-            isIrregular: false,
+            intervalUnit: "month",
+            intervalCount: 1,
             minimumExpected: 4800,
           }),
         })
@@ -337,8 +380,8 @@ describe("PUT /api/suggestions/[id]", () => {
         userId: "user_1",
         name: "My Salary",
         expectedAmount: 5500,
-        frequency: "fortnightly",
-        isIrregular: true,
+        intervalUnit: "week",
+        intervalCount: 2,
       };
       const updatedSuggestion = {
         ...mockIncomeSuggestion,
@@ -355,8 +398,8 @@ describe("PUT /api/suggestions/[id]", () => {
           action: "accept",
           name: "My Salary",
           amount: 5500,
-          frequency: "fortnightly",
-          isIrregular: true,
+          intervalUnit: "week",
+          intervalCount: 2,
         }),
         { params: incomParams }
       );
@@ -371,8 +414,51 @@ describe("PUT /api/suggestions/[id]", () => {
           data: expect.objectContaining({
             name: "My Salary",
             expectedAmount: 5500,
-            frequency: "fortnightly",
-            isIrregular: true,
+            intervalUnit: "week",
+            intervalCount: 2,
+          }),
+        })
+      );
+    });
+  });
+
+  describe("accept irregular income suggestion", () => {
+    beforeEach(() => {
+      mockSuggestionFindUnique.mockResolvedValue(mockIrregularIncomeSuggestion);
+    });
+
+    it("computes a baseline for irregular income", async () => {
+      const mockIncomeSource = {
+        id: "inc_1",
+        userId: "user_1",
+        name: "Freelance Gigs (irregular baseline)",
+        expectedAmount: 500,
+        intervalUnit: "month",
+        intervalCount: 1,
+      };
+      const updatedSuggestion = {
+        ...mockIrregularIncomeSuggestion,
+        status: "accepted",
+        linkedIncomeSourceId: "inc_1",
+      };
+
+      mockIncomeSourceCreate.mockResolvedValue(mockIncomeSource);
+      mockSuggestionUpdate.mockResolvedValue(updatedSuggestion);
+
+      const irregularParams = Promise.resolve({ id: "sug_3" });
+      const res = await PUT(makeRequest({ action: "accept" }), {
+        params: irregularParams,
+      });
+
+      expect(res.status).toBe(200);
+
+      expect(mockIncomeSourceCreate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            name: "Freelance Gigs (irregular baseline)",
+            intervalUnit: expect.stringMatching(/^(week|month)$/),
+            intervalCount: 1,
+            minimumExpected: 200,
           }),
         })
       );

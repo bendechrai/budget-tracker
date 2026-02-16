@@ -9,24 +9,41 @@ import incomeStyles from "./income.module.css";
 interface IncomeEntry {
   name: string;
   amount: string;
-  frequency: string;
+  intervalUnit: string;
+  intervalCount: number;
 }
 
-const FREQUENCY_LABELS: Record<string, string> = {
-  weekly: "Weekly",
-  fortnightly: "Fortnightly",
-  twice_monthly: "Twice monthly",
-  monthly: "Monthly",
-  quarterly: "Quarterly",
-  annually: "Annually",
-};
+const INTERVAL_UNIT_OPTIONS = [
+  { value: "day", label: "days" },
+  { value: "week", label: "weeks" },
+  { value: "twice_monthly", label: "twice monthly" },
+  { value: "month", label: "months" },
+  { value: "quarter", label: "quarters" },
+  { value: "year", label: "years" },
+];
+
+function formatInterval(unit: string | null, count: number): string {
+  if (!unit) return "—";
+  if (unit === "twice_monthly") return "Twice monthly";
+  const labels: Record<string, [string, string]> = {
+    day: ["Daily", "days"],
+    week: ["Weekly", "weeks"],
+    month: ["Monthly", "months"],
+    quarter: ["Quarterly", "quarters"],
+    year: ["Annually", "years"],
+  };
+  const [singular, plural] = labels[unit] ?? [unit, unit + "s"];
+  if (count === 1) return singular;
+  return `Every ${count} ${plural}`;
+}
 
 export default function OnboardingManualIncomePage() {
   const router = useRouter();
   const [entries, setEntries] = useState<IncomeEntry[]>([]);
   const [name, setName] = useState("");
   const [amount, setAmount] = useState("");
-  const [frequency, setFrequency] = useState("monthly");
+  const [intervalUnit, setIntervalUnit] = useState("month");
+  const [intervalCount, setIntervalCount] = useState("1");
   const [error, setError] = useState("");
 
   function handleAdd(e: FormEvent<HTMLFormElement>) {
@@ -44,10 +61,25 @@ export default function OnboardingManualIncomePage() {
       return;
     }
 
-    setEntries([...entries, { name: name.trim(), amount, frequency }]);
+    const parsedCount = parseInt(intervalCount, 10);
+    if (isNaN(parsedCount) || parsedCount <= 0) {
+      setError("Interval count must be a positive number");
+      return;
+    }
+
+    setEntries([
+      ...entries,
+      {
+        name: name.trim(),
+        amount,
+        intervalUnit,
+        intervalCount: parsedCount,
+      },
+    ]);
     setName("");
     setAmount("");
-    setFrequency("monthly");
+    setIntervalUnit("month");
+    setIntervalCount("1");
   }
 
   function handleRemove(index: number) {
@@ -74,7 +106,7 @@ export default function OnboardingManualIncomePage() {
                 <div className={incomeStyles.listItemInfo}>
                   <span className={incomeStyles.listItemName}>{entry.name}</span>
                   <span className={incomeStyles.listItemDetail}>
-                    ${entry.amount} / {FREQUENCY_LABELS[entry.frequency] ?? entry.frequency}
+                    ${entry.amount} / {formatInterval(entry.intervalUnit, entry.intervalCount)}
                   </span>
                 </div>
                 <button
@@ -129,21 +161,34 @@ export default function OnboardingManualIncomePage() {
             </div>
 
             <div className={incomeStyles.field}>
-              <label className={incomeStyles.label} htmlFor="income-frequency">
-                Frequency
+              <label className={incomeStyles.label} htmlFor="income-interval-count">
+                Every
+              </label>
+              <input
+                id="income-interval-count"
+                className={incomeStyles.input}
+                type="number"
+                min="1"
+                step="1"
+                value={intervalCount}
+                onChange={(e) => setIntervalCount(e.target.value)}
+              />
+            </div>
+            <div className={incomeStyles.field}>
+              <label className={incomeStyles.label} htmlFor="income-interval-unit">
+                Unit
               </label>
               <select
-                id="income-frequency"
+                id="income-interval-unit"
                 className={incomeStyles.input}
-                value={frequency}
-                onChange={(e) => setFrequency(e.target.value)}
+                value={intervalUnit}
+                onChange={(e) => setIntervalUnit(e.target.value)}
               >
-                <option value="weekly">Weekly</option>
-                <option value="fortnightly">Fortnightly</option>
-                <option value="twice_monthly">Twice monthly</option>
-                <option value="monthly">Monthly</option>
-                <option value="quarterly">Quarterly</option>
-                <option value="annually">Annually</option>
+                {INTERVAL_UNIT_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
               </select>
             </div>
           </div>

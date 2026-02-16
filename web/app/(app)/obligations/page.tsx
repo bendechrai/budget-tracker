@@ -69,7 +69,6 @@ function formatInterval(unit: string | null, count: number): string | null {
   };
   const [singular, plural] = labels[unit] ?? [unit, unit + "s"];
   if (count === 1) return singular;
-  if (unit === "week" && count === 2) return "Fortnightly";
   return `Every ${count} ${plural}`;
 }
 

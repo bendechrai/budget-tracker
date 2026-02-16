@@ -24,8 +24,9 @@ describe("ObligationForm", () => {
     expect(screen.getByLabelText("Name")).toBeDefined();
     expect(screen.getByLabelText("Type")).toBeDefined();
     expect(screen.getByLabelText("Amount")).toBeDefined();
-    expect(screen.getByLabelText("Frequency")).toBeDefined();
-    expect(screen.getByLabelText("Start Date")).toBeDefined();
+    expect(screen.getByText("Frequency")).toBeDefined();
+    expect(screen.getByLabelText("Every")).toBeDefined();
+    expect(screen.getByLabelText("Unit")).toBeDefined();
     expect(screen.getByLabelText("Next Due Date")).toBeDefined();
     expect(screen.getByRole("button", { name: "Create" })).toBeDefined();
   });
@@ -44,10 +45,11 @@ describe("ObligationForm", () => {
     ]);
   });
 
-  it("shows frequency field for recurring type", () => {
+  it("shows frequency controls for recurring type", () => {
     render(<ObligationForm onSubmit={mockSubmit} submitLabel="Create" />);
 
-    expect(screen.getByLabelText("Frequency")).toBeDefined();
+    expect(screen.getByLabelText("Every")).toBeDefined();
+    expect(screen.getByLabelText("Unit")).toBeDefined();
     expect(screen.queryByLabelText("End Date")).toBeNull();
   });
 
@@ -57,7 +59,7 @@ describe("ObligationForm", () => {
 
     await user.selectOptions(screen.getByLabelText("Type"), "recurring_with_end");
 
-    expect(screen.getByLabelText("Frequency")).toBeDefined();
+    expect(screen.getByText("Frequency")).toBeDefined();
     expect(screen.getByLabelText("End Date")).toBeDefined();
   });
 
@@ -67,7 +69,9 @@ describe("ObligationForm", () => {
 
     await user.selectOptions(screen.getByLabelText("Type"), "one_off");
 
-    expect(screen.queryByLabelText("Frequency")).toBeNull();
+    expect(screen.queryByText("Frequency")).toBeNull();
+    expect(screen.queryByLabelText("Every")).toBeNull();
+    expect(screen.queryByLabelText("Unit")).toBeNull();
     expect(screen.queryByLabelText("End Date")).toBeNull();
   });
 
@@ -77,7 +81,7 @@ describe("ObligationForm", () => {
 
     await user.selectOptions(screen.getByLabelText("Type"), "custom");
 
-    expect(screen.queryByLabelText("Frequency")).toBeNull();
+    expect(screen.queryByText("Frequency")).toBeNull();
     expect(screen.getByText("Schedule Entries")).toBeDefined();
     expect(screen.getByText("Add entry")).toBeDefined();
   });
@@ -105,15 +109,28 @@ describe("ObligationForm", () => {
     expect(screen.queryByLabelText("Remove entry 1")).toBeNull();
   });
 
-  it("shows frequency days field when custom frequency selected", async () => {
+  it("allows changing interval unit via dropdown", async () => {
     const user = userEvent.setup();
+    mockSubmit.mockResolvedValueOnce(undefined);
+
     render(<ObligationForm onSubmit={mockSubmit} submitLabel="Create" />);
 
-    expect(screen.queryByLabelText("Every how many days?")).toBeNull();
+    await user.type(screen.getByLabelText("Name"), "Test");
+    await user.clear(screen.getByLabelText("Amount"));
+    await user.type(screen.getByLabelText("Amount"), "100");
+    setDateInput(screen.getByLabelText("Next Due Date") as HTMLInputElement, "2026-02-01");
 
-    await user.selectOptions(screen.getByLabelText("Frequency"), "custom");
+    // Change to quarterly
+    await user.selectOptions(screen.getByLabelText("Unit"), "quarter");
 
-    expect(screen.getByLabelText("Every how many days?")).toBeDefined();
+    await user.click(screen.getByRole("button", { name: "Create" }));
+
+    expect(mockSubmit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        intervalUnit: "quarter",
+        intervalCount: 1,
+      })
+    );
   });
 
   it("submits valid recurring obligation data", async () => {
@@ -125,7 +142,6 @@ describe("ObligationForm", () => {
     await user.type(screen.getByLabelText("Name"), "Netflix");
     await user.clear(screen.getByLabelText("Amount"));
     await user.type(screen.getByLabelText("Amount"), "22.99");
-    setDateInput(screen.getByLabelText("Start Date") as HTMLInputElement, "2026-01-01");
     setDateInput(screen.getByLabelText("Next Due Date") as HTMLInputElement, "2026-02-01");
 
     await user.click(screen.getByRole("button", { name: "Create" }));
@@ -134,9 +150,8 @@ describe("ObligationForm", () => {
       name: "Netflix",
       type: "recurring",
       amount: 22.99,
-      frequency: "monthly",
-      frequencyDays: null,
-      startDate: "2026-01-01",
+      intervalUnit: "month",
+      intervalCount: 1,
       endDate: null,
       nextDueDate: "2026-02-01",
       fundGroupId: undefined,
@@ -154,7 +169,6 @@ describe("ObligationForm", () => {
     await user.type(screen.getByLabelText("Name"), "Car rego");
     await user.clear(screen.getByLabelText("Amount"));
     await user.type(screen.getByLabelText("Amount"), "850");
-    setDateInput(screen.getByLabelText("Start Date") as HTMLInputElement, "2026-01-01");
     setDateInput(screen.getByLabelText("Next Due Date") as HTMLInputElement, "2026-07-15");
 
     await user.click(screen.getByRole("button", { name: "Create" }));
@@ -163,9 +177,8 @@ describe("ObligationForm", () => {
       name: "Car rego",
       type: "one_off",
       amount: 850,
-      frequency: null,
-      frequencyDays: null,
-      startDate: "2026-01-01",
+      intervalUnit: null,
+      intervalCount: 1,
       endDate: null,
       nextDueDate: "2026-07-15",
       fundGroupId: undefined,
@@ -185,7 +198,6 @@ describe("ObligationForm", () => {
     await user.type(screen.getByLabelText("Amount"), "1800");
 
     await user.selectOptions(screen.getByLabelText("Type"), "custom");
-    setDateInput(screen.getByLabelText("Start Date") as HTMLInputElement, "2026-09-01");
     setDateInput(screen.getByLabelText("Next Due Date") as HTMLInputElement, "2026-09-15");
 
     // Fill first entry date and amount using their specific IDs
@@ -205,9 +217,8 @@ describe("ObligationForm", () => {
       name: "Council tax",
       type: "custom",
       amount: 1800,
-      frequency: null,
-      frequencyDays: null,
-      startDate: "2026-09-01",
+      intervalUnit: null,
+      intervalCount: 1,
       endDate: null,
       nextDueDate: "2026-09-15",
       fundGroupId: undefined,
@@ -221,8 +232,7 @@ describe("ObligationForm", () => {
 
     await user.clear(screen.getByLabelText("Amount"));
     await user.type(screen.getByLabelText("Amount"), "100");
-    await user.type(screen.getByLabelText("Start Date"), "2026-01-01");
-    await user.type(screen.getByLabelText("Next Due Date"), "2026-02-01");
+    setDateInput(screen.getByLabelText("Next Due Date") as HTMLInputElement, "2026-02-01");
     await user.click(screen.getByRole("button", { name: "Create" }));
 
     expect(screen.getByRole("alert").textContent).toBe("Name is required");
@@ -234,8 +244,7 @@ describe("ObligationForm", () => {
     render(<ObligationForm onSubmit={mockSubmit} submitLabel="Create" />);
 
     await user.type(screen.getByLabelText("Name"), "Test");
-    await user.type(screen.getByLabelText("Start Date"), "2026-01-01");
-    await user.type(screen.getByLabelText("Next Due Date"), "2026-02-01");
+    setDateInput(screen.getByLabelText("Next Due Date") as HTMLInputElement, "2026-02-01");
     await user.click(screen.getByRole("button", { name: "Create" }));
 
     expect(screen.getByRole("alert").textContent).toBe(
@@ -244,18 +253,17 @@ describe("ObligationForm", () => {
     expect(mockSubmit).not.toHaveBeenCalled();
   });
 
-  it("shows validation error when start date is missing", async () => {
+  it("shows validation error when next due date is missing", async () => {
     const user = userEvent.setup();
     render(<ObligationForm onSubmit={mockSubmit} submitLabel="Create" />);
 
     await user.type(screen.getByLabelText("Name"), "Test");
     await user.clear(screen.getByLabelText("Amount"));
     await user.type(screen.getByLabelText("Amount"), "100");
-    setDateInput(screen.getByLabelText("Next Due Date") as HTMLInputElement, "2026-02-01");
     await user.click(screen.getByRole("button", { name: "Create" }));
 
     expect(screen.getByRole("alert").textContent).toBe(
-      "Start date is required"
+      "Next due date is required"
     );
     expect(mockSubmit).not.toHaveBeenCalled();
   });
@@ -268,7 +276,6 @@ describe("ObligationForm", () => {
     await user.type(screen.getByLabelText("Name"), "Tax repayment");
     await user.clear(screen.getByLabelText("Amount"));
     await user.type(screen.getByLabelText("Amount"), "200");
-    setDateInput(screen.getByLabelText("Start Date") as HTMLInputElement, "2026-01-01");
     setDateInput(screen.getByLabelText("Next Due Date") as HTMLInputElement, "2026-02-01");
     await user.click(screen.getByRole("button", { name: "Create" }));
 
@@ -278,20 +285,20 @@ describe("ObligationForm", () => {
     expect(mockSubmit).not.toHaveBeenCalled();
   });
 
-  it("validates frequency days for custom frequency", async () => {
+  it("validates interval count must be positive", async () => {
     const user = userEvent.setup();
     render(<ObligationForm onSubmit={mockSubmit} submitLabel="Create" />);
 
     await user.type(screen.getByLabelText("Name"), "Test");
     await user.clear(screen.getByLabelText("Amount"));
     await user.type(screen.getByLabelText("Amount"), "100");
-    await user.selectOptions(screen.getByLabelText("Frequency"), "custom");
-    setDateInput(screen.getByLabelText("Start Date") as HTMLInputElement, "2026-01-01");
+    // Clear interval count to trigger validation
+    await user.clear(screen.getByLabelText("Every"));
     setDateInput(screen.getByLabelText("Next Due Date") as HTMLInputElement, "2026-02-01");
     await user.click(screen.getByRole("button", { name: "Create" }));
 
     expect(screen.getByRole("alert").textContent).toBe(
-      "Frequency days must be a positive number"
+      "Interval count must be a positive number"
     );
     expect(mockSubmit).not.toHaveBeenCalled();
   });
@@ -303,9 +310,8 @@ describe("ObligationForm", () => {
           name: "Netflix",
           type: "recurring",
           amount: 22.99,
-          frequency: "monthly",
-          frequencyDays: null,
-          startDate: "2026-01-01",
+          intervalUnit: "month",
+          intervalCount: 1,
           endDate: null,
           nextDueDate: "2026-02-01",
           fundGroupId: undefined,
@@ -326,11 +332,11 @@ describe("ObligationForm", () => {
       (screen.getByLabelText("Amount") as HTMLInputElement).value
     ).toBe("22.99");
     expect(
-      (screen.getByLabelText("Frequency") as HTMLSelectElement).value
-    ).toBe("monthly");
+      (screen.getByLabelText("Every") as HTMLInputElement).value
+    ).toBe("1");
     expect(
-      (screen.getByLabelText("Start Date") as HTMLInputElement).value
-    ).toBe("2026-01-01");
+      (screen.getByLabelText("Unit") as HTMLSelectElement).value
+    ).toBe("month");
     expect(
       (screen.getByLabelText("Next Due Date") as HTMLInputElement).value
     ).toBe("2026-02-01");
@@ -372,7 +378,6 @@ describe("ObligationForm", () => {
     render(
       <ObligationForm
         initialData={{
-          startDate: "2026-01-01",
           nextDueDate: "2026-02-01",
         }}
         onSubmit={mockSubmit}
@@ -400,7 +405,6 @@ describe("ObligationForm", () => {
     render(
       <ObligationForm
         initialData={{
-          startDate: "2026-01-01",
           nextDueDate: "2026-02-01",
         }}
         onSubmit={mockSubmit}
