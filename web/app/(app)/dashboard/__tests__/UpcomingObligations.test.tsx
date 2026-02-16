@@ -105,8 +105,8 @@ describe("UpcomingObligations", () => {
 
     expect(screen.getAllByText("Netflix").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("Gym").length).toBeGreaterThanOrEqual(1);
-    // Car Insurance is 45 days out - within default 45 day window
-    expect(screen.getAllByText("Car Insurance").length).toBeGreaterThanOrEqual(1);
+    // Car Insurance is 45 days out - outside default 15 day window
+    expect(screen.queryByText("Car Insurance")).toBeNull();
     // Paused Bill should be excluded
     expect(screen.queryByText("Paused Bill")).toBeNull();
   });
@@ -125,23 +125,8 @@ describe("UpcomingObligations", () => {
     // Netflix and Gym are on the same day (10 days from now)
     // With monthly recurrence, they also share recurrence dates
     const dateLabels = screen.getAllByRole("heading", { level: 3 });
-    // More groups now due to projected recurrences
-    expect(dateLabels.length).toBeGreaterThanOrEqual(3);
-  });
-
-  it("shows fund status for each obligation", async () => {
-    vi.mocked(global.fetch).mockResolvedValue(
-      mockFetchResponse(mockObligations)
-    );
-
-    render(<UpcomingObligations />);
-
-    await waitFor(() => {
-      expect(screen.getAllByText("Fully funded").length).toBeGreaterThanOrEqual(1);
-    });
-
-    expect(screen.getAllByText("Partially funded").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Unfunded").length).toBeGreaterThanOrEqual(1);
+    // At least 2 date groups (day 5 and day 10 obligations)
+    expect(dateLabels.length).toBeGreaterThanOrEqual(2);
   });
 
   it("shows amounts for obligations", async () => {
@@ -166,7 +151,7 @@ describe("UpcomingObligations", () => {
 
     await waitFor(() => {
       expect(
-        screen.getByText("No obligations due in the next 45 days.")
+        screen.getByText("No obligations due in the next 15 days.")
       ).toBeDefined();
     });
   });
@@ -217,10 +202,10 @@ describe("UpcomingObligations", () => {
       expect(screen.getAllByText("Weekly Savings").length).toBeGreaterThanOrEqual(1);
     });
 
-    // Default is 45 days. A weekly obligation starting 3 days out
-    // should appear ~6 times (days 3, 10, 17, 24, 31, 38)
+    // Default is 15 days. A weekly obligation starting 3 days out
+    // should appear at least 2 times (days 3, 10)
     const items = screen.getAllByText("Weekly Savings");
-    expect(items.length).toBeGreaterThanOrEqual(6);
+    expect(items.length).toBeGreaterThanOrEqual(2);
   });
 
   it("does not project one-off obligations more than once", async () => {

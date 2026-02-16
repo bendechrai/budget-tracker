@@ -31,7 +31,7 @@ interface GroupedObligations {
 }
 
 const DAY_OPTIONS = [15, 30, 45, 90] as const;
-const DEFAULT_DAYS = 45;
+const DEFAULT_DAYS = 15;
 
 function formatCurrency(amount: number): string {
   return `$${amount.toFixed(2)}`;
@@ -154,21 +154,6 @@ function projectOccurrences(
   );
 }
 
-function getFundStatus(
-  obligation: ObligationData
-): "fully-funded" | "partially-funded" | "unfunded" {
-  const balance = obligation.fundGroup?.currentBalance ?? 0;
-  if (balance >= obligation.amount) return "fully-funded";
-  if (balance > 0) return "partially-funded";
-  return "unfunded";
-}
-
-function getFundStatusLabel(status: "fully-funded" | "partially-funded" | "unfunded"): string {
-  if (status === "fully-funded") return "Fully funded";
-  if (status === "partially-funded") return "Partially funded";
-  return "Unfunded";
-}
-
 function groupByDate(obligations: ProjectedObligation[]): GroupedObligations[] {
   const groups = new Map<string, ProjectedObligation[]>();
 
@@ -269,9 +254,7 @@ export default function UpcomingObligations() {
         <div key={group.dateKey} className={styles.dateGroup}>
           <h3 className={styles.dateLabel}>{group.dateLabel}</h3>
           <ul className={styles.list}>
-            {group.obligations.map((ob) => {
-              const status = getFundStatus(ob);
-              return (
+            {group.obligations.map((ob) => (
                 <li key={ob.instanceKey} className={styles.item}>
                   <div className={styles.itemMain}>
                     <span className={styles.itemName}>{ob.name}</span>
@@ -279,12 +262,8 @@ export default function UpcomingObligations() {
                       {formatCurrency(ob.amount)}
                     </span>
                   </div>
-                  <span className={`${styles.fundStatus} ${styles[status]}`}>
-                    {getFundStatusLabel(status)}
-                  </span>
                 </li>
-              );
-            })}
+            ))}
           </ul>
         </div>
       ))}

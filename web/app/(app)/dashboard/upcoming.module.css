@@ -123,28 +123,6 @@
   text-align: right;
 }
 
-.fundStatus {
-  font-size: 12px;
-  font-weight: 500;
-  padding: 2px 8px;
-  border-radius: 4px;
-}
-
-.fully-funded {
-  color: #276749;
-  background: #f0fff4;
-}
-
-.partially-funded {
-  color: #975a16;
-  background: #fffff0;
-}
-
-.unfunded {
-  color: #c53030;
-  background: #fff5f5;
-}
-
 @media (prefers-color-scheme: dark) {
   .dayButton {
     border-color: #444;
@@ -188,20 +166,6 @@
     color: #999;
   }
 
-  .fully-funded {
-    color: #9ae6b4;
-    background: #1a2e1a;
-  }
-
-  .partially-funded {
-    color: #fbd38d;
-    background: #2e2a1a;
-  }
-
-  .unfunded {
-    color: #fc8181;
-    background: #2e1a1a;
-  }
 }
 
 @media (max-width: 480px) {
@@ -217,7 +181,4 @@
     font-size: 13px;
   }
 
-  .fundStatus {
-    font-size: 11px;
-  }
 }
