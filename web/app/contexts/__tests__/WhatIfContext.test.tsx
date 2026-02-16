@@ -9,6 +9,7 @@ function TestConsumer() {
     isActive,
     toggleObligation,
     overrideAmount,
+    clearAmountOverride,
     addHypothetical,
     removeHypothetical,
     addEscalationOverride,
@@ -42,6 +43,8 @@ function TestConsumer() {
       <button onClick={() => toggleObligation("obl-2")}>Toggle obl-2</button>
       <button onClick={() => overrideAmount("obl-1", 50)}>Override obl-1 amount</button>
       <button onClick={() => overrideAmount("obl-2", 100)}>Override obl-2 amount</button>
+      <button onClick={() => clearAmountOverride("obl-1")}>Clear obl-1 amount</button>
+      <button onClick={() => clearAmountOverride("obl-2")}>Clear obl-2 amount</button>
       <button
         onClick={() =>
           addHypothetical({
@@ -254,6 +257,46 @@ describe("WhatIfContext", () => {
     await user.click(screen.getByText("Remove escalation esc-1"));
 
     expect(screen.getByTestId("escalation-keys").textContent).toBe("[]");
+    expect(screen.getByTestId("is-active").textContent).toBe("false");
+  });
+
+  it("clears a specific amount override", async () => {
+    const user = userEvent.setup();
+    renderWithProvider();
+
+    await user.click(screen.getByText("Override obl-1 amount"));
+    expect(screen.getByTestId("amount-overrides").textContent).toBe(
+      '[["obl-1",50]]'
+    );
+
+    await user.click(screen.getByText("Clear obl-1 amount"));
+    expect(screen.getByTestId("amount-overrides").textContent).toBe("[]");
+    expect(screen.getByTestId("is-active").textContent).toBe("false");
+  });
+
+  it("clears one amount override while keeping another", async () => {
+    const user = userEvent.setup();
+    renderWithProvider();
+
+    await user.click(screen.getByText("Override obl-1 amount"));
+    await user.click(screen.getByText("Override obl-2 amount"));
+    expect(screen.getByTestId("amount-overrides").textContent).toBe(
+      '[["obl-1",50],["obl-2",100]]'
+    );
+
+    await user.click(screen.getByText("Clear obl-1 amount"));
+    expect(screen.getByTestId("amount-overrides").textContent).toBe(
+      '[["obl-2",100]]'
+    );
+    expect(screen.getByTestId("is-active").textContent).toBe("true");
+  });
+
+  it("is a no-op when clearing a non-existent amount override", async () => {
+    const user = userEvent.setup();
+    renderWithProvider();
+
+    await user.click(screen.getByText("Clear obl-1 amount"));
+    expect(screen.getByTestId("amount-overrides").textContent).toBe("[]");
     expect(screen.getByTestId("is-active").textContent).toBe("false");
   });
 

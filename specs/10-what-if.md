@@ -38,8 +38,8 @@ flowchart TD
 
 ### Activating What-If Mode
 
-- Any obligation can be toggled off via a switch/toggle control on the obligations list or detail view
-- Any obligation amount can be temporarily overridden by entering a different number
+- Any obligation amount can be temporarily overridden by entering a different number in the inline amount input on the obligations list. A reset (×) button appears when an override is active; clicking it or clearing the input reverts to the original amount.
+- Obligations can be toggled off programmatically via the AI bar (e.g. "cancel gym") — there is no manual toggle checkbox on the obligations list. Users who want to model cancellation can set the amount to $0.
 - User can add a hypothetical obligation (exists only in the scenario, not persisted)
 - What-if can also be triggered from the floating AI bar (parsed by Claude API per spec 09 — the LLM returns a `what_if` intent with structured changes):
   - "What if I cancel gym?" → toggles gym obligation off
@@ -86,8 +86,8 @@ flowchart TD
 
 ## Acceptance Criteria
 
-- [ ] User can toggle obligations off to see impact on dashboard
-- [ ] User can temporarily change obligation amounts
+- [ ] User can temporarily change obligation amounts (with reset button to revert)
+- [ ] User can toggle obligations off via AI bar to see impact on dashboard
 - [ ] User can add hypothetical obligations to the scenario
 - [ ] What-if can be triggered via the floating AI bar
 - [ ] Timeline shows actual (solid) vs. scenario (dashed) lines simultaneously

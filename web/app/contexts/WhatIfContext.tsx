@@ -43,6 +43,7 @@ interface WhatIfContextValue {
   isActive: boolean;
   toggleObligation: (id: string) => void;
   overrideAmount: (id: string, amount: number) => void;
+  clearAmountOverride: (id: string) => void;
   addHypothetical: (obligation: HypotheticalObligation) => void;
   removeHypothetical: (id: string) => void;
   addEscalationOverride: (escalation: HypotheticalEscalation) => void;
@@ -93,6 +94,17 @@ export function WhatIfProvider({ children }: { children: ReactNode }) {
     setOverrides((prev) => {
       const next = new Map(prev.amountOverrides);
       next.set(id, amount);
+      return {
+        ...prev,
+        amountOverrides: next,
+      };
+    });
+  }, []);
+
+  const clearAmountOverride = useCallback((id: string) => {
+    setOverrides((prev) => {
+      const next = new Map(prev.amountOverrides);
+      next.delete(id);
       return {
         ...prev,
         amountOverrides: next,
@@ -184,6 +196,7 @@ export function WhatIfProvider({ children }: { children: ReactNode }) {
       isActive,
       toggleObligation,
       overrideAmount,
+      clearAmountOverride,
       addHypothetical,
       removeHypothetical,
       addEscalationOverride,
@@ -196,6 +209,7 @@ export function WhatIfProvider({ children }: { children: ReactNode }) {
       isActive,
       toggleObligation,
       overrideAmount,
+      clearAmountOverride,
       addHypothetical,
       removeHypothetical,
       addEscalationOverride,

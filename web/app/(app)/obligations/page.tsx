@@ -179,7 +179,7 @@ export default function ObligationsPage() {
   const [escalations, setEscalations] = useState<Map<string, Escalation[]>>(new Map());
   const [expandedEscalations, setExpandedEscalations] = useState<Set<string>>(new Set());
   const [escalationFormTarget, setEscalationFormTarget] = useState<string | null>(null);
-  const { overrides, toggleObligation, overrideAmount, addHypothetical, removeHypothetical } = useWhatIf();
+  const { overrides, overrideAmount, clearAmountOverride, addHypothetical, removeHypothetical } = useWhatIf();
   const { confirm, confirmDialog } = useConfirmDialog();
 
   const archiveObligation = useCallback(async (ob: Obligation) => {
@@ -398,13 +398,11 @@ export default function ObligationsPage() {
               )}
               <ul className={styles.list}>
                 {group.obligations.map((ob) => {
-                  const isToggledOff = overrides.toggledOffIds.has(ob.id);
                   const amountOverride = overrides.amountOverrides.get(ob.id);
                   const pastDue = !ob.isPaused && isPastDue(ob.nextDueDate);
                   const classNames = [styles.listItem];
                   if (ob.isPaused) classNames.push(styles.listItemPaused);
                   if (pastDue) classNames.push(styles.listItemPastDue);
-                  if (isToggledOff) classNames.push(styles.listItemToggledOff);
 
                   const freq = formatFrequency(ob.frequency, ob.frequencyDays);
                   const displayAmount = amountOverride ?? ob.amount;
@@ -425,11 +423,6 @@ export default function ObligationsPage() {
                               Past due
                             </span>
                           )}
-                          {isToggledOff && (
-                            <span className={styles.whatIfBadge}>
-                              What-if: off
-                            </span>
-                          )}
                           {amountOverride !== undefined && (
                             <span className={styles.whatIfBadge}>
                               What-if: ${amountOverride.toFixed(2)}
@@ -447,31 +440,35 @@ export default function ObligationsPage() {
                         </span>
                       </div>
                       <div className={styles.listItemActions}>
-                        <label className={styles.whatIfToggle} data-testid={`whatif-toggle-${ob.id}`}>
+                        <div className={styles.amountOverrideWrapper}>
                           <input
-                            type="checkbox"
-                            checked={!isToggledOff}
-                            onChange={() => toggleObligation(ob.id)}
-                            aria-label={`What-if toggle for ${ob.name}`}
+                            type="text"
+                            inputMode="decimal"
+                            className={styles.amountOverrideInput}
+                            placeholder={ob.amount.toFixed(2)}
+                            value={amountOverride !== undefined ? amountOverride : ""}
+                            onChange={(e) => {
+                              if (e.target.value === "") { clearAmountOverride(ob.id); return; }
+                              const val = parseFloat(e.target.value);
+                              if (!isNaN(val) && val >= 0) {
+                                overrideAmount(ob.id, val);
+                              }
+                            }}
+                            aria-label={`Amount override for ${ob.name}`}
+                            data-testid={`amount-override-${ob.id}`}
                           />
-                          <span className={styles.whatIfToggleLabel}>What-if</span>
-                        </label>
-                        <input
-                          type="number"
-                          className={styles.amountOverrideInput}
-                          placeholder={ob.amount.toFixed(2)}
-                          value={amountOverride !== undefined ? amountOverride : ""}
-                          onChange={(e) => {
-                            const val = parseFloat(e.target.value);
-                            if (!isNaN(val) && val >= 0) {
-                              overrideAmount(ob.id, val);
-                            }
-                          }}
-                          aria-label={`Amount override for ${ob.name}`}
-                          data-testid={`amount-override-${ob.id}`}
-                          step="0.01"
-                          min="0"
-                        />
+                          {amountOverride !== undefined && (
+                            <button
+                              type="button"
+                              className={styles.amountOverrideReset}
+                              onClick={() => clearAmountOverride(ob.id)}
+                              aria-label={`Reset amount for ${ob.name}`}
+                              data-testid={`amount-reset-${ob.id}`}
+                            >
+                              ×
+                            </button>
+                          )}
+                        </div>
                         <SparkleButton
                           item={{
                             id: ob.id,

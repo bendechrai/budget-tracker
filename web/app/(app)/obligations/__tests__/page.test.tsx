@@ -13,8 +13,8 @@ vi.mock("@/lib/logging", () => ({
   logError: vi.fn(),
 }));
 
-const mockToggleObligation = vi.fn();
 const mockOverrideAmount = vi.fn();
+const mockClearAmountOverride = vi.fn();
 const mockAddHypothetical = vi.fn();
 const mockRemoveHypothetical = vi.fn();
 const mockResetAll = vi.fn();
@@ -41,8 +41,8 @@ vi.mock("@/app/contexts/WhatIfContext", () => ({
   useWhatIf: () => ({
     overrides: currentOverrides,
     isActive: currentOverrides.toggledOffIds.size > 0 || currentOverrides.amountOverrides.size > 0 || currentOverrides.hypotheticals.length > 0,
-    toggleObligation: mockToggleObligation,
     overrideAmount: mockOverrideAmount,
+    clearAmountOverride: mockClearAmountOverride,
     addHypothetical: mockAddHypothetical,
     removeHypothetical: mockRemoveHypothetical,
     resetAll: mockResetAll,
@@ -796,55 +796,7 @@ describe("ObligationsPage", () => {
     expect(screen.queryByText("No obligations yet")).toBeNull();
   });
 
-  // What-if toggle tests
-
-  it("renders what-if toggle for each obligation", async () => {
-    mockFetchResponses(mockObligations);
-
-    render(<ObligationsPage />);
-
-    await waitFor(() => {
-      expect(screen.getByText("Netflix")).toBeDefined();
-    });
-
-    expect(screen.getByTestId("whatif-toggle-1")).toBeDefined();
-    expect(screen.getByTestId("whatif-toggle-2")).toBeDefined();
-    expect(screen.getByTestId("whatif-toggle-3")).toBeDefined();
-  });
-
-  it("calls toggleObligation when what-if toggle is clicked", async () => {
-    const user = userEvent.setup();
-    mockFetchResponses(mockObligations);
-
-    render(<ObligationsPage />);
-
-    await waitFor(() => {
-      expect(screen.getByText("Netflix")).toBeDefined();
-    });
-
-    const toggle = screen.getByRole("checkbox", { name: "What-if toggle for Netflix" });
-    await user.click(toggle);
-
-    expect(mockToggleObligation).toHaveBeenCalledWith("1");
-  });
-
-  it("shows what-if:off badge when obligation is toggled off", async () => {
-    currentOverrides = {
-      toggledOffIds: new Set(["1"]),
-      amountOverrides: new Map(),
-      hypotheticals: [],
-    };
-
-    mockFetchResponses(mockObligations);
-
-    render(<ObligationsPage />);
-
-    await waitFor(() => {
-      expect(screen.getByText("Netflix")).toBeDefined();
-    });
-
-    expect(screen.getByText("What-if: off")).toBeDefined();
-  });
+  // Amount override tests
 
   it("renders amount override input for each obligation", async () => {
     mockFetchResponses(mockObligations);
@@ -896,6 +848,79 @@ describe("ObligationsPage", () => {
     // The displayed amount in the detail line should reflect the overridden amount
     const allAmounts = screen.getAllByText(/\$30\.00/);
     expect(allAmounts.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("shows reset button when amount override exists", async () => {
+    currentOverrides = {
+      toggledOffIds: new Set(),
+      amountOverrides: new Map([["1", 30]]),
+      hypotheticals: [],
+    };
+
+    mockFetchResponses(mockObligations);
+
+    render(<ObligationsPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Netflix")).toBeDefined();
+    });
+
+    expect(screen.getByTestId("amount-reset-1")).toBeDefined();
+  });
+
+  it("hides reset button when no amount override exists", async () => {
+    mockFetchResponses(mockObligations);
+
+    render(<ObligationsPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Netflix")).toBeDefined();
+    });
+
+    expect(screen.queryByTestId("amount-reset-1")).toBeNull();
+  });
+
+  it("calls clearAmountOverride when reset button is clicked", async () => {
+    const user = userEvent.setup();
+    currentOverrides = {
+      toggledOffIds: new Set(),
+      amountOverrides: new Map([["1", 30]]),
+      hypotheticals: [],
+    };
+
+    mockFetchResponses(mockObligations);
+
+    render(<ObligationsPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Netflix")).toBeDefined();
+    });
+
+    await user.click(screen.getByTestId("amount-reset-1"));
+
+    expect(mockClearAmountOverride).toHaveBeenCalledWith("1");
+  });
+
+  it("calls clearAmountOverride when input is emptied", async () => {
+    currentOverrides = {
+      toggledOffIds: new Set(),
+      amountOverrides: new Map([["1", 30]]),
+      hypotheticals: [],
+    };
+
+    mockFetchResponses(mockObligations);
+
+    render(<ObligationsPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Netflix")).toBeDefined();
+    });
+
+    const input = screen.getByTestId("amount-override-1") as HTMLInputElement;
+    const { fireEvent } = await import("@testing-library/react");
+    fireEvent.change(input, { target: { value: "" } });
+
+    expect(mockClearAmountOverride).toHaveBeenCalledWith("1");
   });
 
   it("shows Add hypothetical button when obligations exist", async () => {

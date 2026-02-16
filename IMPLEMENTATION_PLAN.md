@@ -1046,3 +1046,17 @@
   - Files: `web/app/(app)/obligations/EscalationForm.tsx`, `web/app/(app)/obligations/page.tsx`, `web/app/(app)/income/page.tsx`, plus test files
   - Acceptance: EscalationForm uses `useConfirmDialog` for large increase warning. Obligations and income pages use `useConfirmDialog` with `variant: "danger"` for delete confirmations. All render `{confirmDialog}` in JSX.
   - Tests: All tests updated to interact with ConfirmDialog instead of `window.confirm` spies. Full suite of 1,259 tests across 98 files passes.
+
+### Simplify what-if controls on obligations page
+
+- [x] **Add `clearAmountOverride` to WhatIfContext**
+  - Files: `web/app/contexts/WhatIfContext.tsx`, `web/app/contexts/__tests__/WhatIfContext.test.tsx`
+  - Spec: `specs/10-what-if.md`
+  - Acceptance: `clearAmountOverride(id)` deletes the entry from `amountOverrides` Map. Added to interface, provider value, and dependency array. 3 new tests: clears specific override, clears one while keeping another, no-op for non-existent.
+  - Tests: 15 WhatIfContext tests pass
+
+- [x] **Remove what-if checkbox, add reset button to amount override**
+  - Files: `web/app/(app)/obligations/page.tsx`, `web/app/(app)/obligations/obligations.module.css`, `web/app/(app)/obligations/__tests__/page.test.tsx`
+  - Spec: `specs/10-what-if.md`
+  - Acceptance: Removed what-if toggle checkbox, "What-if: off" badge, `isToggledOff` variable, and `listItemToggledOff` styling from obligations list. Amount input changed from `type="number"` to `type="text" inputMode="decimal"` (removes spinner arrows). Input wrapped in `.amountOverrideWrapper` with conditional reset (×) button that calls `clearAmountOverride`. Emptying input via backspace also calls `clearAmountOverride`. Dark mode styles for reset button added. 3 checkbox tests removed, 4 reset button tests added.
+  - Tests: 48 obligations page tests pass
