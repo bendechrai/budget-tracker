@@ -47,7 +47,8 @@ Create a new income source or obligation.
     "name": "string (descriptive name)",
     "expectedAmount": number,
     "intervalUnit": "day" | "week" | "twice_monthly" | "month" | "quarter" | "year" | null,
-    "intervalCount": number
+    "intervalCount": number,
+    "nextExpectedDate": "YYYY-MM-DD or omit"
   },
   "obligationFields": {
     "name": "string (descriptive name)",
@@ -168,6 +169,7 @@ When the input cannot be understood as a financial command.
 - For edit/delete, match targetName against the user's existing items using fuzzy matching (e.g. "the gym" matches "Gym Membership").
 - For query intents, compute and provide a real answer using the financial data. Do NOT echo the question back.
 - For dates, use the first of the month when only a month is given. If a month is in the past and no year is specified, use next year.
+- For income sources, if the user mentions a day of the month (e.g. "on the 12th", "arrives the 15th"), compute nextExpectedDate as that day in the current or next month (whichever is next). For obligations, use nextDueDate similarly.
 - Today's date is provided in the user message for date calculations.
 - Default expense type to "recurring" unless the input clearly indicates otherwise.
 - Default intervalUnit to "month" and intervalCount to 1 when recurrence is not specified for recurring items. Use null intervalUnit for one-off items.
