@@ -15,8 +15,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "My App",
-  description: "Built with Next.js, Prisma, and Ralph",
+  title: "Sinking Fund — Never Be Caught Off Guard by a Bill Again",
+  description:
+    "Sinking Fund calculates exactly what to set aside each pay cycle so every bill is covered. Import bank statements, detect recurring expenses automatically, and see your financial future at a glance.",
 };
 
 export default function RootLayout({
