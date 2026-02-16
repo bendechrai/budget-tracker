@@ -1019,3 +1019,30 @@
   - Spec: `specs/07b-fund-group-rework.md`
   - Acceptance: All 1,225+ tests across 95 files pass. No type errors. No lint errors.
   - Tests: Full suite green
+
+### Replace `window.confirm()` with styled ConfirmDialog
+
+- [x] **Add ConfirmDialog presentational component**
+  - Files: `web/app/components/ConfirmDialog.tsx`, `web/app/components/confirm-dialog.module.css`, `web/app/components/__tests__/ConfirmDialog.test.tsx`
+  - Acceptance: Styled modal overlay at z-index 1010 (above all modals). Props: open, title, message, confirmLabel, cancelLabel, variant ("default" | "danger"), onConfirm, onCancel. Renders nothing when closed. Handles Escape key and overlay click. Danger variant shows red confirm button.
+  - Tests: 9 tests: renders nothing when closed, renders when open, button clicks, Escape key, overlay click, card click doesn't dismiss, default labels, accessible dialog role
+
+- [x] **Add useConfirmDialog promise-based hook**
+  - Files: `web/lib/hooks/useConfirmDialog.tsx`
+  - Acceptance: `confirm(opts)` returns `Promise<boolean>`, `confirmDialog` is ReactNode to render. State-managed internally with pending resolve callback in a ref.
+  - Tests: Tested via useModalClose and consumer component tests
+
+- [x] **Update useModalClose to use ConfirmDialog instead of window.confirm()**
+  - Files: `web/lib/hooks/useModalClose.ts`, `web/lib/hooks/__tests__/useModalClose.test.ts`
+  - Acceptance: Returns `{ handleClose, confirmDialog }` instead of `() => void`. Uses `useConfirmDialog` internally with `isConfirmingRef` to prevent double-Escape conflicts. All 5 consumers updated to destructure new return type and render `{confirmDialog}`.
+  - Tests: useModalClose tests rewritten to interact with ConfirmDialog DOM elements instead of `window.confirm` spies
+
+- [x] **Update all modal consumers for styled ConfirmDialog**
+  - Files: `web/app/(app)/obligations/ContributionModal.tsx`, `web/app/(app)/obligations/AdjustBalanceModal.tsx`, `web/app/(app)/dashboard/CatchUpModal.tsx`, `web/app/components/SparkleButton.tsx`, `web/app/components/AIPreview.tsx`, plus test files
+  - Acceptance: Each modal destructures `{ handleClose, confirmDialog }` from `useModalClose` and renders `{confirmDialog}` in JSX. Dirty-state Escape key tests updated to assert ConfirmDialog DOM elements.
+  - Tests: All modal test files updated with `act()` wrappers for Escape dispatch and ConfirmDialog assertions
+
+- [x] **Replace confirm() in EscalationForm, obligations page, and income page**
+  - Files: `web/app/(app)/obligations/EscalationForm.tsx`, `web/app/(app)/obligations/page.tsx`, `web/app/(app)/income/page.tsx`, plus test files
+  - Acceptance: EscalationForm uses `useConfirmDialog` for large increase warning. Obligations and income pages use `useConfirmDialog` with `variant: "danger"` for delete confirmations. All render `{confirmDialog}` in JSX.
+  - Tests: All tests updated to interact with ConfirmDialog instead of `window.confirm` spies. Full suite of 1,259 tests across 98 files passes.

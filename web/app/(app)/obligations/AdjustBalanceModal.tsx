@@ -3,6 +3,7 @@
 import { useState, useCallback } from "react";
 import styles from "./adjust-balance-modal.module.css";
 import { logError } from "@/lib/logging";
+import { useModalClose } from "@/lib/hooks/useModalClose";
 
 interface AdjustBalanceModalProps {
   fundGroupId: string;
@@ -28,6 +29,9 @@ export default function AdjustBalanceModal({
   const [balance, setBalance] = useState(currentBalance.toFixed(2));
   const [validationError, setValidationError] = useState("");
   const [status, setStatus] = useState<ModalStatus>({ type: "idle" });
+
+  const isDirty = balance !== currentBalance.toFixed(2) && status.type !== "success";
+  const { handleClose, confirmDialog } = useModalClose(onClose, isDirty, status.type !== "loading");
 
   const handleSave = useCallback(async () => {
     const parsed = parseFloat(balance);
@@ -69,6 +73,7 @@ export default function AdjustBalanceModal({
 
   return (
     <div className={styles.overlay} data-testid="adjust-balance-modal-overlay">
+      {confirmDialog}
       <div
         className={styles.modal}
         role="dialog"
@@ -80,7 +85,7 @@ export default function AdjustBalanceModal({
           <button
             type="button"
             className={styles.closeButton}
-            onClick={onClose}
+            onClick={handleClose}
             aria-label="Close"
             data-testid="adjust-balance-modal-close"
           >
@@ -144,7 +149,7 @@ export default function AdjustBalanceModal({
             <button
               type="button"
               className={styles.cancelButton}
-              onClick={onClose}
+              onClick={handleClose}
               disabled={isLoading}
               data-testid="adjust-balance-modal-cancel"
             >

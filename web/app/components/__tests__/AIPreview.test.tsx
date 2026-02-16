@@ -379,4 +379,36 @@ describe("AIPreview", () => {
       expect(screen.getByLabelText("Close preview")).toBeDefined();
     });
   });
+
+  describe("Escape to close", () => {
+    it("closes on Escape key press", () => {
+      const onCancel = vi.fn();
+      render(<AIPreview intent={createIncomeIntent} onCancel={onCancel} />);
+
+      document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+
+      expect(onCancel).toHaveBeenCalled();
+    });
+
+    it("does not close on Escape while loading", async () => {
+      const user = userEvent.setup();
+      const onCancel = vi.fn();
+
+      let resolvePromise: (value: Response) => void;
+      const pendingPromise = new Promise<Response>((resolve) => {
+        resolvePromise = resolve;
+      });
+      vi.mocked(global.fetch).mockReturnValueOnce(pendingPromise);
+
+      render(<AIPreview intent={createIncomeIntent} onCancel={onCancel} />);
+
+      await user.click(screen.getByTestId("ai-preview-confirm"));
+
+      document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+
+      expect(onCancel).not.toHaveBeenCalled();
+
+      resolvePromise!(mockFetchResponse({ id: "inc-1" }, 201));
+    });
+  });
 });

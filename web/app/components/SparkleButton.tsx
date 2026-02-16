@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import styles from "./sparkle.module.css";
 import { logError } from "@/lib/logging";
+import { useModalClose } from "@/lib/hooks/useModalClose";
 import type { ParseResult, CreateIntent, EditIntent, DeleteIntent } from "@/lib/ai/types";
 import EscalationForm from "@/app/(app)/obligations/EscalationForm";
 import AIPreview from "./AIPreview";
@@ -130,7 +131,7 @@ export default function SparkleButton({ item, onAction }: SparkleButtonProps) {
     setResponse(null);
   }, []);
 
-  const handleClose = useCallback(() => {
+  const closeModal = useCallback(() => {
     setOpen(false);
     setFreeText("");
     setResponse(null);
@@ -138,6 +139,9 @@ export default function SparkleButton({ item, onAction }: SparkleButtonProps) {
     setShowEscalationForm(false);
     setPreviewIntent(null);
   }, []);
+
+  const isDirty = freeText.trim() !== "";
+  const { handleClose, confirmDialog } = useModalClose(closeModal, isDirty, !loading);
 
   useEffect(() => {
     if (open && inputRef.current) {
@@ -225,11 +229,11 @@ export default function SparkleButton({ item, onAction }: SparkleButtonProps) {
 
   const handlePreviewDone = useCallback(() => {
     setPreviewIntent(null);
-    handleClose();
+    closeModal();
     if (onAction) {
       onAction({ type: "edit", targetType: "expense", targetName: item.name, confidence: "high", changes: {} });
     }
-  }, [handleClose, onAction, item.name]);
+  }, [closeModal, onAction, item.name]);
 
   const handlePreviewCancel = useCallback(() => {
     setPreviewIntent(null);
@@ -239,6 +243,7 @@ export default function SparkleButton({ item, onAction }: SparkleButtonProps) {
 
   return (
     <div className={styles.container}>
+      {confirmDialog}
       <button
         type="button"
         className={styles.sparkleButton}
@@ -288,7 +293,7 @@ export default function SparkleButton({ item, onAction }: SparkleButtonProps) {
                   obligationName={item.name}
                   currentAmount={item.amount}
                   onSaved={() => {
-                    handleClose();
+                    closeModal();
                     if (onAction) {
                       onAction({
                         type: "edit",

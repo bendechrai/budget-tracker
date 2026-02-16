@@ -19,7 +19,6 @@ describe("EscalationForm", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     global.fetch = vi.fn();
-    window.confirm = vi.fn().mockReturnValue(true);
   });
 
   afterEach(() => {
@@ -202,7 +201,6 @@ describe("EscalationForm", () => {
 
   it("shows confirmation for large increases (>50%)", async () => {
     const user = userEvent.setup();
-    vi.mocked(window.confirm).mockReturnValue(true);
     vi.mocked(global.fetch).mockResolvedValueOnce(
       new Response(JSON.stringify({ id: "esc-3" }), {
         status: 201,
@@ -217,9 +215,13 @@ describe("EscalationForm", () => {
 
     await user.click(screen.getByRole("button", { name: "Save price change" }));
 
-    expect(window.confirm).toHaveBeenCalledWith(
+    // ConfirmDialog should appear
+    expect(screen.getByTestId("confirm-dialog")).toBeDefined();
+    expect(screen.getByTestId("confirm-dialog-message").textContent).toBe(
       "This will increase the amount by more than 50%. Is that right?",
     );
+
+    await user.click(screen.getByTestId("confirm-dialog-confirm"));
 
     await waitFor(() => {
       expect(defaultProps.onSaved).toHaveBeenCalled();
@@ -228,7 +230,6 @@ describe("EscalationForm", () => {
 
   it("cancels submit when large increase confirmation is declined", async () => {
     const user = userEvent.setup();
-    vi.mocked(window.confirm).mockReturnValue(false);
 
     render(<EscalationForm {...defaultProps} />);
 
@@ -237,14 +238,20 @@ describe("EscalationForm", () => {
 
     await user.click(screen.getByRole("button", { name: "Save price change" }));
 
-    expect(window.confirm).toHaveBeenCalled();
+    expect(screen.getByTestId("confirm-dialog")).toBeDefined();
+
+    await user.click(screen.getByTestId("confirm-dialog-cancel"));
+
+    await waitFor(() => {
+      expect(screen.queryByTestId("confirm-dialog")).toBeNull();
+    });
+
     expect(global.fetch).not.toHaveBeenCalled();
     expect(defaultProps.onSaved).not.toHaveBeenCalled();
   });
 
   it("shows confirmation for fixed increase >50% of current amount", async () => {
     const user = userEvent.setup();
-    vi.mocked(window.confirm).mockReturnValue(true);
     vi.mocked(global.fetch).mockResolvedValueOnce(
       new Response(JSON.stringify({ id: "esc-4" }), {
         status: 201,
@@ -260,7 +267,8 @@ describe("EscalationForm", () => {
 
     await user.click(screen.getByRole("button", { name: "Save price change" }));
 
-    expect(window.confirm).toHaveBeenCalledWith(
+    expect(screen.getByTestId("confirm-dialog")).toBeDefined();
+    expect(screen.getByTestId("confirm-dialog-message").textContent).toBe(
       "This will increase the amount by more than 50%. Is that right?",
     );
   });

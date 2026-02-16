@@ -42,7 +42,6 @@ describe("IncomePage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     global.fetch = vi.fn();
-    window.confirm = vi.fn();
   });
 
   afterEach(() => {
@@ -168,7 +167,6 @@ describe("IncomePage", () => {
 
   it("deletes an income source after confirmation", async () => {
     const user = userEvent.setup();
-    vi.mocked(window.confirm).mockReturnValue(true);
     vi.mocked(global.fetch)
       .mockResolvedValueOnce(
         new Response(JSON.stringify(mockIncomeSources), {
@@ -193,9 +191,13 @@ describe("IncomePage", () => {
       screen.getByRole("button", { name: "Delete Salary" })
     );
 
-    expect(window.confirm).toHaveBeenCalledWith(
+    // ConfirmDialog should appear
+    expect(screen.getByTestId("confirm-dialog")).toBeDefined();
+    expect(screen.getByTestId("confirm-dialog-message").textContent).toBe(
       'Are you sure you want to delete "Salary"?'
     );
+
+    await user.click(screen.getByTestId("confirm-dialog-confirm"));
 
     await waitFor(() => {
       expect(screen.queryByText("Salary")).toBeNull();
@@ -206,7 +208,6 @@ describe("IncomePage", () => {
 
   it("does not delete when confirmation is cancelled", async () => {
     const user = userEvent.setup();
-    vi.mocked(window.confirm).mockReturnValue(false);
     vi.mocked(global.fetch).mockResolvedValueOnce(
       new Response(JSON.stringify(mockIncomeSources), {
         status: 200,
@@ -223,6 +224,14 @@ describe("IncomePage", () => {
     await user.click(
       screen.getByRole("button", { name: "Delete Salary" })
     );
+
+    expect(screen.getByTestId("confirm-dialog")).toBeDefined();
+
+    await user.click(screen.getByTestId("confirm-dialog-cancel"));
+
+    await waitFor(() => {
+      expect(screen.queryByTestId("confirm-dialog")).toBeNull();
+    });
 
     expect(screen.getByText("Salary")).toBeDefined();
   });

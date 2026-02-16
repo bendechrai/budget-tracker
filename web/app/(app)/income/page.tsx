@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import styles from "./income.module.css";
 import { logError } from "@/lib/logging";
 import SparkleButton from "@/app/components/SparkleButton";
+import { useConfirmDialog } from "@/lib/hooks/useConfirmDialog";
 
 interface IncomeSource {
   id: string;
@@ -52,6 +53,7 @@ export default function IncomePage() {
   const [incomeSources, setIncomeSources] = useState<IncomeSource[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const { confirm, confirmDialog } = useConfirmDialog();
 
   const fetchIncomeSources = useCallback(async () => {
     try {
@@ -95,9 +97,13 @@ export default function IncomePage() {
   }
 
   async function handleDelete(id: string, name: string) {
-    if (!confirm(`Are you sure you want to delete "${name}"?`)) {
-      return;
-    }
+    const ok = await confirm({
+      title: "Delete income source",
+      message: `Are you sure you want to delete "${name}"?`,
+      confirmLabel: "Delete",
+      variant: "danger",
+    });
+    if (!ok) return;
 
     try {
       const res = await fetch(`/api/income-sources/${id}`, {
@@ -124,6 +130,7 @@ export default function IncomePage() {
 
   return (
     <div className={styles.page}>
+      {confirmDialog}
       <div className={styles.container}>
         <div className={styles.header}>
           <h1 className={styles.title} data-testid="page-title">Income Sources</h1>

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, waitFor, cleanup } from "@testing-library/react";
+import { render, screen, waitFor, cleanup, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import SparkleButton from "../SparkleButton";
 
@@ -379,5 +379,40 @@ describe("SparkleButton", () => {
 
     expect(screen.queryByTestId("sparkle-escalation-form")).toBeNull();
     expect(screen.getByTestId("sparkle-presets")).toBeDefined();
+  });
+
+  it("closes on Escape key press when not dirty", async () => {
+    const user = userEvent.setup();
+    render(<SparkleButton item={incomeItem} />);
+
+    await user.click(screen.getByTestId("sparkle-button-inc-1"));
+    expect(screen.getByTestId("sparkle-modal-inc-1")).toBeDefined();
+
+    fireEvent.keyDown(document, { key: "Escape" });
+
+    expect(screen.queryByTestId("sparkle-modal-inc-1")).toBeNull();
+  });
+
+  it("shows confirm dialog on Escape when free text is dirty", async () => {
+    const user = userEvent.setup();
+
+    render(<SparkleButton item={incomeItem} />);
+
+    await user.click(screen.getByTestId("sparkle-button-inc-1"));
+    await user.type(screen.getByTestId("sparkle-free-text"), "change amount");
+
+    fireEvent.keyDown(document, { key: "Escape" });
+
+    expect(screen.getByTestId("confirm-dialog")).toBeDefined();
+    expect(screen.getByTestId("confirm-dialog-message").textContent).toBe(
+      "You have unsaved changes. Close anyway?"
+    );
+
+    await user.click(screen.getByTestId("confirm-dialog-cancel"));
+
+    await waitFor(() => {
+      expect(screen.queryByTestId("confirm-dialog")).toBeNull();
+    });
+    expect(screen.getByTestId("sparkle-modal-inc-1")).toBeDefined();
   });
 });

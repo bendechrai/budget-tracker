@@ -3,6 +3,7 @@
 import { useState, useCallback } from "react";
 import styles from "./contribution-modal.module.css";
 import { logError } from "@/lib/logging";
+import { useModalClose } from "@/lib/hooks/useModalClose";
 
 interface ContributionModalProps {
   fundGroupId: string;
@@ -29,11 +30,13 @@ export default function ContributionModal({
   onClose,
   onSaved,
 }: ContributionModalProps) {
-  const [amount, setAmount] = useState(
-    recommendedContribution > 0 ? recommendedContribution.toFixed(2) : ""
-  );
+  const initialAmount = recommendedContribution > 0 ? recommendedContribution.toFixed(2) : "";
+  const [amount, setAmount] = useState(initialAmount);
   const [validationError, setValidationError] = useState("");
   const [status, setStatus] = useState<ModalStatus>({ type: "idle" });
+
+  const isDirty = amount !== initialAmount && status.type !== "success";
+  const { handleClose, confirmDialog } = useModalClose(onClose, isDirty, status.type !== "loading");
 
   const remaining = Math.max(0, amountNeeded - currentBalance);
 
@@ -77,6 +80,7 @@ export default function ContributionModal({
 
   return (
     <div className={styles.overlay} data-testid="contribution-modal-overlay">
+      {confirmDialog}
       <div
         className={styles.modal}
         role="dialog"
@@ -88,7 +92,7 @@ export default function ContributionModal({
           <button
             type="button"
             className={styles.closeButton}
-            onClick={onClose}
+            onClick={handleClose}
             aria-label="Close"
             data-testid="contribution-modal-close"
           >
@@ -164,7 +168,7 @@ export default function ContributionModal({
             <button
               type="button"
               className={styles.cancelButton}
-              onClick={onClose}
+              onClick={handleClose}
               disabled={isLoading}
               data-testid="contribution-modal-cancel"
             >

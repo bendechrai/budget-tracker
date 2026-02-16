@@ -3,6 +3,7 @@
 import { useState, useCallback, useMemo } from "react";
 import styles from "./catchup-modal.module.css";
 import { logError } from "@/lib/logging";
+import { useModalClose } from "@/lib/hooks/useModalClose";
 
 export interface CatchUpFundGroup {
   id: string;
@@ -82,6 +83,9 @@ export default function CatchUpModal({
   const [validationError, setValidationError] = useState("");
   const [status, setStatus] = useState<ModalStatus>({ type: "idle" });
   const [showPreview, setShowPreview] = useState(false);
+
+  const isDirty = lumpSum !== "" && status.type !== "success";
+  const { handleClose, confirmDialog } = useModalClose(onClose, isDirty, status.type !== "loading");
 
   const handleDistribute = useCallback(() => {
     const parsed = parseFloat(lumpSum);
@@ -175,6 +179,7 @@ export default function CatchUpModal({
 
   return (
     <div className={styles.overlay} data-testid="catchup-modal-overlay">
+      {confirmDialog}
       <div
         className={styles.modal}
         role="dialog"
@@ -186,7 +191,7 @@ export default function CatchUpModal({
           <button
             type="button"
             className={styles.closeButton}
-            onClick={onClose}
+            onClick={handleClose}
             aria-label="Close"
             data-testid="catchup-modal-close"
           >
@@ -300,7 +305,7 @@ export default function CatchUpModal({
             <button
               type="button"
               className={styles.cancelButton}
-              onClick={showPreview ? () => setShowPreview(false) : onClose}
+              onClick={showPreview ? () => setShowPreview(false) : handleClose}
               disabled={isLoading}
               data-testid="catchup-cancel"
             >

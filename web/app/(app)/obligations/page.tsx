@@ -6,6 +6,7 @@ import styles from "./obligations.module.css";
 import { logError } from "@/lib/logging";
 import SparkleButton from "@/app/components/SparkleButton";
 import { useWhatIf } from "@/app/contexts/WhatIfContext";
+import { useConfirmDialog } from "@/lib/hooks/useConfirmDialog";
 import HypotheticalForm from "./HypotheticalForm";
 import EscalationForm from "./EscalationForm";
 
@@ -179,6 +180,7 @@ export default function ObligationsPage() {
   const [expandedEscalations, setExpandedEscalations] = useState<Set<string>>(new Set());
   const [escalationFormTarget, setEscalationFormTarget] = useState<string | null>(null);
   const { overrides, toggleObligation, overrideAmount, addHypothetical, removeHypothetical } = useWhatIf();
+  const { confirm, confirmDialog } = useConfirmDialog();
 
   const archiveObligation = useCallback(async (ob: Obligation) => {
     try {
@@ -311,9 +313,13 @@ export default function ObligationsPage() {
   }
 
   async function handleDelete(id: string, name: string) {
-    if (!confirm(`Are you sure you want to delete "${name}"?`)) {
-      return;
-    }
+    const ok = await confirm({
+      title: "Delete obligation",
+      message: `Are you sure you want to delete "${name}"?`,
+      confirmLabel: "Delete",
+      variant: "danger",
+    });
+    if (!ok) return;
 
     try {
       const res = await fetch(`/api/obligations/${id}`, {
@@ -343,6 +349,7 @@ export default function ObligationsPage() {
 
   return (
     <div className={styles.page}>
+      {confirmDialog}
       <div className={styles.container}>
         <div className={styles.header}>
           <h1 className={styles.title} data-testid="page-title">Obligations</h1>

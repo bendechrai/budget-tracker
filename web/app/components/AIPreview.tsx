@@ -3,6 +3,7 @@
 import { useState, useCallback } from "react";
 import styles from "./ai-preview.module.css";
 import { logError } from "@/lib/logging";
+import { useModalClose } from "@/lib/hooks/useModalClose";
 import type {
   ParseResult,
   CreateIntent,
@@ -322,15 +323,18 @@ export default function AIPreview({ intent, onDone, onCancel }: AIPreviewProps) 
     }
   }, [intent, onDone]);
 
-  const handleCancel = useCallback(() => {
+  const cancelFn = useCallback(() => {
     if (onCancel) onCancel();
   }, [onCancel]);
+
+  const { handleClose, confirmDialog } = useModalClose(cancelFn, false, status.type !== "loading");
 
   const isLoading = status.type === "loading";
   const isComplete = status.type === "success";
 
   return (
     <div className={styles.overlay} data-testid="ai-preview-overlay">
+      {confirmDialog}
       <div
         className={styles.modal}
         role="dialog"
@@ -342,7 +346,7 @@ export default function AIPreview({ intent, onDone, onCancel }: AIPreviewProps) 
           <button
             type="button"
             className={styles.closeButton}
-            onClick={handleCancel}
+            onClick={handleClose}
             aria-label="Close preview"
             data-testid="ai-preview-close"
           >
@@ -372,7 +376,7 @@ export default function AIPreview({ intent, onDone, onCancel }: AIPreviewProps) 
             <button
               type="button"
               className={styles.cancelButton}
-              onClick={handleCancel}
+              onClick={handleClose}
               disabled={isLoading}
               data-testid="ai-preview-cancel"
             >

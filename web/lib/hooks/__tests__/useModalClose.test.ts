@@ -1,0 +1,181 @@
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { renderHook, act, cleanup } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { createElement, type ReactNode } from "react";
+import { useModalClose } from "../useModalClose";
+
+/**
+ * Helper that wraps useModalClose in a component that renders its confirmDialog,
+ * so that the styled ConfirmDialog can appear in the DOM for interaction.
+ */
+function renderUseModalClose(
+  onClose: () => void,
+  isDirty: boolean,
+  enabled = true,
+) {
+  let hookResult: { handleClose: () => void; confirmDialog: ReactNode };
+
+  function TestComponent() {
+    const result = useModalClose(onClose, isDirty, enabled);
+    hookResult = result;
+    return createElement("div", { "data-testid": "hook-host" }, result.confirmDialog);
+  }
+
+  const renderResult = render(createElement(TestComponent));
+
+  return {
+    getResult: () => hookResult!,
+    ...renderResult,
+  };
+}
+
+describe("useModalClose", () => {
+  let onClose: () => void;
+
+  beforeEach(() => {
+    onClose = vi.fn();
+    vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    cleanup();
+  });
+
+  it("calls onClose on Escape when not dirty", () => {
+    renderUseModalClose(onClose, false);
+
+    act(() => {
+      document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+    });
+
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows confirm dialog on Escape when dirty and closes on confirm", async () => {
+    const user = userEvent.setup();
+    const { getResult } = renderUseModalClose(onClose, true);
+
+    act(() => {
+      document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+    });
+
+    // ConfirmDialog should appear
+    expect(screen.getByTestId("confirm-dialog")).toBeDefined();
+    expect(screen.getByTestId("confirm-dialog-message").textContent).toBe(
+      "You have unsaved changes. Close anyway?",
+    );
+
+    await user.click(screen.getByTestId("confirm-dialog-confirm"));
+
+    await waitFor(() => {
+      expect(onClose).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  it("shows confirm dialog on Escape when dirty and stays open on cancel", async () => {
+    const user = userEvent.setup();
+    renderUseModalClose(onClose, true);
+
+    act(() => {
+      document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+    });
+
+    expect(screen.getByTestId("confirm-dialog")).toBeDefined();
+
+    await user.click(screen.getByTestId("confirm-dialog-cancel"));
+
+    await waitFor(() => {
+      expect(screen.queryByTestId("confirm-dialog")).toBeNull();
+    });
+
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it("does not close when enabled is false", () => {
+    renderUseModalClose(onClose, false, false);
+
+    act(() => {
+      document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+    });
+
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it("returned handleClose behaves same as Escape", () => {
+    const { getResult } = renderUseModalClose(onClose, false);
+
+    act(() => {
+      getResult().handleClose();
+    });
+
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it("returned handleClose shows confirm dialog when dirty", async () => {
+    const user = userEvent.setup();
+    const { getResult } = renderUseModalClose(onClose, true);
+
+    act(() => {
+      getResult().handleClose();
+    });
+
+    expect(screen.getByTestId("confirm-dialog")).toBeDefined();
+
+    await user.click(screen.getByTestId("confirm-dialog-cancel"));
+
+    await waitFor(() => {
+      expect(screen.queryByTestId("confirm-dialog")).toBeNull();
+    });
+
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it("ignores non-Escape keys", () => {
+    renderUseModalClose(onClose, false);
+
+    act(() => {
+      document.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter" }));
+    });
+
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it("cleans up event listener on unmount", () => {
+    const { unmount } = renderUseModalClose(onClose, false);
+
+    unmount();
+
+    act(() => {
+      document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+    });
+
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it("ignores second Escape while confirm dialog is open", async () => {
+    const user = userEvent.setup();
+    renderUseModalClose(onClose, true);
+
+    // First Escape opens confirm dialog
+    act(() => {
+      document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+    });
+
+    expect(screen.getByTestId("confirm-dialog")).toBeDefined();
+
+    // Second Escape should dismiss the confirm dialog (handled by ConfirmDialog itself),
+    // not open another one
+    act(() => {
+      document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+    });
+
+    // Confirm dialog should be dismissed (onCancel called by ConfirmDialog's Escape handler)
+    await waitFor(() => {
+      expect(screen.queryByTestId("confirm-dialog")).toBeNull();
+    });
+
+    // The modal should NOT have been closed
+    expect(onClose).not.toHaveBeenCalled();
+  });
+});

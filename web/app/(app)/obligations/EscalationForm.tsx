@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useMemo, FormEvent } from "react";
+import { useState, useMemo, type FormEvent } from "react";
 import styles from "./escalation-form.module.css";
 import { logError } from "@/lib/logging";
+import { useConfirmDialog } from "@/lib/hooks/useConfirmDialog";
 
 interface EscalationFormProps {
   obligationId: string;
@@ -83,6 +84,7 @@ export default function EscalationForm({
   const [intervalMonths, setIntervalMonths] = useState("12");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const { confirm, confirmDialog } = useConfirmDialog();
 
   // Absolute is one-off only, so disable recurring for absolute
   const effectiveIsRecurring = changeType === "absolute" ? false : isRecurring;
@@ -138,11 +140,13 @@ export default function EscalationForm({
       return;
     }
 
-    if (
-      isLargeIncrease() &&
-      !confirm("This will increase the amount by more than 50%. Is that right?")
-    ) {
-      return;
+    if (isLargeIncrease()) {
+      const ok = await confirm({
+        title: "Large increase",
+        message: "This will increase the amount by more than 50%. Is that right?",
+        confirmLabel: "Yes, continue",
+      });
+      if (!ok) return;
     }
 
     setSubmitting(true);
@@ -176,6 +180,7 @@ export default function EscalationForm({
 
   return (
     <div className={styles.container} data-testid="escalation-form">
+      {confirmDialog}
       <h3 className={styles.title}>
         Add price change for {obligationName}
       </h3>

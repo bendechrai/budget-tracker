@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, waitFor, cleanup } from "@testing-library/react";
+import { render, screen, waitFor, cleanup, act } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import AdjustBalanceModal from "../AdjustBalanceModal";
 
@@ -176,5 +176,62 @@ describe("AdjustBalanceModal", () => {
     await user.click(screen.getByTestId("adjust-balance-modal-close"));
 
     expect(defaultProps.onClose).toHaveBeenCalled();
+  });
+
+  it("closes on Escape key press when not dirty", () => {
+    render(<AdjustBalanceModal {...defaultProps} />);
+
+    document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+
+    expect(defaultProps.onClose).toHaveBeenCalled();
+  });
+
+  it("shows confirm dialog on Escape when form is dirty", async () => {
+    const user = userEvent.setup();
+
+    render(<AdjustBalanceModal {...defaultProps} />);
+
+    const balanceInput = screen.getByTestId("adjust-balance-modal-input") as HTMLInputElement;
+    await user.clear(balanceInput);
+    await user.type(balanceInput, "99.99");
+
+    act(() => {
+      document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+    });
+
+    expect(screen.getByTestId("confirm-dialog")).toBeDefined();
+    expect(screen.getByTestId("confirm-dialog-message").textContent).toBe(
+      "You have unsaved changes. Close anyway?"
+    );
+
+    await user.click(screen.getByTestId("confirm-dialog-cancel"));
+
+    await waitFor(() => {
+      expect(screen.queryByTestId("confirm-dialog")).toBeNull();
+    });
+    expect(defaultProps.onClose).not.toHaveBeenCalled();
+  });
+
+  it("does not close on Escape while saving", async () => {
+    const user = userEvent.setup();
+
+    let resolvePromise: (value: Response) => void;
+    const pendingPromise = new Promise<Response>((resolve) => {
+      resolvePromise = resolve;
+    });
+    vi.mocked(global.fetch).mockReturnValueOnce(pendingPromise);
+
+    render(<AdjustBalanceModal {...defaultProps} />);
+
+    await user.click(screen.getByTestId("adjust-balance-modal-save"));
+
+    document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+
+    expect(defaultProps.onClose).not.toHaveBeenCalled();
+
+    resolvePromise!(new Response(JSON.stringify({ fundGroupId: "fg-1" }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    }));
   });
 });

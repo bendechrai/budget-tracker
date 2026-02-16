@@ -163,7 +163,6 @@ describe("ObligationsPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     global.fetch = vi.fn();
-    window.confirm = vi.fn();
     // Clear mockEscalations
     for (const key of Object.keys(mockEscalations)) {
       delete mockEscalations[key];
@@ -362,7 +361,6 @@ describe("ObligationsPage", () => {
 
   it("deletes an obligation after confirmation", async () => {
     const user = userEvent.setup();
-    vi.mocked(window.confirm).mockReturnValue(true);
     mockFetchResponses(mockObligations);
 
     render(<ObligationsPage />);
@@ -383,9 +381,13 @@ describe("ObligationsPage", () => {
       screen.getByRole("button", { name: "Delete Netflix" })
     );
 
-    expect(window.confirm).toHaveBeenCalledWith(
+    // ConfirmDialog should appear
+    expect(screen.getByTestId("confirm-dialog")).toBeDefined();
+    expect(screen.getByTestId("confirm-dialog-message").textContent).toBe(
       'Are you sure you want to delete "Netflix"?'
     );
+
+    await user.click(screen.getByTestId("confirm-dialog-confirm"));
 
     await waitFor(() => {
       expect(screen.queryByText("Netflix")).toBeNull();
@@ -396,7 +398,6 @@ describe("ObligationsPage", () => {
 
   it("does not delete when confirmation is cancelled", async () => {
     const user = userEvent.setup();
-    vi.mocked(window.confirm).mockReturnValue(false);
     mockFetchResponses(mockObligations);
 
     render(<ObligationsPage />);
@@ -408,6 +409,14 @@ describe("ObligationsPage", () => {
     await user.click(
       screen.getByRole("button", { name: "Delete Netflix" })
     );
+
+    expect(screen.getByTestId("confirm-dialog")).toBeDefined();
+
+    await user.click(screen.getByTestId("confirm-dialog-cancel"));
+
+    await waitFor(() => {
+      expect(screen.queryByTestId("confirm-dialog")).toBeNull();
+    });
 
     expect(screen.getByText("Netflix")).toBeDefined();
   });

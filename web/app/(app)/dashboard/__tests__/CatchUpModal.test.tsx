@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, waitFor, cleanup } from "@testing-library/react";
+import { render, screen, waitFor, cleanup, act } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import CatchUpModal from "../CatchUpModal";
 
@@ -266,5 +266,66 @@ describe("CatchUpModal", () => {
 
     // Should be back to amount input
     expect(screen.getByTestId("catchup-amount-input")).toBeDefined();
+  });
+
+  it("closes on Escape key press when not dirty", () => {
+    render(<CatchUpModal {...defaultProps} />);
+
+    document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+
+    expect(defaultProps.onClose).toHaveBeenCalled();
+  });
+
+  it("shows confirm dialog on Escape when form is dirty", async () => {
+    const user = userEvent.setup();
+
+    render(<CatchUpModal {...defaultProps} />);
+
+    const input = screen.getByTestId("catchup-amount-input") as HTMLInputElement;
+    await user.type(input, "500");
+
+    act(() => {
+      document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+    });
+
+    expect(screen.getByTestId("confirm-dialog")).toBeDefined();
+    expect(screen.getByTestId("confirm-dialog-message").textContent).toBe(
+      "You have unsaved changes. Close anyway?"
+    );
+
+    await user.click(screen.getByTestId("confirm-dialog-cancel"));
+
+    await waitFor(() => {
+      expect(screen.queryByTestId("confirm-dialog")).toBeNull();
+    });
+    expect(defaultProps.onClose).not.toHaveBeenCalled();
+  });
+
+  it("does not close on Escape while saving", async () => {
+    const user = userEvent.setup();
+
+    let resolvePromise: (value: Response) => void;
+    const pendingPromise = new Promise<Response>((resolve) => {
+      resolvePromise = resolve;
+    });
+    vi.mocked(global.fetch).mockReturnValueOnce(pendingPromise);
+
+    render(<CatchUpModal {...defaultProps} />);
+
+    const input = screen.getByTestId("catchup-amount-input") as HTMLInputElement;
+    await user.type(input, "900");
+    await user.click(screen.getByTestId("catchup-confirm"));
+
+    // In preview mode, click confirm to trigger save
+    await user.click(screen.getByTestId("catchup-confirm"));
+
+    document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+
+    expect(defaultProps.onClose).not.toHaveBeenCalled();
+
+    resolvePromise!(new Response(JSON.stringify({ balances: [] }), {
+      status: 201,
+      headers: { "Content-Type": "application/json" },
+    }));
   });
 });

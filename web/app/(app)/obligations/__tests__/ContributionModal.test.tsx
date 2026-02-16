@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, waitFor, cleanup } from "@testing-library/react";
+import { render, screen, waitFor, cleanup, act } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import ContributionModal from "../ContributionModal";
 
@@ -163,5 +163,61 @@ describe("ContributionModal", () => {
     render(<ContributionModal {...defaultProps} currentBalance={30} amountNeeded={22.99} />);
 
     expect(screen.getByTestId("contribution-modal-remaining").textContent).toBe("$0.00");
+  });
+
+  it("closes on Escape key press when not dirty", () => {
+    render(<ContributionModal {...defaultProps} />);
+
+    document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+
+    expect(defaultProps.onClose).toHaveBeenCalled();
+  });
+
+  it("shows confirm dialog on Escape when form is dirty", async () => {
+    const user = userEvent.setup();
+
+    render(<ContributionModal {...defaultProps} recommendedContribution={0} />);
+
+    const amountInput = screen.getByTestId("contribution-modal-amount") as HTMLInputElement;
+    await user.type(amountInput, "25");
+
+    act(() => {
+      document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+    });
+
+    expect(screen.getByTestId("confirm-dialog")).toBeDefined();
+    expect(screen.getByTestId("confirm-dialog-message").textContent).toBe(
+      "You have unsaved changes. Close anyway?"
+    );
+
+    await user.click(screen.getByTestId("confirm-dialog-cancel"));
+
+    await waitFor(() => {
+      expect(screen.queryByTestId("confirm-dialog")).toBeNull();
+    });
+    expect(defaultProps.onClose).not.toHaveBeenCalled();
+  });
+
+  it("does not close on Escape while saving", async () => {
+    const user = userEvent.setup();
+
+    let resolvePromise: (value: Response) => void;
+    const pendingPromise = new Promise<Response>((resolve) => {
+      resolvePromise = resolve;
+    });
+    vi.mocked(global.fetch).mockReturnValueOnce(pendingPromise);
+
+    render(<ContributionModal {...defaultProps} />);
+
+    await user.click(screen.getByTestId("contribution-modal-save"));
+
+    document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+
+    expect(defaultProps.onClose).not.toHaveBeenCalled();
+
+    resolvePromise!(new Response(JSON.stringify({ fundGroupId: "fg-1" }), {
+      status: 201,
+      headers: { "Content-Type": "application/json" },
+    }));
   });
 });
